@@ -11,24 +11,40 @@ import {
   getCommentsByActionId,
   getHistoryByActionId,
   updateAction,
-  getUserByOpenId,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { localAuthRouter, localAdminProcedure, localSuperAdminProcedure, verifyLocalJwt } from "./routers/localAuth";
+import { documentsRouter } from "./routers/documents";
+import { getLocalUserById } from "./db";
 
-// Admin-only procedure: only users with role='admin' can execute
-const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores." });
-  }
-  return next({ ctx });
-});
+const LOCAL_AUTH_COOKIE = "ribeira_local_session";
 
 const areaEnum = z.enum(["Governança", "Técnico", "Jurídico", "Eco-Fin"]);
 const statusEnum = z.enum(["Pendente", "Em Andamento", "Concluído", "Cancelado"]);
 const priorityEnum = z.enum(["Alta", "Média", "Baixa"]);
+
+// Middleware: resolve localUser from cookie (for procedures that accept both auth systems)
+const localOrOauthAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  // Try local session first
+  const cookie = ctx.req.cookies?.[LOCAL_AUTH_COOKIE];
+  if (cookie) {
+    const payload = await verifyLocalJwt(cookie);
+    if (payload) {
+      const localUser = await getLocalUserById(payload.id);
+      if (localUser && localUser.active && (localUser.role === "admin" || localUser.role === "super_admin")) {
+        return next({ ctx: { ...ctx, localUser } });
+      }
+    }
+  }
+  // Fall back to OAuth admin
+  if (ctx.user && ctx.user.role === "admin") {
+    return next({ ctx: { ...ctx, localUser: null } });
+  }
+  throw new TRPCError({ code: "UNAUTHORIZED", message: "Faça login para continuar." });
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -41,6 +57,9 @@ export const appRouter = router({
       return { success: true } as const;
     }),
   }),
+
+  // ---- LOCAL AUTH ----
+  localAuth: localAuthRouter,
 
   // ---- ACTIONS ----
   actions: router({
@@ -65,7 +84,7 @@ export const appRouter = router({
         return action;
       }),
 
-    update: adminProcedure
+    update: localOrOauthAdminProcedure
       .input(
         z.object({
           id: z.number(),
@@ -91,7 +110,12 @@ export const appRouter = router({
           documentBase: "Base Documental",
         };
 
-        // Record history for each changed field
+        // Determine userId for history: localUser or OAuth user
+        const localUser = (ctx as any).localUser;
+        const userId = localUser ? localUser.id : ctx.user!.id;
+        // For history, we use a negative ID for local users to avoid collision with OAuth users
+        const historyUserId = localUser ? -(localUser.id) : userId;
+
         for (const [key, newVal] of Object.entries(fields)) {
           if (newVal === undefined) continue;
           const oldVal = (current as any)[key];
@@ -100,7 +124,7 @@ export const appRouter = router({
           if (oldStr !== newStr) {
             await createHistory({
               actionId: id,
-              userId: ctx.user.id,
+              userId: Math.abs(historyUserId),
               fieldChanged: fieldLabels[key] ?? key,
               oldValue: oldStr || null,
               newValue: newStr || null,
@@ -121,12 +145,14 @@ export const appRouter = router({
         return getCommentsByActionId(input.actionId);
       }),
 
-    create: adminProcedure
+    create: localOrOauthAdminProcedure
       .input(z.object({ actionId: z.number(), content: z.string().min(1).max(2000) }))
       .mutation(async ({ input, ctx }) => {
+        const localUser = (ctx as any).localUser;
+        const userId = localUser ? localUser.id : ctx.user!.id;
         await createComment({
           actionId: input.actionId,
-          userId: ctx.user.id,
+          userId: Math.abs(userId),
           content: input.content,
         });
         return { success: true };
@@ -155,6 +181,9 @@ export const appRouter = router({
       return getDashboardStats();
     }),
   }),
+
+  // ---- DOCUMENTS ----
+  documents: documentsRouter,
 
   // ---- EXPORT ----
   export: router({

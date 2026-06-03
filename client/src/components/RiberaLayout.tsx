@@ -1,21 +1,21 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import {
   BarChart3,
   Building2,
   ChevronRight,
   FileText,
   LayoutDashboard,
-  LogIn,
   LogOut,
   Menu,
   Shield,
-  User,
-  X,
+  Users,
+  Eye,
+  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { toast } from "sonner";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,13 +23,25 @@ const navItems = [
   { href: "/governanca", label: "Governança", icon: Building2 },
 ];
 
+const ROLE_DISPLAY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  super_admin: { label: "Super Admin", icon: ShieldCheck, color: "text-yellow-400" },
+  admin: { label: "Administrador", icon: Shield, color: "text-primary" },
+  viewer: { label: "Visualizador", icon: Eye, color: "text-muted-foreground" },
+};
+
 export default function RiberaLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, isAuthenticated, loading } = useAuth();
+  const { localUser, isSuperAdmin, loading } = useLocalAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => window.location.reload(),
+
+  const logoutMutation = trpc.localAuth.logout.useMutation({
+    onSuccess: () => {
+      toast.success("Sessão encerrada.");
+      window.location.href = "/login";
+    },
   });
+
+  const roleInfo = localUser ? (ROLE_DISPLAY[localUser.role] ?? ROLE_DISPLAY.viewer) : null;
 
   return (
     <div className="cinema-bg min-h-screen flex">
@@ -42,8 +54,10 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
         {/* Logo */}
         <div className="p-5 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }}>
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }}
+            >
               <Shield className="w-5 h-5 text-black" />
             </div>
             <div>
@@ -51,7 +65,6 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               <div className="text-xs text-muted-foreground leading-tight">Sustentável</div>
             </div>
           </div>
-          {/* Geometric line */}
           <div className="geo-line mt-4" />
         </div>
 
@@ -72,6 +85,25 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               {location === href && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
             </Link>
           ))}
+
+          {/* Super-admin: user management */}
+          {isSuperAdmin && (
+            <>
+              <div className="geo-line my-3" />
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">
+                Administração
+              </div>
+              <Link
+                href="/usuarios"
+                className={`nav-item ${location === "/usuarios" ? "active" : ""}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span>Usuários</span>
+                {location === "/usuarios" && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
+              </Link>
+            </>
+          )}
 
           <div className="geo-line my-3" />
 
@@ -107,34 +139,41 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                 <div className="h-2 bg-muted rounded animate-pulse w-16" />
               </div>
             </div>
-          ) : isAuthenticated && user ? (
+          ) : localUser ? (
             <div className="space-y-1">
               <div className="flex items-center gap-3 px-3 py-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                  style={{ background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))", color: "black" }}>
-                  {user.name?.charAt(0)?.toUpperCase() ?? "U"}
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{
+                    background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))",
+                    color: "black",
+                  }}
+                >
+                  {localUser.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-foreground truncate">{user.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {user.role === "admin" ? "Administrador" : "Visualizador"}
-                  </div>
+                  <div className="text-sm font-medium text-foreground truncate">{localUser.name}</div>
+                  {roleInfo && (
+                    <div className={`text-xs flex items-center gap-1 ${roleInfo.color}`}>
+                      <roleInfo.icon className="w-3 h-3" />
+                      {roleInfo.label}
+                    </div>
+                  )}
+                  {localUser.organization && (
+                    <div className="text-xs text-muted-foreground truncate opacity-70">{localUser.organization}</div>
+                  )}
                 </div>
               </div>
               <button
                 onClick={() => logoutMutation.mutate()}
                 className="nav-item w-full text-left"
+                disabled={logoutMutation.isPending}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Sair</span>
+                <span>{logoutMutation.isPending ? "Saindo..." : "Sair"}</span>
               </button>
             </div>
-          ) : (
-            <Link href={getLoginUrl()} className="nav-item w-full">
-              <LogIn className="w-4 h-4" />
-              <span>Entrar</span>
-            </Link>
-          )}
+          ) : null}
         </div>
       </aside>
 
@@ -163,9 +202,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

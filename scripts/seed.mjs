@@ -123,16 +123,23 @@ const governanceNodesData = [
   { id: 13, parentId: 4, title: "SEINFRA", subtitle: "Sec. de Infraestrutura", type: "entity", theme: null, sortOrder: 4 },
 ];
 
-// Insert actions
+// Insert actions (skip if already exists to avoid duplicates)
 console.log("Inserindo ações...");
+let inserted = 0, skipped = 0;
 for (const action of actionsData) {
+  const [existing] = await connection.execute(
+    `SELECT id FROM actions WHERE area = ? AND itemCode = ? LIMIT 1`,
+    [action.area, action.itemCode]
+  );
+  if (existing.length > 0) { skipped++; continue; }
   await connection.execute(
     `INSERT INTO actions (area, itemCode, parentCode, isGroup, description, priority, status, responsible, requestDate, receiptDate, documentBase, sortOrder)
      VALUES (?, ?, ?, ?, ?, ?, 'Pendente', NULL, NULL, NULL, ?, ?)`,
     [action.area, action.itemCode, action.parentCode ?? null, action.isGroup, action.description, action.priority ?? null, action.documentBase ?? null, action.sortOrder]
   );
+  inserted++;
 }
-console.log(`✓ ${actionsData.length} ações inseridas`);
+console.log(`✓ ${inserted} ações inseridas, ${skipped} já existiam (ignoradas)`);
 
 // Insert governance nodes
 console.log("Inserindo nós de governança...");

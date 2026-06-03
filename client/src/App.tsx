@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import RiberaLayout from "./components/RiberaLayout";
@@ -9,8 +9,31 @@ import Dashboard from "./pages/Dashboard";
 import Actions from "./pages/Actions";
 import Governance from "./pages/Governance";
 import ActionDetail from "./pages/ActionDetail";
+import Login from "./pages/Login";
+import Users from "./pages/Users";
+import { useLocalAuth } from "./contexts/LocalAuthContext";
+import { useEffect } from "react";
 
-function Router() {
+function ProtectedRouter() {
+  const { localUser, loading } = useLocalAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !localUser) {
+      navigate("/login");
+    }
+  }, [loading, localUser, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!localUser) return null;
+
   return (
     <RiberaLayout>
       <Switch>
@@ -18,10 +41,20 @@ function Router() {
         <Route path="/acoes" component={Actions} />
         <Route path="/acoes/:id" component={ActionDetail} />
         <Route path="/governanca" component={Governance} />
+        <Route path="/usuarios" component={Users} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
     </RiberaLayout>
+  );
+}
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/login" component={Login} />
+      <Route component={ProtectedRouter} />
+    </Switch>
   );
 }
 

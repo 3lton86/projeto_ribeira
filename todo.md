@@ -35,3 +35,15 @@
 ## Testes
 - [x] Testes unitários para routers principais
 - [x] Checkpoint final
+
+## Novas Funcionalidades (Sprint 2)
+- [x] Corrigir ações duplicadas no banco de dados
+- [x] Schema: tabela local_users (nome, cargo, órgão, senha hash, role: admin/viewer)
+- [x] Schema: tabela action_documents (actionId, label, url, createdAt, userId)
+- [x] Backend: router users (list, create, update, delete) — apenas super-admin
+- [x] Backend: autenticação local com JWT (login por nome+senha)
+- [x] Backend: router documents (list, create, delete por ação)
+- [x] Frontend: página de Login local com campos nome e senha
+- [x] Frontend: página de Gerenciamento de Usuários (super-admin)
+- [x] Frontend: campo de links de documentos na página ActionDetail
+- [x] Controle de acesso: super-admin vê tudo e gerencia usuários; admin edita ações; viewer só visualiza

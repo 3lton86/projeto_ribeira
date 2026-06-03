@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useState } from "react";
 import { useParams, Link } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import {
   ArrowLeft,
   Save,
@@ -16,9 +16,32 @@ import {
   Clock,
   XCircle,
   Send,
-  ChevronDown,
+  Link2,
+  Plus,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Status = "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
 type Priority = "Alta" | "Média" | "Baixa";
@@ -75,13 +98,13 @@ function formatDate(d: Date | string | null | undefined): string {
 export default function ActionDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const { canEdit } = useLocalAuth();
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
   const { data: comments } = trpc.comments.list.useQuery({ actionId: id });
   const { data: historyItems } = trpc.history.list.useQuery({ actionId: id });
+  const { data: documents } = trpc.documents.list.useQuery({ actionId: id });
 
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<{
@@ -93,7 +116,9 @@ export default function ActionDetail() {
     documentBase: string;
   } | null>(null);
   const [newComment, setNewComment] = useState("");
-  const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
+  const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents">("comments");
+  const [showAddDoc, setShowAddDoc] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
 
   const updateMutation = trpc.actions.update.useMutation({
     onSuccess: () => {
@@ -110,6 +135,15 @@ export default function ActionDetail() {
       toast.success("Comentário adicionado!");
       utils.comments.list.invalidate({ actionId: id });
       setNewComment("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteDocMutation = trpc.documents.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Documento removido.");
+      utils.documents.list.invalidate({ actionId: id });
+      setDeleteDocId(null);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -182,7 +216,7 @@ export default function ActionDetail() {
               {action.description}
             </h2>
           </div>
-          {isAdmin && !editMode && (
+          {canEdit && !editMode && (
             <button
               onClick={startEdit}
               className="flex-shrink-0 btn-teal px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
@@ -191,7 +225,7 @@ export default function ActionDetail() {
               Editar
             </button>
           )}
-          {!isAdmin && (
+          {!canEdit && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Lock className="w-3.5 h-3.5" />
               Somente leitura
@@ -204,7 +238,6 @@ export default function ActionDetail() {
           {editMode && form ? (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Status */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Status</label>
                   <select
@@ -217,7 +250,6 @@ export default function ActionDetail() {
                     ))}
                   </select>
                 </div>
-                {/* Priority */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Prioridade</label>
                   <select
@@ -231,7 +263,6 @@ export default function ActionDetail() {
                     ))}
                   </select>
                 </div>
-                {/* Responsible */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Responsável</label>
                   <input
@@ -242,7 +273,6 @@ export default function ActionDetail() {
                     className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
-                {/* Request date */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Data da Solicitação</label>
                   <input
@@ -252,7 +282,6 @@ export default function ActionDetail() {
                     className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
                   />
                 </div>
-                {/* Receipt date */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Data do Recebimento</label>
                   <input
@@ -263,7 +292,6 @@ export default function ActionDetail() {
                   />
                 </div>
               </div>
-              {/* Document base */}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Base Documental</label>
                 <textarea
@@ -315,48 +343,41 @@ export default function ActionDetail() {
         </div>
       </div>
 
-      {/* Comments & History tabs */}
+      {/* Tabs: Comments / History / Documents */}
       <div className="glass-card rounded-xl overflow-hidden animate-fade-in-up">
-        <div className="flex border-b border-border/50">
-          <button
-            onClick={() => setActiveTab("comments")}
-            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors ${
-              activeTab === "comments"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            Comentários
-            {comments && comments.length > 0 && (
-              <span className="bg-primary/20 text-primary rounded-full px-1.5 py-0.5 text-xs">
-                {comments.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors ${
-              activeTab === "history"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <History className="w-4 h-4" />
-            Histórico
-            {historyItems && historyItems.length > 0 && (
-              <span className="bg-secondary rounded-full px-1.5 py-0.5 text-xs text-muted-foreground">
-                {historyItems.length}
-              </span>
-            )}
-          </button>
+        <div className="flex border-b border-border/50 overflow-x-auto">
+          {[
+            { key: "comments", label: "Comentários", icon: MessageSquare, count: comments?.length },
+            { key: "history", label: "Histórico", icon: History, count: historyItems?.length },
+            { key: "documents", label: "Documentos", icon: Link2, count: documents?.length },
+          ].map(({ key, label, icon: Icon, count }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === key
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+              {count !== undefined && count > 0 && (
+                <span className={`rounded-full px-1.5 py-0.5 text-xs ${
+                  activeTab === key ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         <div className="p-5">
+          {/* COMMENTS TAB */}
           {activeTab === "comments" && (
             <div className="space-y-4">
-              {/* New comment */}
-              {isAdmin ? (
+              {canEdit ? (
                 <div className="space-y-2">
                   <textarea
                     value={newComment}
@@ -382,11 +403,10 @@ export default function ActionDetail() {
               ) : (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-secondary/20 rounded-lg">
                   <Lock className="w-3.5 h-3.5" />
-                  Faça login como administrador para adicionar comentários.
+                  Somente administradores podem adicionar comentários.
                 </div>
               )}
 
-              {/* Comments list */}
               {comments && comments.length > 0 ? (
                 <div className="space-y-3">
                   {comments.map((c) => (
@@ -411,13 +431,12 @@ export default function ActionDetail() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  Nenhum comentário ainda.
-                </div>
+                <div className="text-center py-8 text-muted-foreground text-sm">Nenhum comentário ainda.</div>
               )}
             </div>
           )}
 
+          {/* HISTORY TAB */}
           {activeTab === "history" && (
             <div className="space-y-2">
               {historyItems && historyItems.length > 0 ? (
@@ -446,14 +465,188 @@ export default function ActionDetail() {
                   </div>
                 ))
               ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">Nenhuma alteração registrada.</div>
+              )}
+            </div>
+          )}
+
+          {/* DOCUMENTS TAB */}
+          {activeTab === "documents" && (
+            <div className="space-y-4">
+              {canEdit && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowAddDoc(true)}
+                    className="btn-teal px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Adicionar Link
+                  </button>
+                </div>
+              )}
+
+              {documents && documents.length > 0 ? (
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/20 border border-border/30 hover:border-primary/30 transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: "oklch(0.72 0.18 185 / 0.15)" }}>
+                        <Link2 className="w-4 h-4" style={{ color: "oklch(0.72 0.18 185)" }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">{doc.label}</div>
+                        <div className="text-xs text-muted-foreground truncate">{doc.url}</div>
+                        <div className="text-xs text-muted-foreground opacity-60 mt-0.5">
+                          {doc.uploaderName ?? "Sistema"} · {formatDateTime(doc.createdAt)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                          title="Abrir link"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        {canEdit && (
+                          <button
+                            onClick={() => setDeleteDocId(doc.id)}
+                            className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
+                            title="Remover"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <div className="text-center py-8 text-muted-foreground text-sm">
-                  Nenhuma alteração registrada.
+                  <Link2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  Nenhum documento vinculado.
+                  {canEdit && (
+                    <p className="text-xs mt-1">Clique em "Adicionar Link" para vincular um documento.</p>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Add Document Dialog */}
+      <AddDocumentDialog
+        open={showAddDoc}
+        onClose={() => setShowAddDoc(false)}
+        actionId={id}
+        onSuccess={() => {
+          utils.documents.list.invalidate({ actionId: id });
+          setShowAddDoc(false);
+        }}
+      />
+
+      {/* Delete Document Confirmation */}
+      <AlertDialog open={deleteDocId !== null} onOpenChange={() => setDeleteDocId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O link do documento será removido permanentemente desta ação.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDocId !== null && deleteDocMutation.mutate({ id: deleteDocId })}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+// ---- Add Document Dialog ----
+
+function AddDocumentDialog({
+  open,
+  onClose,
+  actionId,
+  onSuccess,
+}: {
+  open: boolean;
+  onClose: () => void;
+  actionId: number;
+  onSuccess: () => void;
+}) {
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+
+  const createMutation = trpc.documents.create.useMutation({
+    onSuccess: () => {
+      toast.success("Documento adicionado!");
+      setLabel("");
+      setUrl("");
+      onSuccess();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!label.trim() || !url.trim()) return;
+    createMutation.mutate({ actionId, label: label.trim(), url: url.trim() });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Adicionar Link de Documento</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome / Descrição do documento *</Label>
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Ex: Relatório Técnico v1.0"
+              required
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>URL do arquivo *</Label>
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://drive.google.com/..."
+              type="url"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Informe o link completo (Google Drive, SharePoint, OneDrive, etc.)
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending || !label || !url}>
+              {createMutation.isPending ? "Salvando..." : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

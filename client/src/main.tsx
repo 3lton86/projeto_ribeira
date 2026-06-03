@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { LocalAuthProvider } from "./contexts/LocalAuthContext";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -16,9 +17,10 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
 
+  // Only redirect to OAuth login if not using local auth system
   if (!isUnauthorized) return;
-
-  window.location.href = getLoginUrl();
+  // Don't auto-redirect; local auth system handles login routing
+  // window.location.href = getLoginUrl();
 };
 
 queryClient.getQueryCache().subscribe(event => {
@@ -55,7 +57,9 @@ const trpcClient = trpc.createClient({
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <LocalAuthProvider>
+        <App />
+      </LocalAuthProvider>
     </QueryClientProvider>
   </trpc.Provider>
 );

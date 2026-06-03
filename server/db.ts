@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, comments, governanceNodes, history, InsertUser, users } from "../drizzle/schema";
+import { actions, actionDocuments, comments, governanceNodes, history, InsertLocalUser, InsertUser, localUsers, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -229,6 +229,80 @@ export async function getDashboardStats() {
   const completionRate = total > 0 ? Math.round((byStatus["Concluído"] / total) * 100) : 0;
 
   return { total, byStatus, byArea, byPriority, completionRate };
+}
+
+// ---- LOCAL USERS ----
+
+export async function getLocalUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: localUsers.id,
+    name: localUsers.name,
+    username: localUsers.username,
+    role: localUsers.role,
+    position: localUsers.position,
+    organization: localUsers.organization,
+    active: localUsers.active,
+    createdAt: localUsers.createdAt,
+  }).from(localUsers).orderBy(localUsers.name);
+}
+
+export async function getLocalUserById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(localUsers).where(eq(localUsers.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function getLocalUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(localUsers).where(eq(localUsers.username, username)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function createLocalUser(data: InsertLocalUser) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(localUsers).values(data);
+}
+
+export async function updateLocalUser(
+  id: number,
+  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "viewer"; position: string; organization: string; active: number }>
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(localUsers).set(data).where(eq(localUsers.id, id));
+}
+
+export async function deleteLocalUser(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(localUsers).where(eq(localUsers.id, id));
+}
+
+// ---- ACTION DOCUMENTS ----
+
+export async function getDocumentsByActionId(actionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(actionDocuments)
+    .where(eq(actionDocuments.actionId, actionId))
+    .orderBy(desc(actionDocuments.createdAt));
+}
+
+export async function createActionDocument(data: { actionId: number; label: string; url: string; uploadedBy: number; uploaderName?: string }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(actionDocuments).values(data);
+}
+
+export async function deleteActionDocument(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(actionDocuments).where(eq(actionDocuments.id, id));
 }
 
 // ---- EXPORT DATA ----

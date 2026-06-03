@@ -86,3 +86,34 @@ export const governanceNodes = mysqlTable("governance_nodes", {
 
 export type GovernanceNode = typeof governanceNodes.$inferSelect;
 export type InsertGovernanceNode = typeof governanceNodes.$inferInsert;
+
+// Usuários locais do sistema (criados pelo super-admin, autenticam com nome+senha)
+export const localUsers = mysqlTable("local_users", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  username: varchar("username", { length: 100 }).notNull().unique(), // login identifier
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  role: mysqlEnum("role", ["super_admin", "admin", "viewer"]).default("viewer").notNull(),
+  position: varchar("position", { length: 200 }), // cargo
+  organization: varchar("organization", { length: 200 }), // órgão
+  active: int("active").default(1).notNull(), // 1 = ativo, 0 = desativado
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LocalUser = typeof localUsers.$inferSelect;
+export type InsertLocalUser = typeof localUsers.$inferInsert;
+
+// Links de documentos entregues por ação
+export const actionDocuments = mysqlTable("action_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  actionId: int("actionId").notNull(),
+  label: varchar("label", { length: 300 }).notNull(), // nome/descrição do documento
+  url: text("url").notNull(), // link para o arquivo
+  uploadedBy: int("uploadedBy").notNull(), // localUsers.id
+  uploaderName: varchar("uploaderName", { length: 200 }), // snapshot do nome
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActionDocument = typeof actionDocuments.$inferSelect;
+export type InsertActionDocument = typeof actionDocuments.$inferInsert;

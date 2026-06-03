@@ -1,0 +1,399 @@
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield } from "lucide-react";
+import { useLocation } from "wouter";
+
+type UserRow = {
+  id: number;
+  name: string;
+  username: string;
+  role: "super_admin" | "admin" | "viewer";
+  position: string | null;
+  organization: string | null;
+  active: number;
+  createdAt: Date;
+};
+
+const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  super_admin: { label: "Super Admin", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30", icon: <ShieldCheck className="w-3 h-3" /> },
+  admin: { label: "Administrador", color: "text-primary bg-primary/10 border-primary/30", icon: <Shield className="w-3 h-3" /> },
+  viewer: { label: "Visualizador", color: "text-muted-foreground bg-secondary border-border", icon: <Eye className="w-3 h-3" /> },
+};
+
+export default function Users() {
+  const [, navigate] = useLocation();
+  const { isSuperAdmin, localUser } = useLocalAuth();
+  const utils = trpc.useUtils();
+
+  const { data: users = [], isLoading } = trpc.localAuth.users.list.useQuery(undefined, {
+    enabled: isSuperAdmin,
+  });
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
+
+  const createMutation = trpc.localAuth.users.create.useMutation({
+    onSuccess: () => {
+      utils.localAuth.users.list.invalidate();
+      setShowCreate(false);
+      toast.success("Usuário criado com sucesso!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.localAuth.users.update.useMutation({
+    onSuccess: () => {
+      utils.localAuth.users.list.invalidate();
+      setEditUser(null);
+      toast.success("Usuário atualizado!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteMutation = trpc.localAuth.users.delete.useMutation({
+    onSuccess: () => {
+      utils.localAuth.users.list.invalidate();
+      setDeleteUser(null);
+      toast.success("Usuário removido.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        <ShieldCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
+        <p className="font-medium">Acesso restrito ao super-administrador.</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>
+          Voltar ao Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gerenciamento de Usuários</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cadastre e gerencie os usuários com acesso ao sistema.
+          </p>
+        </div>
+        <Button onClick={() => setShowCreate(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Novo Usuário
+        </Button>
+      </div>
+
+      {/* Users table */}
+      <div className="glass-card rounded-xl overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-muted-foreground">Carregando...</div>
+        ) : users.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            Nenhum usuário cadastrado além do super-admin.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/50 bg-secondary/30">
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cargo / Órgão</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(users as UserRow[]).map((u) => {
+                const roleInfo = ROLE_LABELS[u.role] ?? ROLE_LABELS.viewer;
+                return (
+                  <tr key={u.id} className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
+                    <td className="px-4 py-3 font-medium text-foreground">{u.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{u.username}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {u.position && <div className="text-xs">{u.position}</div>}
+                      {u.organization && <div className="text-xs opacity-70">{u.organization}</div>}
+                      {!u.position && !u.organization && <span className="opacity-40">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${roleInfo.color}`}>
+                        {roleInfo.icon}
+                        {roleInfo.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.active ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                          <UserCheck className="w-3 h-3" /> Ativo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <UserX className="w-3 h-3" /> Inativo
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {u.role !== "super_admin" && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setEditUser(u)}
+                            className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                            title="Editar"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          {u.id !== localUser?.id && (
+                            <button
+                              onClick={() => setDeleteUser(u)}
+                              className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Create dialog */}
+      <UserFormDialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Novo Usuário"
+        onSubmit={(data) => createMutation.mutate(data as any)}
+        isPending={createMutation.isPending}
+      />
+
+      {/* Edit dialog */}
+      {editUser && (
+        <UserFormDialog
+          open={!!editUser}
+          onClose={() => setEditUser(null)}
+          title="Editar Usuário"
+          initial={{
+              ...editUser,
+              role: editUser.role === "super_admin" ? "admin" : editUser.role,
+              position: editUser.position ?? undefined,
+              organization: editUser.organization ?? undefined,
+            }}
+          onSubmit={(data) => updateMutation.mutate({ id: editUser.id, ...data } as any)}
+          isPending={updateMutation.isPending}
+          isEdit
+        />
+      )}
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário <strong>{deleteUser?.name}</strong> ({deleteUser?.username}) será removido permanentemente.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteUser && deleteMutation.mutate({ id: deleteUser.id })}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ---- User Form Dialog ----
+
+type FormData = {
+  name: string;
+  username: string;
+  password: string;
+  role: "admin" | "viewer";
+  position: string;
+  organization: string;
+  active?: number;
+};
+
+function UserFormDialog({
+  open,
+  onClose,
+  title,
+  initial,
+  onSubmit,
+  isPending,
+  isEdit = false,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  initial?: Partial<FormData & { active: number }>;
+  onSubmit: (data: Partial<FormData>) => void;
+  isPending: boolean;
+  isEdit?: boolean;
+}) {
+  const [form, setForm] = useState<FormData>({
+    name: initial?.name ?? "",
+    username: initial?.username ?? "",
+    password: "",
+    role: (initial?.role as "admin" | "viewer") ?? "viewer",
+    position: initial?.position ?? "",
+    organization: initial?.organization ?? "",
+  });
+  const [active, setActive] = useState(initial?.active ?? 1);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const data: Partial<FormData & { active: number }> = {
+      name: form.name,
+      username: form.username,
+      role: form.role,
+      position: form.position || undefined,
+      organization: form.organization || undefined,
+    };
+    if (form.password) data.password = form.password;
+    if (isEdit) data.active = active;
+    onSubmit(data);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome completo *</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Ex: João da Silva"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Nome de usuário (login) *</Label>
+            <Input
+              value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))}
+              placeholder="Ex: joao.silva"
+              required
+              disabled={isEdit}
+              className={isEdit ? "opacity-60" : ""}
+            />
+            <p className="text-xs text-muted-foreground">Apenas letras minúsculas, números, ponto, hífen ou underscore.</p>
+          </div>
+          <div className="space-y-2">
+            <Label>{isEdit ? "Nova senha (deixe em branco para manter)" : "Senha *"}</Label>
+            <Input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder="Mínimo 6 caracteres"
+              required={!isEdit}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Cargo</Label>
+              <Input
+                value={form.position}
+                onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
+                placeholder="Ex: Coordenador"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Órgão</Label>
+              <Input
+                value={form.organization}
+                onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
+                placeholder="Ex: SEMURB"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Perfil de acesso *</Label>
+            <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as "admin" | "viewer" }))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Administrador — pode editar e comentar</SelectItem>
+                <SelectItem value="viewer">Visualizador — somente leitura</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {isEdit && (
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={String(active)} onValueChange={(v) => setActive(Number(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Ativo</SelectItem>
+                  <SelectItem value="0">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Criar usuário"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

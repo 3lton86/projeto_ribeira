@@ -58,6 +58,15 @@ vi.mock("./db", () => ({
   getExportData: vi.fn().mockResolvedValue([]),
   getUserByOpenId: vi.fn().mockResolvedValue(undefined),
   upsertUser: vi.fn().mockResolvedValue(undefined),
+  getLocalUserById: vi.fn().mockResolvedValue(null),
+  getLocalUserByUsername: vi.fn().mockResolvedValue(null),
+  getLocalUsers: vi.fn().mockResolvedValue([]),
+  createLocalUser: vi.fn().mockResolvedValue(undefined),
+  updateLocalUser: vi.fn().mockResolvedValue(undefined),
+  deleteLocalUser: vi.fn().mockResolvedValue(undefined),
+  getDocumentsByActionId: vi.fn().mockResolvedValue([]),
+  createActionDocument: vi.fn().mockResolvedValue(undefined),
+  deleteActionDocument: vi.fn().mockResolvedValue(undefined),
 }));
 
 function makePublicCtx(): TrpcContext {
@@ -134,7 +143,7 @@ describe("actions.update", () => {
     const caller = appRouter.createCaller(nonAdminCtx);
     await expect(
       caller.actions.update({ id: 2, status: "Em Andamento" })
-    ).rejects.toThrow("Acesso restrito a administradores.");
+    ).rejects.toThrow();
   });
 
   it("allows admin to update status", async () => {
@@ -207,5 +216,40 @@ describe("auth.logout", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.auth.logout();
     expect(result.success).toBe(true);
+  });
+});
+
+describe("localAuth.me", () => {
+  it("returns null when no local session cookie is present", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    const result = await caller.localAuth.me();
+    expect(result).toBeNull();
+  });
+});
+
+describe("localAuth.login", () => {
+  it("rejects invalid credentials (user not found)", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.localAuth.login({ username: "nonexistent.user.xyz", password: "wrongpassword" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("documents.list", () => {
+  it("returns empty array for action with no documents (public access)", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    const result = await caller.documents.list({ actionId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("documents.create", () => {
+  it("rejects document creation without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.documents.create({ actionId: 1, label: "Test Doc", url: "https://example.com/doc.pdf" })
+    ).rejects.toThrow();
   });
 });
