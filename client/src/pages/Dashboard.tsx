@@ -1,7 +1,10 @@
 import { trpc } from "@/lib/trpc";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
-import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download } from "lucide-react";
 import { Link } from "wouter";
+import { useState } from "react";
+import { exportToPdf } from "@/lib/export";
+import { toast } from "sonner";
 
 const AREA_COLORS: Record<string, string> = {
   Governança: "oklch(0.65 0.20 50)",
@@ -76,6 +79,43 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+function ExportPdfButton() {
+  const [loading, setLoading] = useState(false);
+  const { data: exportData } = trpc.export.data.useQuery({ area: undefined, status: undefined, priority: undefined });
+
+  const handleExport = async () => {
+    if (!exportData || exportData.length === 0) {
+      toast.error("Nenhum dado disponível para exportar.");
+      return;
+    }
+    setLoading(true);
+    try {
+      exportToPdf(exportData);
+      toast.success("Relatório PDF gerado com sucesso!");
+    } catch (err) {
+      toast.error("Erro ao gerar o PDF. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={loading}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+      style={{
+        background: "linear-gradient(135deg, oklch(0.72 0.18 185 / 0.15), oklch(0.65 0.20 50 / 0.15))",
+        border: "1px solid oklch(0.72 0.18 185 / 0.4)",
+        color: "oklch(0.72 0.18 185)",
+      }}
+    >
+      <Download className="w-4 h-4" />
+      {loading ? "Gerando..." : "Exportar PDF"}
+    </button>
+  );
+}
+
 export default function Dashboard() {
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery();
 
@@ -112,14 +152,17 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="animate-fade-in-up">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }} />
-          <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
+      <div className="animate-fade-in-up flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }} />
+            <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
+          </div>
+          <p className="text-sm text-muted-foreground ml-3">
+            Visão geral do progresso do projeto RIBEIRA SUSTENTÁVEL
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground ml-3">
-          Visão geral do progresso do projeto RIBEIRA SUSTENTÁVEL
-        </p>
+        <ExportPdfButton />
       </div>
 
       {/* KPI Cards */}

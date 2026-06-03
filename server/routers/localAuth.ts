@@ -35,12 +35,26 @@ export async function verifyLocalJwt(token: string) {
   }
 }
 
+// ---- Helpers to extract token from cookie or Authorization header ----
+
+function extractToken(ctx: { req: { cookies?: Record<string, string>; headers: Record<string, string | string[] | undefined> } }): string | null {
+  // 1. Try cookie first
+  const cookie = ctx.req.cookies?.[LOCAL_AUTH_COOKIE];
+  if (cookie) return cookie;
+  // 2. Fallback: Authorization: Bearer <token>
+  const authHeader = ctx.req.headers["authorization"];
+  if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+  return null;
+}
+
 // ---- Middleware: require local auth ----
 
 const localAuthProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  const cookie = ctx.req.cookies?.[LOCAL_AUTH_COOKIE];
-  if (!cookie) throw new TRPCError({ code: "UNAUTHORIZED", message: "Faça login para continuar." });
-  const payload = await verifyLocalJwt(cookie);
+  const token = extractToken(ctx);
+  if (!token) throw new TRPCError({ code: "UNAUTHORIZED", message: "Faça login para continuar." });
+  const payload = await verifyLocalJwt(token);
   if (!payload) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão expirada. Faça login novamente." });
   const user = await getLocalUserById(payload.id);
   if (!user || !user.active) throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário inativo ou não encontrado." });
@@ -87,6 +101,7 @@ export const localAuthRouter = router({
       });
       return {
         success: true,
+        token,
         user: {
           id: user.id,
           name: user.name,
@@ -106,9 +121,9 @@ export const localAuthRouter = router({
 
   // Get current local session
   me: publicProcedure.query(async ({ ctx }) => {
-    const cookie = ctx.req.cookies?.[LOCAL_AUTH_COOKIE];
-    if (!cookie) return null;
-    const payload = await verifyLocalJwt(cookie);
+    const token = extractToken(ctx);
+    if (!token) return null;
+    const payload = await verifyLocalJwt(token);
     if (!payload) return null;
     const user = await getLocalUserById(payload.id);
     if (!user || !user.active) return null;

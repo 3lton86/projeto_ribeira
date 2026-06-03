@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { setLocalToken } from "@/main";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ export default function Login() {
 
   const loginMutation = trpc.localAuth.login.useMutation({
     onSuccess: (data) => {
+      // Save JWT token for Authorization header fallback
+      setLocalToken(data.token);
       // Set user immediately in context + localStorage so ProtectedRouter sees it right away
       setLocalUser(data.user as any);
       toast.success("Login realizado com sucesso!");

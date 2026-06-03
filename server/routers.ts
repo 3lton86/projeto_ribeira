@@ -26,12 +26,23 @@ const areaEnum = z.enum(["Governança", "Técnico", "Jurídico", "Eco-Fin"]);
 const statusEnum = z.enum(["Pendente", "Em Andamento", "Concluído", "Cancelado"]);
 const priorityEnum = z.enum(["Alta", "Média", "Baixa"]);
 
-// Middleware: resolve localUser from cookie (for procedures that accept both auth systems)
-const localOrOauthAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  // Try local session first
+// Helper: extract JWT token from cookie or Authorization header
+function extractLocalToken(ctx: { req: { cookies?: Record<string, string>; headers: Record<string, string | string[] | undefined> } }): string | null {
   const cookie = ctx.req.cookies?.[LOCAL_AUTH_COOKIE];
-  if (cookie) {
-    const payload = await verifyLocalJwt(cookie);
+  if (cookie) return cookie;
+  const authHeader = ctx.req.headers["authorization"];
+  if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+  return null;
+}
+
+// Middleware: resolve localUser from cookie or Authorization header (for procedures that accept both auth systems)
+const localOrOauthAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  // Try local session first (cookie or Bearer header)
+  const token = extractLocalToken(ctx);
+  if (token) {
+    const payload = await verifyLocalJwt(token);
     if (payload) {
       const localUser = await getLocalUserById(payload.id);
       if (localUser && localUser.active && (localUser.role === "admin" || localUser.role === "super_admin")) {

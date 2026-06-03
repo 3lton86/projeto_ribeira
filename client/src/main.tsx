@@ -5,22 +5,39 @@ import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
-import { getLoginUrl } from "./const";
 import { LocalAuthProvider } from "./contexts/LocalAuthContext";
 import "./index.css";
+
+const TOKEN_KEY = "ribeira_local_token";
+
+export function getLocalToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setLocalToken(token: string | null) {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
 
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
-
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
-  // Only redirect to OAuth login if not using local auth system
   if (!isUnauthorized) return;
   // Don't auto-redirect; local auth system handles login routing
-  // window.location.href = getLoginUrl();
 };
 
 queryClient.getQueryCache().subscribe(event => {
@@ -44,6 +61,14 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      headers() {
+        // Send JWT token as Authorization header as fallback for httpOnly cookie
+        const token = getLocalToken();
+        if (token) {
+          return { Authorization: `Bearer ${token}` };
+        }
+        return {};
+      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { setLocalToken } from "@/main";
 import { toast } from "sonner";
 
 const navItems = [
@@ -36,6 +37,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
 
   const logoutMutation = trpc.localAuth.logout.useMutation({
     onSuccess: () => {
+      setLocalToken(null);
       setLocalUser(null);
       navigate("/login");
     },

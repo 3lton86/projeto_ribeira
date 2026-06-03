@@ -47,3 +47,7 @@
 - [x] Frontend: página de Gerenciamento de Usuários (super-admin)
 - [x] Frontend: campo de links de documentos na página ActionDetail
 - [x] Controle de acesso: super-admin vê tudo e gerencia usuários; admin edita ações; viewer só visualiza
+
+## Sprint 3
+- [x] Corrigir autenticação ao cadastrar usuários (erro "Faça primeiro login para continuar")
+- [x] Botão de exportação PDF no Dashboard
