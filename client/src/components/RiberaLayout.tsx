@@ -15,7 +15,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
-import { setLocalToken } from "@/main";
+import { setLocalToken } from "@/lib/localToken";
 import { toast } from "sonner";
 
 const navItems = [
