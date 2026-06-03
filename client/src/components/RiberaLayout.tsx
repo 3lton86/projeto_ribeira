@@ -30,14 +30,14 @@ const ROLE_DISPLAY: Record<string, { label: string; icon: React.ElementType; col
 };
 
 export default function RiberaLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const { localUser, isSuperAdmin, loading } = useLocalAuth();
+  const [location, navigate] = useLocation();
+  const { localUser, loading, isSuperAdmin, setLocalUser } = useLocalAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logoutMutation = trpc.localAuth.logout.useMutation({
     onSuccess: () => {
-      toast.success("Sessão encerrada.");
-      window.location.href = "/login";
+      setLocalUser(null);
+      navigate("/login");
     },
   });
 

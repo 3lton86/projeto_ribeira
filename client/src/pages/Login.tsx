@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
@@ -10,16 +10,26 @@ import { Eye, EyeOff, Lock, User, Waves } from "lucide-react";
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const { refetch } = useLocalAuth();
+  const { refetch, localUser, loading, setLocalUser } = useLocalAuth();
+
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    if (!loading && localUser) {
+      navigate("/");
+    }
+  }, [loading, localUser, navigate]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = trpc.localAuth.login.useMutation({
-    onSuccess: () => {
-      refetch();
+    onSuccess: (data) => {
+      // Set user immediately in context + localStorage so ProtectedRouter sees it right away
+      setLocalUser(data.user as any);
       toast.success("Login realizado com sucesso!");
       navigate("/");
+      // Also trigger background refetch to sync with server
+      refetch();
     },
     onError: (err) => {
       toast.error(err.message || "Usuário ou senha inválidos.");

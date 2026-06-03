@@ -10,10 +10,35 @@ export type LocalUser = {
   organization: string | null;
 };
 
+const STORAGE_KEY = "ribeira_local_user";
+
+function getCachedUser(): LocalUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as LocalUser;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedUser(user: LocalUser | null) {
+  try {
+    if (user) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 type LocalAuthContextType = {
   localUser: LocalUser | null;
   loading: boolean;
   refetch: () => void;
+  setLocalUser: (user: LocalUser | null) => void;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   canEdit: boolean;
@@ -23,28 +48,53 @@ const LocalAuthContext = createContext<LocalAuthContextType>({
   localUser: null,
   loading: true,
   refetch: () => {},
+  setLocalUser: () => {},
   isAdmin: false,
   isSuperAdmin: false,
   canEdit: false,
 });
 
 export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
+  // Initialize from cache so there's no flash of unauthenticated state
+  const [localUser, setLocalUserState] = useState<LocalUser | null>(getCachedUser);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
   const { data, isLoading, refetch } = trpc.localAuth.me.useQuery(undefined, {
     retry: false,
     staleTime: 60_000,
+    // Don't refetch on window focus to avoid flicker
+    refetchOnWindowFocus: false,
   });
 
-  const localUser = (data as LocalUser | null | undefined) ?? null;
+  // Sync server state to local state and cache
+  useEffect(() => {
+    if (!isLoading) {
+      const serverUser = (data as LocalUser | null | undefined) ?? null;
+      setLocalUserState(serverUser);
+      setCachedUser(serverUser);
+      setInitialCheckDone(true);
+    }
+  }, [isLoading, data]);
+
+  const setLocalUser = (user: LocalUser | null) => {
+    setLocalUserState(user);
+    setCachedUser(user);
+  };
+
   const isAdmin = localUser?.role === "admin" || localUser?.role === "super_admin";
   const isSuperAdmin = localUser?.role === "super_admin";
   const canEdit = isAdmin;
+
+  // Loading: only show spinner on first load if no cached user
+  const loading = isLoading && !initialCheckDone && !localUser;
 
   return (
     <LocalAuthContext.Provider
       value={{
         localUser,
-        loading: isLoading,
+        loading,
         refetch,
+        setLocalUser,
         isAdmin,
         isSuperAdmin,
         canEdit,

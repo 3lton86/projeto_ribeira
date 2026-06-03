@@ -16,14 +16,16 @@ import { useEffect } from "react";
 
 function ProtectedRouter() {
   const { localUser, loading } = useLocalAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   useEffect(() => {
+    // Only redirect after loading is complete and user is definitely not authenticated
     if (!loading && !localUser) {
       navigate("/login");
     }
   }, [loading, localUser, navigate]);
 
+  // Show spinner while loading (including right after login while cookie is being read)
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
