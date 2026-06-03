@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useState, useMemo } from "react";
 import { useLocation, Link } from "wouter";
@@ -76,6 +77,8 @@ export default function Actions() {
   const [selectedAreas, setSelectedAreas] = useState<Area[]>(initialArea ? [initialArea] : []);
   const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([]);
+  const [selectedOrgaos, setSelectedOrgaos] = useState<string[]>([]);
+  const [orgaoSearch, setOrgaoSearch] = useState("");
   const [searchText, setSearchText] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
@@ -97,11 +100,12 @@ export default function Actions() {
       if (a.isGroup === 0) {
         if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) return false;
         if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) return false;
+        if (selectedOrgaos.length > 0 && !selectedOrgaos.includes((a as any).orgao ?? "")) return false;
         if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) return false;
       }
       return true;
     });
-  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, searchText]);
+  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, searchText]);
 
   // Group by area
   const grouped = useMemo(() => {
@@ -133,10 +137,16 @@ export default function Actions() {
     });
   };
 
+  const toggleOrgao = (o: string) => {
+    setSelectedOrgaos((prev) => (prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o]));
+  };
+
   const clearFilters = () => {
     setSelectedAreas([]);
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedOrgaos([]);
+    setOrgaoSearch("");
     setSearchText("");
   };
 
@@ -144,6 +154,7 @@ export default function Actions() {
     selectedAreas.length > 0 ||
     selectedStatuses.length > 0 ||
     selectedPriorities.length > 0 ||
+    selectedOrgaos.length > 0 ||
     searchText.length > 0;
 
   const totalItems = filtered.filter((a) => a.isGroup === 0).length;
@@ -198,7 +209,7 @@ export default function Actions() {
             Filtros
             {hasFilters && (
               <span className="ml-1 bg-black/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
-                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + (searchText ? 1 : 0)}
+                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + (searchText ? 1 : 0)}
               </span>
             )}
           </button>
@@ -235,6 +246,44 @@ export default function Actions() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Filtro por Órgão — ocupa linha inteira */}
+            <div className="sm:col-span-3">
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider flex items-center justify-between">
+                <span>Órgão Responsável</span>
+                {selectedOrgaos.length > 0 && (
+                  <button onClick={() => setSelectedOrgaos([])} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5">
+                    <X className="w-2.5 h-2.5" /> Limpar
+                  </button>
+                )}
+              </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar órgão..."
+                  value={orgaoSearch}
+                  onChange={(e) => setOrgaoSearch(e.target.value)}
+                  className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs glass-card border border-border/40 bg-transparent focus:outline-none focus:border-primary/50 transition-colors"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                {ORGAOS_MUNICIPAIS.filter((o) =>
+                  o.toLowerCase().includes(orgaoSearch.toLowerCase())
+                ).map((orgao) => (
+                  <button
+                    key={orgao}
+                    onClick={() => toggleOrgao(orgao)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedOrgaos.includes(orgao)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    }`}
+                  >
+                    {orgao}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Área</div>
               <div className="flex flex-wrap gap-1.5">
@@ -388,6 +437,11 @@ export default function Actions() {
                                   <div className="flex items-center flex-wrap gap-2 mt-2">
                                     <StatusBadge status={action.status as Status} />
                                     <PriorityBadge priority={action.priority as Priority | null} />
+                                    {(action as any).orgao && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-primary/15 text-primary border border-primary/30">
+                                        {(action as any).orgao}
+                                      </span>
+                                    )}
                                     {action.responsible && (
                                       <span className="text-xs text-muted-foreground">
                                         👤 {action.responsible}
