@@ -114,6 +114,11 @@ export default function ActionDetail() {
     requestDate: string;
     receiptDate: string;
     documentBase: string;
+    orgao: string;
+    responsavelNome: string;
+    responsavelCargo: string;
+    responsavelTel: string;
+    responsavelEmail: string;
   } | null>(null);
   const [newComment, setNewComment] = useState("");
   const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents">("comments");
@@ -157,6 +162,11 @@ export default function ActionDetail() {
       requestDate: formatDate(action.requestDate),
       receiptDate: formatDate(action.receiptDate),
       documentBase: action.documentBase ?? "",
+      orgao: (action as any).orgao ?? "",
+      responsavelNome: (action as any).responsavelNome ?? "",
+      responsavelCargo: (action as any).responsavelCargo ?? "",
+      responsavelTel: (action as any).responsavelTel ?? "",
+      responsavelEmail: (action as any).responsavelEmail ?? "",
     });
     setEditMode(true);
   };
@@ -167,10 +177,15 @@ export default function ActionDetail() {
       id,
       status: form.status,
       priority: form.priority || undefined,
-      responsible: form.responsible || undefined,
+        responsible: form.responsible || undefined,
       requestDate: form.requestDate ? new Date(form.requestDate) : undefined,
       receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
       documentBase: form.documentBase || undefined,
+      orgao: (form.orgao || undefined) as any,
+      responsavelNome: form.responsavelNome || undefined,
+      responsavelCargo: form.responsavelCargo || undefined,
+      responsavelTel: form.responsavelTel || undefined,
+      responsavelEmail: form.responsavelEmail || undefined,
     });
   };
 
@@ -302,6 +317,66 @@ export default function ActionDetail() {
                   className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground resize-none"
                 />
               </div>
+
+              {/* Órgão e Contato do Responsável */}
+              <div className="pt-2 border-t border-border/30">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Órgão Responsável pela Entrega</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Órgão</label>
+                    <select
+                      value={form.orgao}
+                      onChange={(e) => setForm({ ...form, orgao: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+                    >
+                      <option value="">— Selecionar órgão —</option>
+                      {["GAPRE","GAVIPRE","SMG","SEPAE","SECOM","PGM","CGM","SEMPLA","SEMAD","SEFIN","SME","SMS","SEMTAS","SECULT","SEMSUR","SEMUL","STTU","SEMDES","SETUR","SEL","SEINFRA","SEMIDH","SEHARPE","SEMURB","OGM","PROCON","NATALPREV","ARSBAN","FUNCARTE","URBANA","SAG"].map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Nome do Responsável</label>
+                    <input
+                      type="text"
+                      value={form.responsavelNome}
+                      onChange={(e) => setForm({ ...form, responsavelNome: e.target.value })}
+                      placeholder="Nome completo"
+                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Cargo</label>
+                    <input
+                      type="text"
+                      value={form.responsavelCargo}
+                      onChange={(e) => setForm({ ...form, responsavelCargo: e.target.value })}
+                      placeholder="Cargo ou função"
+                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Telefone</label>
+                    <input
+                      type="tel"
+                      value={form.responsavelTel}
+                      onChange={(e) => setForm({ ...form, responsavelTel: e.target.value })}
+                      placeholder="(84) 9 0000-0000"
+                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">E-mail</label>
+                    <input
+                      type="email"
+                      value={form.responsavelEmail}
+                      onChange={(e) => setForm({ ...form, responsavelEmail: e.target.value })}
+                      placeholder="email@orgao.natal.rn.gov.br"
+                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={saveEdit}
@@ -320,24 +395,75 @@ export default function ActionDetail() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { label: "Prioridade", value: action.priority, icon: AlertTriangle },
-                { label: "Responsável", value: action.responsible, icon: User },
-                { label: "Data da Solicitação", value: formatDateTime(action.requestDate), icon: Calendar },
-                { label: "Data do Recebimento", value: formatDateTime(action.receiptDate), icon: Calendar },
-                { label: "Base Documental", value: action.documentBase, icon: FileText, full: true },
-              ].map(({ label, value, icon: Icon, full }) => (
-                <div key={label} className={`${full ? "sm:col-span-2 lg:col-span-3" : ""}`}>
-                  <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                    <Icon className="w-3.5 h-3.5" />
-                    {label}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { label: "Prioridade", value: action.priority, icon: AlertTriangle },
+                  { label: "Responsável", value: action.responsible, icon: User },
+                  { label: "Data da Solicitação", value: formatDateTime(action.requestDate), icon: Calendar },
+                  { label: "Data do Recebimento", value: formatDateTime(action.receiptDate), icon: Calendar },
+                  { label: "Base Documental", value: action.documentBase, icon: FileText, full: true },
+                ].map(({ label, value, icon: Icon, full }) => (
+                  <div key={label} className={`${full ? "sm:col-span-2 lg:col-span-3" : ""}`}>
+                    <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </div>
+                    <div className="text-sm text-foreground">
+                      {value ?? <span className="text-muted-foreground italic">Não informado</span>}
+                    </div>
                   </div>
-                  <div className="text-sm text-foreground">
-                    {value ?? <span className="text-muted-foreground italic">Não informado</span>}
+                ))}
+              </div>
+
+              {/* Órgão e Contato */}
+              {((action as any).orgao || (action as any).responsavelNome || (action as any).responsavelEmail) && (
+                <div className="pt-3 border-t border-border/30">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Órgão Responsável pela Entrega</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(action as any).orgao && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Órgão</div>
+                        <div className="text-sm font-semibold text-foreground">{(action as any).orgao}</div>
+                      </div>
+                    )}
+                    {(action as any).responsavelNome && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Nome</div>
+                        <div className="text-sm text-foreground">{(action as any).responsavelNome}</div>
+                      </div>
+                    )}
+                    {(action as any).responsavelCargo && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Cargo</div>
+                        <div className="text-sm text-foreground">{(action as any).responsavelCargo}</div>
+                      </div>
+                    )}
+                    {(action as any).responsavelTel && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Telefone</div>
+                        <div className="text-sm text-foreground">{(action as any).responsavelTel}</div>
+                      </div>
+                    )}
+                    {(action as any).responsavelEmail && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">E-mail</div>
+                        <a href={`mailto:${(action as any).responsavelEmail}`} className="text-sm text-primary hover:underline">{(action as any).responsavelEmail}</a>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Prompt to fill if empty and can edit */}
+              {canEdit && !(action as any).orgao && !(action as any).responsavelNome && (
+                <div className="pt-3 border-t border-border/30">
+                  <button onClick={startEdit} className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5" />
+                    Adicionar órgão e contato do responsável
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

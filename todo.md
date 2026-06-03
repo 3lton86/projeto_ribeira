@@ -51,3 +51,9 @@
 ## Sprint 3
 - [x] Corrigir autenticação ao cadastrar usuários (erro "Faça primeiro login para continuar")
 - [x] Botão de exportação PDF no Dashboard
+
+## Sprint 4
+- [x] Schema: adicionar campos orgao, responsavelNome, responsavelCargo, responsavelTel, responsavelEmail na tabela actions
+- [x] Backend: atualizar query e mutation de actions para incluir os novos campos
+- [x] Frontend: lista suspensa de órgão (31 órgãos municipais) e campos de contato no ActionDetail
+- [x] Shared: criar constante ORGAOS_MUNICIPAIS com a lista dos 31 órgãos

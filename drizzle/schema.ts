@@ -39,6 +39,11 @@ export const actions = mysqlTable("actions", {
   requestDate: timestamp("requestDate"),
   receiptDate: timestamp("receiptDate"),
   documentBase: text("documentBase"),
+  orgao: varchar("orgao", { length: 50 }), // órgão responsável pela entrega
+  responsavelNome: varchar("responsavelNome", { length: 200 }),
+  responsavelCargo: varchar("responsavelCargo", { length: 200 }),
+  responsavelTel: varchar("responsavelTel", { length: 50 }),
+  responsavelEmail: varchar("responsavelEmail", { length: 320 }),
   sortOrder: int("sortOrder").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

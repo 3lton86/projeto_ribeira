@@ -104,6 +104,11 @@ export async function updateAction(
     requestDate: Date;
     receiptDate: Date;
     documentBase: string;
+    orgao: string;
+    responsavelNome: string;
+    responsavelCargo: string;
+    responsavelTel: string;
+    responsavelEmail: string;
   }>
 ) {
   const db = await getDb();

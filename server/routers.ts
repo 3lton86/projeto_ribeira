@@ -13,6 +13,7 @@ import {
   updateAction,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
+import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -105,6 +106,11 @@ export const appRouter = router({
           requestDate: z.date().optional(),
           receiptDate: z.date().optional(),
           documentBase: z.string().optional(),
+          orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).optional(),
+          responsavelNome: z.string().optional(),
+          responsavelCargo: z.string().optional(),
+          responsavelTel: z.string().optional(),
+          responsavelEmail: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -119,6 +125,11 @@ export const appRouter = router({
           requestDate: "Data da Solicitação",
           receiptDate: "Data do Recebimento",
           documentBase: "Base Documental",
+          orgao: "Órgão Responsável",
+          responsavelNome: "Nome do Responsável",
+          responsavelCargo: "Cargo do Responsável",
+          responsavelTel: "Telefone do Responsável",
+          responsavelEmail: "E-mail do Responsável",
         };
 
         // Determine userId for history: localUser or OAuth user
