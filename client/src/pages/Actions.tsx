@@ -91,6 +91,8 @@ export default function Actions() {
     area: selectedAreas.length > 0 ? selectedAreas : undefined,
     priority: selectedPriorities.length > 0 ? selectedPriorities : undefined,
     status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    orgao: selectedOrgaos.length > 0 ? selectedOrgaos : undefined,
+    searchText: searchText.length > 0 ? searchText : undefined,
   });
 
   const filtered = useMemo(() => {
@@ -188,7 +190,13 @@ export default function Actions() {
           <button
             onClick={() => {
               if (exportData) {
-                exportToPdf(exportData);
+                exportToPdf(exportData, {
+                  areas: selectedAreas.length > 0 ? selectedAreas : undefined,
+                  statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+                  priorities: selectedPriorities.length > 0 ? selectedPriorities : undefined,
+                  orgaos: selectedOrgaos.length > 0 ? selectedOrgaos : undefined,
+                  searchText: searchText.length > 0 ? searchText : undefined,
+                });
                 toast.success("Exportação PDF iniciada");
               }
             }}

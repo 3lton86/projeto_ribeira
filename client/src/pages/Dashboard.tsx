@@ -91,7 +91,8 @@ function ExportPdfButton() {
     }
     setLoading(true);
     try {
-      exportToPdf(exportData);
+      // No filters applied from Dashboard — export all items
+      exportToPdf(exportData, undefined);
       toast.success("Relatório PDF gerado com sucesso!");
     } catch (err) {
       toast.error("Erro ao gerar o PDF. Tente novamente.");

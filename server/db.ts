@@ -326,6 +326,8 @@ export async function getExportData(filters?: {
   area?: string[];
   priority?: string[];
   status?: string[];
+  orgao?: string[];
+  searchText?: string;
 }) {
   const db = await getDb();
   if (!db) return [];
@@ -333,11 +335,59 @@ export async function getExportData(filters?: {
   if (filters?.area?.length) conditions.push(inArray(actions.area, filters.area as any));
   if (filters?.priority?.length) conditions.push(inArray(actions.priority, filters.priority as any));
   if (filters?.status?.length) conditions.push(inArray(actions.status, filters.status as any));
+  if (filters?.orgao?.length) conditions.push(inArray(actions.orgao, filters.orgao as any));
   conditions.push(eq(actions.isGroup, 0));
 
-  return db
+  const rows = await db
     .select()
     .from(actions)
     .where(and(...conditions))
     .orderBy(actions.area, actions.sortOrder);
+
+  // Apply text search client-side (description)
+  const filtered = filters?.searchText
+    ? rows.filter(r => r.description.toLowerCase().includes(filters.searchText!.toLowerCase()))
+    : rows;
+
+  if (filtered.length === 0) return [];
+
+  // Fetch comments for all returned actions
+  const actionIds = filtered.map(r => r.id);
+  const allComments = await db
+    .select({
+      id: comments.id,
+      actionId: comments.actionId,
+      content: comments.content,
+      createdAt: comments.createdAt,
+      userName: users.name,
+    })
+    .from(comments)
+    .leftJoin(users, eq(comments.userId, users.id))
+    .where(inArray(comments.actionId, actionIds))
+    .orderBy(comments.actionId, desc(comments.createdAt));
+
+  // Fetch documents for all returned actions
+  const allDocs = await db
+    .select()
+    .from(actionDocuments)
+    .where(inArray(actionDocuments.actionId, actionIds))
+    .orderBy(actionDocuments.actionId, actionDocuments.createdAt);
+
+  // Group comments and docs by actionId
+  const commentsByAction: Record<number, typeof allComments> = {};
+  for (const c of allComments) {
+    if (!commentsByAction[c.actionId]) commentsByAction[c.actionId] = [];
+    commentsByAction[c.actionId].push(c);
+  }
+  const docsByAction: Record<number, typeof allDocs> = {};
+  for (const d of allDocs) {
+    if (!docsByAction[d.actionId]) docsByAction[d.actionId] = [];
+    docsByAction[d.actionId].push(d);
+  }
+
+  return filtered.map(r => ({
+    ...r,
+    comments: commentsByAction[r.id] ?? [],
+    documents: docsByAction[r.id] ?? [],
+  }));
 }

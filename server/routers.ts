@@ -215,6 +215,8 @@ export const appRouter = router({
           area: z.array(areaEnum).optional(),
           priority: z.array(priorityEnum).optional(),
           status: z.array(statusEnum).optional(),
+          orgao: z.array(z.string()).optional(),
+          searchText: z.string().optional(),
         }).optional()
       )
       .query(async ({ input }) => {
