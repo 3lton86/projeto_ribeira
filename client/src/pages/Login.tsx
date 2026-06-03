@@ -71,6 +71,15 @@ export default function Login() {
           <h1 className="text-3xl font-bold text-foreground tracking-tight">RIBEIRA</h1>
           <p className="text-muted-foreground text-sm mt-1 tracking-widest uppercase">Sustentável</p>
           <div className="geo-line mt-4 mx-auto w-24" />
+          {/* Bureau Pad logo */}
+          <div className="mt-5 flex items-center justify-center">
+            <img
+              src="/manus-storage/bureau-pad-logo_79a273e0.webp"
+              alt="Bureau Pad"
+              className="h-10 w-auto object-contain rounded-md"
+              style={{ background: "rgba(255,255,255,0.90)", padding: "4px 10px" }}
+            />
+          </div>
         </div>
 
         {/* Login card */}
