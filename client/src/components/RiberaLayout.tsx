@@ -66,9 +66,13 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               <div className="font-display font-bold text-sm text-foreground leading-tight">RIBEIRA</div>
               <div className="text-xs text-muted-foreground leading-tight">Sustentável</div>
             </div>
-            <div className="flex-shrink-0 text-right">
-              <div className="text-xs font-semibold tracking-wide" style={{ color: "oklch(0.72 0.18 185)" }}>Bureau</div>
-              <div className="text-xs font-bold text-foreground leading-none">Pad</div>
+            <div className="flex-shrink-0">
+              <img
+                src="/manus-storage/bureau-pad-logo_79a273e0.webp"
+                alt="Bureau Pad"
+                className="h-8 w-auto object-contain rounded"
+                style={{ background: "rgba(255,255,255,0.92)", padding: "2px 6px" }}
+              />
             </div>
           </div>
           <div className="geo-line mt-4" />
