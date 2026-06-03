@@ -55,14 +55,18 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
         <div className="p-5 border-b border-border/50">
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center"
+              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }}
             >
               <Shield className="w-5 h-5 text-black" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="font-display font-bold text-sm text-foreground leading-tight">RIBEIRA</div>
               <div className="text-xs text-muted-foreground leading-tight">Sustentável</div>
+            </div>
+            <div className="flex-shrink-0 text-right">
+              <div className="text-xs font-semibold tracking-wide" style={{ color: "oklch(0.72 0.18 185)" }}>Bureau</div>
+              <div className="text-xs font-bold text-foreground leading-none">Pad</div>
             </div>
           </div>
           <div className="geo-line mt-4" />
@@ -128,6 +132,23 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
             </Link>
           ))}
         </nav>
+
+        {/* Footer / Company signature */}
+        <div className="px-4 py-3 border-t border-border/30 bg-black/20">
+          <div className="text-center space-y-0.5">
+            <div className="text-xs font-semibold" style={{ color: "oklch(0.72 0.18 185)" }}>Bureau Pad</div>
+            <div className="text-[10px] text-muted-foreground leading-relaxed">
+              Bureau de Inteligência Fundiária e Serviços Ltda
+            </div>
+            <div className="text-[10px] text-muted-foreground opacity-70">
+              CNPJ 58.565.943/0001-41
+            </div>
+            <div className="text-[10px] text-muted-foreground opacity-60 leading-relaxed">
+              Av. Eng. Roberto Freire, 1962<br />
+              Capim Macio • Natal–RN • 59.082-095
+            </div>
+          </div>
+        </div>
 
         {/* User section */}
         <div className="p-3 border-t border-border/50">
