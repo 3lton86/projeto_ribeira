@@ -159,7 +159,7 @@ export default function Dashboard() {
             <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
           </div>
           <p className="text-sm text-muted-foreground ml-3">
-            Visão geral do progresso do projeto RIBEIRA SUSTENTÁVEL
+            Controle de entrega de documentos e informações pelos órgãos municipais para estruturação do projeto PPP — Ribeira Sustentável
           </p>
         </div>
         <ExportPdfButton />
