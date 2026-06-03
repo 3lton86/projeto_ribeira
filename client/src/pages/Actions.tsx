@@ -1,0 +1,431 @@
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useState, useMemo } from "react";
+import { useLocation, Link } from "wouter";
+import {
+  ChevronDown,
+  ChevronRight,
+  Filter,
+  Search,
+  X,
+  Download,
+  FileSpreadsheet,
+  FileText as FilePdf,
+  Eye,
+  Edit3,
+  AlertCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+import { exportToExcel, exportToPdf } from "@/lib/export";
+
+type Area = "Governança" | "Técnico" | "Jurídico" | "Eco-Fin";
+type Status = "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
+type Priority = "Alta" | "Média" | "Baixa";
+
+const AREAS: Area[] = ["Governança", "Técnico", "Jurídico", "Eco-Fin"];
+const STATUSES: Status[] = ["Pendente", "Em Andamento", "Concluído", "Cancelado"];
+const PRIORITIES: Priority[] = ["Alta", "Média", "Baixa"];
+
+function StatusBadge({ status }: { status: Status }) {
+  const cls: Record<Status, string> = {
+    Pendente: "badge-pendente",
+    "Em Andamento": "badge-em-andamento",
+    Concluído: "badge-concluido",
+    Cancelado: "badge-cancelado",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: Priority | null }) {
+  if (!priority) return null;
+  const cls: Record<Priority, string> = {
+    Alta: "badge-alta",
+    Média: "badge-media",
+    Baixa: "badge-baixa",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls[priority]}`}>
+      {priority}
+    </span>
+  );
+}
+
+function AreaBadge({ area }: { area: Area }) {
+  const cls: Record<Area, string> = {
+    Governança: "badge-governanca",
+    Técnico: "badge-tecnico",
+    Jurídico: "badge-juridico",
+    "Eco-Fin": "badge-ecofin",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls[area]}`}>
+      {area}
+    </span>
+  );
+}
+
+export default function Actions() {
+  const [, params] = useLocation();
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const initialArea = searchParams.get("area") as Area | null;
+
+  const [selectedAreas, setSelectedAreas] = useState<Area[]>(initialArea ? [initialArea] : []);
+  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([]);
+  const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+
+  const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery({});
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const { data: exportData } = trpc.export.data.useQuery({
+    area: selectedAreas.length > 0 ? selectedAreas : undefined,
+    priority: selectedPriorities.length > 0 ? selectedPriorities : undefined,
+    status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+  });
+
+  const filtered = useMemo(() => {
+    if (!allActions) return [];
+    return allActions.filter((a) => {
+      if (selectedAreas.length > 0 && !selectedAreas.includes(a.area as Area)) return false;
+      if (a.isGroup === 0) {
+        if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) return false;
+        if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) return false;
+        if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, searchText]);
+
+  // Group by area
+  const grouped = useMemo(() => {
+    const map: Record<string, typeof filtered> = {};
+    for (const a of filtered) {
+      if (!map[a.area]) map[a.area] = [];
+      map[a.area].push(a);
+    }
+    return map;
+  }, [filtered]);
+
+  const toggleArea = (area: Area) => {
+    setSelectedAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
+    );
+  };
+  const toggleStatus = (s: Status) => {
+    setSelectedStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+  };
+  const togglePriority = (p: Priority) => {
+    setSelectedPriorities((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+  };
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setSelectedAreas([]);
+    setSelectedStatuses([]);
+    setSelectedPriorities([]);
+    setSearchText("");
+  };
+
+  const hasFilters =
+    selectedAreas.length > 0 ||
+    selectedStatuses.length > 0 ||
+    selectedPriorities.length > 0 ||
+    searchText.length > 0;
+
+  const totalItems = filtered.filter((a) => a.isGroup === 0).length;
+
+  return (
+    <div className="p-6 space-y-5 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }} />
+            <h1 className="font-display text-2xl font-bold text-foreground">Ações & Entregas</h1>
+          </div>
+          <p className="text-sm text-muted-foreground ml-3">
+            {totalItems} {totalItems === 1 ? "item" : "itens"} encontrados
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (exportData) {
+                exportToExcel(exportData);
+                toast.success("Exportação Excel iniciada");
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium glass-card hover:border-primary/40 transition-all"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" style={{ color: "oklch(0.65 0.18 145)" }} />
+            Excel
+          </button>
+          <button
+            onClick={() => {
+              if (exportData) {
+                exportToPdf(exportData);
+                toast.success("Exportação PDF iniciada");
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium glass-card hover:border-primary/40 transition-all"
+          >
+            <FilePdf className="w-3.5 h-3.5" style={{ color: "oklch(0.60 0.22 25)" }} />
+            PDF
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+              showFilters || hasFilters
+                ? "btn-teal text-black"
+                : "glass-card hover:border-primary/40"
+            }`}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            Filtros
+            {hasFilters && (
+              <span className="ml-1 bg-black/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + (searchText ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por descrição..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm glass-card border border-border/50 bg-transparent focus:outline-none focus:border-primary/60 transition-colors"
+        />
+        {searchText && (
+          <button onClick={() => setSearchText("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+            <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
+
+      {/* Filters panel */}
+      {showFilters && (
+        <div className="glass-card rounded-xl p-4 space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">Filtros Avançados</span>
+            {hasFilters && (
+              <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                <X className="w-3 h-3" /> Limpar tudo
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Área</div>
+              <div className="flex flex-wrap gap-1.5">
+                {AREAS.map((area) => (
+                  <button
+                    key={area}
+                    onClick={() => toggleArea(area)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedAreas.includes(area)
+                        ? `badge-${area === "Eco-Fin" ? "ecofin" : area === "Governança" ? "governanca" : area === "Técnico" ? "tecnico" : "juridico"} opacity-100`
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Status</div>
+              <div className="flex flex-wrap gap-1.5">
+                {STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => toggleStatus(s)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedStatuses.includes(s)
+                        ? `badge-${s === "Em Andamento" ? "em-andamento" : s === "Concluído" ? "concluido" : s === "Cancelado" ? "cancelado" : "pendente"} opacity-100`
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Prioridade</div>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITIES.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => togglePriority(p)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedPriorities.includes(p)
+                        ? `badge-${p === "Alta" ? "alta" : p === "Média" ? "media" : "baixa"} opacity-100`
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Actions list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="glass-card rounded-xl h-14 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {AREAS.filter((area) => grouped[area]?.length > 0).map((area) => {
+            const areaItems = grouped[area] ?? [];
+            const groups = areaItems.filter((a) => a.isGroup === 1);
+            const areaKey = `area-${area}`;
+                const isAreaExpanded = !expandedGroups.has(`collapsed-area-${area}`);
+
+                      return (
+              <div key={area} className="glass-card rounded-xl overflow-hidden">
+                {/* Area header */}
+                <button
+                  onClick={() => {
+                    setExpandedGroups((prev) => {
+                      const next = new Set(prev);
+                      const k = `collapsed-area-${area}`;
+                      if (next.has(k)) next.delete(k);
+                      else next.add(k);
+                      return next;
+                    });
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 transition-colors"
+                >
+                  <AreaBadge area={area} />
+                  <span className="text-sm font-semibold text-foreground flex-1 text-left">
+                    {areaItems.filter((a) => a.isGroup === 0).length} ações
+                  </span>
+                  {isAreaExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+
+                {isAreaExpanded && (
+                  <div className="border-t border-border/30">
+                    {groups.map((group) => {
+                      const groupKey = `group-${group.id}`;
+                      const children = areaItems.filter(
+                        (a) => a.isGroup === 0 && a.parentCode === group.itemCode
+                      );
+                      const isGroupExpanded = !expandedGroups.has(`collapsed-${groupKey}`);
+
+                      return (
+                        <div key={group.id}>
+                          {/* Group header */}
+                          <button
+                            onClick={() => {
+                              setExpandedGroups((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(`collapsed-${groupKey}`)) next.delete(`collapsed-${groupKey}`);
+                                else next.add(`collapsed-${groupKey}`);
+                                return next;
+                              });
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 bg-secondary/20 hover:bg-secondary/40 transition-colors"
+                          >
+                            {isGroupExpanded ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                            )}
+                            <span className="text-xs font-bold text-muted-foreground w-6">{group.itemCode}</span>
+                            <span className="text-sm font-semibold text-foreground flex-1 text-left">
+                              {group.description}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{children.length} itens</span>
+                          </button>
+
+                          {/* Children */}
+                          {isGroupExpanded &&
+                            children.map((action, idx) => (
+                              <div
+                                key={action.id}
+                                className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${
+                                  idx % 2 === 0 ? "" : "bg-secondary/5"
+                                }`}
+                              >
+                                <span className="text-xs text-muted-foreground w-8 flex-shrink-0 pt-0.5 font-mono">
+                                  {action.itemCode}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-foreground leading-relaxed line-clamp-2">
+                                    {action.description}
+                                  </p>
+                                  <div className="flex items-center flex-wrap gap-2 mt-2">
+                                    <StatusBadge status={action.status as Status} />
+                                    <PriorityBadge priority={action.priority as Priority | null} />
+                                    {action.responsible && (
+                                      <span className="text-xs text-muted-foreground">
+                                        👤 {action.responsible}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <Link href={`/acoes/${action.id}`}>
+                                  <a className="flex-shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors opacity-0 group-hover:opacity-100">
+                                    {isAdmin ? (
+                                      <Edit3 className="w-4 h-4 text-muted-foreground" />
+                                    ) : (
+                                      <Eye className="w-4 h-4 text-muted-foreground" />
+                                    )}
+                                  </a>
+                                </Link>
+                              </div>
+                            ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {Object.keys(grouped).length === 0 && (
+            <div className="glass-card rounded-xl p-12 text-center">
+              <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">Nenhuma ação encontrada com os filtros aplicados.</p>
+              <button onClick={clearFilters} className="mt-3 text-xs text-primary hover:underline">
+                Limpar filtros
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
