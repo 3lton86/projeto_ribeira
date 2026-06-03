@@ -442,11 +442,17 @@ export default function Actions() {
                                         {(action as any).orgao}
                                       </span>
                                     )}
-                                    {action.responsible && (
-                                      <span className="text-xs text-muted-foreground">
-                                        👤 {action.responsible}
-                                      </span>
-                                    )}
+                                    {(action as any).dueDate && (() => {
+                                      const due = new Date((action as any).dueDate);
+                                      const isLate = due < new Date() && action.status !== "Concluído" && action.status !== "Cancelado";
+                                      return (
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                                          isLate ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                        }`}>
+                                          {isLate ? "⚠️ Atrasado" : "✅ No prazo"} — {due.toLocaleDateString("pt-BR")}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                                 <Link

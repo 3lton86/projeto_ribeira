@@ -35,7 +35,7 @@ export const actions = mysqlTable("actions", {
   status: mysqlEnum("status", ["Pendente", "Em Andamento", "Concluído", "Cancelado"])
     .default("Pendente")
     .notNull(),
-  responsible: text("responsible"),
+  dueDate: timestamp("dueDate"),
   requestDate: timestamp("requestDate"),
   receiptDate: timestamp("receiptDate"),
   documentBase: text("documentBase"),

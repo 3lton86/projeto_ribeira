@@ -102,7 +102,7 @@ export const appRouter = router({
           id: z.number(),
           status: statusEnum.optional(),
           priority: priorityEnum.optional(),
-          responsible: z.string().optional(),
+          dueDate: z.date().nullable().optional(),
           requestDate: z.date().optional(),
           receiptDate: z.date().optional(),
           documentBase: z.string().optional(),
@@ -121,7 +121,7 @@ export const appRouter = router({
         const fieldLabels: Record<string, string> = {
           status: "Status",
           priority: "Prioridade",
-          responsible: "Responsável",
+          dueDate: "Prazo Previsto",
           requestDate: "Data da Solicitação",
           receiptDate: "Data do Recebimento",
           documentBase: "Base Documental",

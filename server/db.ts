@@ -100,7 +100,7 @@ export async function updateAction(
   data: Partial<{
     status: "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
     priority: "Alta" | "Média" | "Baixa";
-    responsible: string;
+    dueDate: Date | null;
     requestDate: Date;
     receiptDate: Date;
     documentBase: string;
@@ -196,6 +196,7 @@ export async function getDashboardStats() {
       status: actions.status,
       priority: actions.priority,
       isGroup: actions.isGroup,
+      dueDate: actions.dueDate,
     })
     .from(actions);
 
@@ -233,7 +234,16 @@ export async function getDashboardStats() {
 
   const completionRate = total > 0 ? Math.round((byStatus["Concluído"] / total) * 100) : 0;
 
-  return { total, byStatus, byArea, byPriority, completionRate };
+  const now = new Date();
+  const itemsWithDue = items.filter((a) => a.dueDate);
+  const byDeadline = {
+    noPrazo: itemsWithDue.filter((a) => a.dueDate! >= now && a.status !== "Concluído" && a.status !== "Cancelado").length,
+    atrasado: itemsWithDue.filter((a) => a.dueDate! < now && a.status !== "Concluído" && a.status !== "Cancelado").length,
+    concluido: items.filter((a) => a.status === "Concluído").length,
+    semPrazo: items.filter((a) => !a.dueDate && a.status !== "Concluído" && a.status !== "Cancelado").length,
+  };
+
+  return { total, byStatus, byArea, byPriority, completionRate, byDeadline };
 }
 
 // ---- LOCAL USERS ----

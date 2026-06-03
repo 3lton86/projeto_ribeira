@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
-import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download } from "lucide-react";
+import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download, AlertTriangle, Timer } from "lucide-react";
+import { RadialBarChart, RadialBar } from "recharts";
 import { Link } from "wouter";
 import { useState } from "react";
 import { exportToPdf } from "@/lib/export";
@@ -284,6 +285,45 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Deadline chart */}
+      {stats.byDeadline && (
+        <div className="glass-card rounded-xl p-5 animate-fade-in-up">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 rounded-full" style={{ background: "oklch(0.65 0.20 25)" }} />
+            <span className="text-sm font-semibold text-foreground">Situação dos Prazos</span>
+            <span className="ml-auto text-xs text-muted-foreground">itens não cancelados</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.55 0.18 25 / 0.12)", border: "1px solid oklch(0.55 0.18 25 / 0.3)" }}>
+              <AlertTriangle className="w-6 h-6 mb-2" style={{ color: "oklch(0.65 0.20 25)" }} />
+              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.65 0.20 25)" }}>{stats.byDeadline.atrasado}</div>
+              <div className="text-xs text-muted-foreground mt-1 text-center">Atrasados</div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.65 0.18 145 / 0.12)", border: "1px solid oklch(0.65 0.18 145 / 0.3)" }}>
+              <Timer className="w-6 h-6 mb-2" style={{ color: "oklch(0.65 0.18 145)" }} />
+              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.65 0.18 145)" }}>{stats.byDeadline.noPrazo}</div>
+              <div className="text-xs text-muted-foreground mt-1 text-center">No Prazo</div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.72 0.18 185 / 0.12)", border: "1px solid oklch(0.72 0.18 185 / 0.3)" }}>
+              <CheckCircle2 className="w-6 h-6 mb-2" style={{ color: "oklch(0.72 0.18 185)" }} />
+              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.72 0.18 185)" }}>{stats.byDeadline.concluido}</div>
+              <div className="text-xs text-muted-foreground mt-1 text-center">Concluídos</div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.55 0.02 220 / 0.12)", border: "1px solid oklch(0.55 0.02 220 / 0.3)" }}>
+              <XCircle className="w-6 h-6 mb-2" style={{ color: "oklch(0.55 0.02 220)" }} />
+              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.55 0.02 220)" }}>{stats.byDeadline.semPrazo}</div>
+              <div className="text-xs text-muted-foreground mt-1 text-center">Sem Prazo Definido</div>
+            </div>
+          </div>
+          {stats.byDeadline.atrasado > 0 && (
+            <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "oklch(0.55 0.18 25 / 0.10)", border: "1px solid oklch(0.55 0.18 25 / 0.25)", color: "oklch(0.65 0.20 25)" }}>
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span><strong>{stats.byDeadline.atrasado} {stats.byDeadline.atrasado === 1 ? "ação está" : "ações estão"} com prazo vencido</strong> e ainda não {stats.byDeadline.atrasado === 1 ? "foi concluída" : "foram concluídas"}. Verifique a lista de ações para priorizar as entregas em atraso.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Area progress cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-stagger">

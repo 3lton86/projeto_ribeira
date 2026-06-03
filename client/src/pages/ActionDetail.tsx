@@ -110,7 +110,7 @@ export default function ActionDetail() {
   const [form, setForm] = useState<{
     status: Status;
     priority: Priority | "";
-    responsible: string;
+    dueDate: string;
     requestDate: string;
     receiptDate: string;
     documentBase: string;
@@ -158,7 +158,7 @@ export default function ActionDetail() {
     setForm({
       status: action.status as Status,
       priority: (action.priority as Priority) ?? "",
-      responsible: action.responsible ?? "",
+      dueDate: formatDate((action as any).dueDate),
       requestDate: formatDate(action.requestDate),
       receiptDate: formatDate(action.receiptDate),
       documentBase: action.documentBase ?? "",
@@ -177,7 +177,7 @@ export default function ActionDetail() {
       id,
       status: form.status,
       priority: form.priority || undefined,
-        responsible: form.responsible || undefined,
+        dueDate: form.dueDate ? new Date(form.dueDate) : null,
       requestDate: form.requestDate ? new Date(form.requestDate) : undefined,
       receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
       documentBase: form.documentBase || undefined,
@@ -279,13 +279,12 @@ export default function ActionDetail() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Responsável</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Prazo Previsto</label>
                   <input
-                    type="text"
-                    value={form.responsible}
-                    onChange={(e) => setForm({ ...form, responsible: e.target.value })}
-                    placeholder="Nome do responsável"
-                    className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
+                    type="date"
+                    value={form.dueDate}
+                    onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
                   />
                 </div>
                 <div>
@@ -399,7 +398,7 @@ export default function ActionDetail() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
                   { label: "Prioridade", value: action.priority, icon: AlertTriangle },
-                  { label: "Responsável", value: action.responsible, icon: User },
+                  { label: "Prazo Previsto", value: formatDateTime((action as any).dueDate), icon: Calendar },
                   { label: "Data da Solicitação", value: formatDateTime(action.requestDate), icon: Calendar },
                   { label: "Data do Recebimento", value: formatDateTime(action.receiptDate), icon: Calendar },
                   { label: "Base Documental", value: action.documentBase, icon: FileText, full: true },

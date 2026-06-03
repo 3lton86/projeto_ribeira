@@ -9,13 +9,15 @@ type ActionRow = {
   description: string;
   priority: string | null;
   status: string;
-  responsible: string | null;
+  dueDate?: Date | null;
   requestDate: Date | null;
   receiptDate: Date | null;
   documentBase: string | null;
+  orgao?: string | null;
+  responsavelNome?: string | null;
 };
 
-function formatDate(d: Date | null): string {
+function formatDate(d: Date | null | undefined): string {
   if (!d) return "";
   return new Date(d).toLocaleDateString("pt-BR");
 }
@@ -27,7 +29,9 @@ export function exportToExcel(data: ActionRow[]) {
     Descrição: a.description,
     Prioridade: a.priority ?? "",
     Status: a.status,
-    Responsável: a.responsible ?? "",
+    "Órgão Responsável": a.orgao ?? "",
+    "Nome do Responsável": a.responsavelNome ?? "",
+    "Prazo Previsto": formatDate(a.dueDate),
     "Data da Solicitação": formatDate(a.requestDate),
     "Data do Recebimento": formatDate(a.receiptDate),
     "Base Documental": a.documentBase ?? "",
@@ -36,10 +40,9 @@ export function exportToExcel(data: ActionRow[]) {
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
 
-  // Style column widths
   ws["!cols"] = [
     { wch: 14 }, { wch: 8 }, { wch: 60 }, { wch: 12 }, { wch: 16 },
-    { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 40 },
+    { wch: 18 }, { wch: 30 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 40 },
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Ações RIBEIRA");
@@ -50,7 +53,6 @@ export function exportToExcel(data: ActionRow[]) {
 export function exportToPdf(data: ActionRow[]) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  // Header
   doc.setFillColor(15, 30, 45);
   doc.rect(0, 0, 297, 297, "F");
 
@@ -70,22 +72,30 @@ export function exportToPdf(data: ActionRow[]) {
     Cancelado: [180, 80, 60],
   };
 
+  const now = new Date();
+
   autoTable(doc, {
     startY: 35,
-    head: [["Área", "Item", "Descrição", "Prioridade", "Status", "Responsável", "Data Sol.", "Data Rec."]],
-    body: data.map((a) => [
-      a.area,
-      a.itemCode,
-      a.description.length > 80 ? a.description.substring(0, 80) + "..." : a.description,
-      a.priority ?? "-",
-      a.status,
-      a.responsible ?? "-",
-      formatDate(a.requestDate),
-      formatDate(a.receiptDate),
-    ]),
+    head: [["Área", "Item", "Descrição", "Prioridade", "Status", "Órgão", "Responsável", "Prazo", "Situação"]],
+    body: data.map((a) => {
+      const due = a.dueDate ? new Date(a.dueDate) : null;
+      const isLate = due && due < now && a.status !== "Concluído" && a.status !== "Cancelado";
+      const situacao = !due ? "Sem prazo" : a.status === "Concluído" ? "Concluído" : isLate ? "Atrasado" : "No prazo";
+      return [
+        a.area,
+        a.itemCode,
+        a.description.length > 70 ? a.description.substring(0, 70) + "..." : a.description,
+        a.priority ?? "-",
+        a.status,
+        a.orgao ?? "-",
+        a.responsavelNome ?? "-",
+        formatDate(a.dueDate),
+        situacao,
+      ];
+    }),
     styles: {
-      fontSize: 8,
-      cellPadding: 2.5,
+      fontSize: 7.5,
+      cellPadding: 2,
       textColor: [220, 225, 230],
       fillColor: [18, 28, 40],
       lineColor: [40, 55, 70],
@@ -95,20 +105,21 @@ export function exportToPdf(data: ActionRow[]) {
       fillColor: [20, 50, 70],
       textColor: [100, 220, 200],
       fontStyle: "bold",
-      fontSize: 8.5,
+      fontSize: 8,
     },
     alternateRowStyles: {
       fillColor: [22, 34, 48],
     },
     columnStyles: {
-      0: { cellWidth: 22 },
-      1: { cellWidth: 12 },
-      2: { cellWidth: 90 },
-      3: { cellWidth: 20 },
-      4: { cellWidth: 26 },
-      5: { cellWidth: 35 },
-      6: { cellWidth: 22 },
-      7: { cellWidth: 22 },
+      0: { cellWidth: 20 },
+      1: { cellWidth: 10 },
+      2: { cellWidth: 75 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 24 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 30 },
+      7: { cellWidth: 18 },
+      8: { cellWidth: 20 },
     },
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 4) {
@@ -116,6 +127,17 @@ export function exportToPdf(data: ActionRow[]) {
         const color = statusColors[status] ?? [150, 150, 150];
         doc.setTextColor(...color);
         doc.text(status, data.cell.x + 2, data.cell.y + data.cell.height / 2 + 1);
+        doc.setTextColor(220, 225, 230);
+      }
+      if (data.section === "body" && data.column.index === 8) {
+        const sit = data.cell.raw as string;
+        const color: [number, number, number] =
+          sit === "Atrasado" ? [220, 80, 60] :
+          sit === "No prazo" ? [60, 180, 120] :
+          sit === "Concluído" ? [100, 220, 200] :
+          [140, 140, 140];
+        doc.setTextColor(...color);
+        doc.text(sit, data.cell.x + 2, data.cell.y + data.cell.height / 2 + 1);
         doc.setTextColor(220, 225, 230);
       }
     },
