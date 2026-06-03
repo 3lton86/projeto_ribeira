@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download, AlertTriangle, Timer } from "lucide-react";
-import { RadialBarChart, RadialBar } from "recharts";
+
 import { Link } from "wouter";
 import { useState } from "react";
 import { exportToPdf } from "@/lib/export";
@@ -287,43 +287,64 @@ export default function Dashboard() {
       </div>
 
       {/* Deadline chart */}
-      {stats.byDeadline && (
-        <div className="glass-card rounded-xl p-5 animate-fade-in-up">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-4 rounded-full" style={{ background: "oklch(0.65 0.20 25)" }} />
-            <span className="text-sm font-semibold text-foreground">Situação dos Prazos</span>
-            <span className="ml-auto text-xs text-muted-foreground">itens não cancelados</span>
+      {stats.byDeadline && (() => {
+        const DEADLINE_COLORS = {
+          Atrasado: "oklch(0.60 0.20 25)",
+          "No Prazo": "oklch(0.65 0.18 145)",
+          Concluído: "oklch(0.72 0.18 185)",
+          "Sem Prazo": "oklch(0.45 0.02 220)",
+        };
+        const deadlineData = [
+          { name: "Atrasado", value: stats.byDeadline.atrasado, color: DEADLINE_COLORS["Atrasado"] },
+          { name: "No Prazo", value: stats.byDeadline.noPrazo, color: DEADLINE_COLORS["No Prazo"] },
+          { name: "Concluído", value: stats.byDeadline.concluido, color: DEADLINE_COLORS["Concluído"] },
+          { name: "Sem Prazo", value: stats.byDeadline.semPrazo, color: DEADLINE_COLORS["Sem Prazo"] },
+        ].filter(d => d.value > 0);
+        return (
+          <div className="glass-card rounded-xl p-5 animate-fade-in-up">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-4 rounded-full" style={{ background: "oklch(0.65 0.20 25)" }} />
+              <span className="text-sm font-semibold text-foreground">Situação dos Prazos</span>
+              <span className="ml-auto text-xs text-muted-foreground">itens não cancelados</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+              {/* Donut chart */}
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={deadlineData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                    {deadlineData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend formatter={(value) => <span style={{ color: "oklch(0.75 0.02 220)", fontSize: 12 }}>{value}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Atrasados", value: stats.byDeadline.atrasado, icon: AlertTriangle, color: "oklch(0.60 0.20 25)" },
+                  { label: "No Prazo", value: stats.byDeadline.noPrazo, icon: Timer, color: "oklch(0.65 0.18 145)" },
+                  { label: "Concluídos", value: stats.byDeadline.concluido, icon: CheckCircle2, color: "oklch(0.72 0.18 185)" },
+                  { label: "Sem Prazo", value: stats.byDeadline.semPrazo, icon: XCircle, color: "oklch(0.45 0.02 220)" },
+                ].map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className="flex flex-col items-center justify-center p-3 rounded-xl" style={{ background: `${color.replace(')', ' / 0.12)')}`, border: `1px solid ${color.replace(')', ' / 0.3)')}` }}>
+                    <Icon className="w-5 h-5 mb-1" style={{ color }} />
+                    <div className="text-xl font-bold font-display" style={{ color }}>{value}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 text-center">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {stats.byDeadline.atrasado > 0 && (
+              <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "oklch(0.55 0.18 25 / 0.10)", border: "1px solid oklch(0.55 0.18 25 / 0.25)", color: "oklch(0.65 0.20 25)" }}>
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span><strong>{stats.byDeadline.atrasado} {stats.byDeadline.atrasado === 1 ? "ação está" : "ações estão"} com prazo vencido</strong> e ainda não {stats.byDeadline.atrasado === 1 ? "foi concluída" : "foram concluídas"}. Acesse a lista de ações para priorizar as entregas em atraso.</span>
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.55 0.18 25 / 0.12)", border: "1px solid oklch(0.55 0.18 25 / 0.3)" }}>
-              <AlertTriangle className="w-6 h-6 mb-2" style={{ color: "oklch(0.65 0.20 25)" }} />
-              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.65 0.20 25)" }}>{stats.byDeadline.atrasado}</div>
-              <div className="text-xs text-muted-foreground mt-1 text-center">Atrasados</div>
-            </div>
-            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.65 0.18 145 / 0.12)", border: "1px solid oklch(0.65 0.18 145 / 0.3)" }}>
-              <Timer className="w-6 h-6 mb-2" style={{ color: "oklch(0.65 0.18 145)" }} />
-              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.65 0.18 145)" }}>{stats.byDeadline.noPrazo}</div>
-              <div className="text-xs text-muted-foreground mt-1 text-center">No Prazo</div>
-            </div>
-            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.72 0.18 185 / 0.12)", border: "1px solid oklch(0.72 0.18 185 / 0.3)" }}>
-              <CheckCircle2 className="w-6 h-6 mb-2" style={{ color: "oklch(0.72 0.18 185)" }} />
-              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.72 0.18 185)" }}>{stats.byDeadline.concluido}</div>
-              <div className="text-xs text-muted-foreground mt-1 text-center">Concluídos</div>
-            </div>
-            <div className="flex flex-col items-center justify-center p-4 rounded-xl" style={{ background: "oklch(0.55 0.02 220 / 0.12)", border: "1px solid oklch(0.55 0.02 220 / 0.3)" }}>
-              <XCircle className="w-6 h-6 mb-2" style={{ color: "oklch(0.55 0.02 220)" }} />
-              <div className="text-2xl font-bold font-display" style={{ color: "oklch(0.55 0.02 220)" }}>{stats.byDeadline.semPrazo}</div>
-              <div className="text-xs text-muted-foreground mt-1 text-center">Sem Prazo Definido</div>
-            </div>
-          </div>
-          {stats.byDeadline.atrasado > 0 && (
-            <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "oklch(0.55 0.18 25 / 0.10)", border: "1px solid oklch(0.55 0.18 25 / 0.25)", color: "oklch(0.65 0.20 25)" }}>
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span><strong>{stats.byDeadline.atrasado} {stats.byDeadline.atrasado === 1 ? "ação está" : "ações estão"} com prazo vencido</strong> e ainda não {stats.byDeadline.atrasado === 1 ? "foi concluída" : "foram concluídas"}. Verifique a lista de ações para priorizar as entregas em atraso.</span>
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       {/* Area progress cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-stagger">

@@ -59,8 +59,8 @@
 - [x] Shared: criar constante ORGAOS_MUNICIPAIS com a lista dos 31 órgãos
 
 ## Sprint 5
-- [ ] Schema: substituir campo `responsible` por `dueDate` (prazo previsto) na tabela actions
-- [ ] Backend: atualizar query/mutation de actions e stats do dashboard para incluir dueDate
-- [ ] Frontend ActionDetail: substituir campo Responsável pelo campo Prazo (date picker)
-- [ ] Frontend Actions listagem: exibir prazo e indicador visual de atraso nos itens
-- [ ] Frontend Dashboard: adicionar gráfico de situação de prazo (no prazo / atrasado / sem prazo)
+- [x] Schema: substituir campo `responsible` por `dueDate` (prazo previsto) na tabela actions
+- [x] Backend: atualizar query/mutation de actions e stats do dashboard para incluir dueDate
+- [x] Frontend ActionDetail: substituir campo Responsável pelo campo Prazo (date picker)
+- [x] Frontend Actions listagem: exibir prazo e indicador visual de atraso nos itens
+- [x] Frontend Dashboard: adicionar gráfico de situação de prazo (no prazo / atrasado / sem prazo)
