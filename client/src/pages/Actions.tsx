@@ -395,14 +395,15 @@ export default function Actions() {
                                     )}
                                   </div>
                                 </div>
-                                <Link href={`/acoes/${action.id}`}>
-                                  <a className="flex-shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors opacity-0 group-hover:opacity-100">
-                                    {isAdmin ? (
-                                      <Edit3 className="w-4 h-4 text-muted-foreground" />
-                                    ) : (
-                                      <Eye className="w-4 h-4 text-muted-foreground" />
-                                    )}
-                                  </a>
+                                <Link
+                                  href={`/acoes/${action.id}`}
+                                  className="flex-shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors opacity-0 group-hover:opacity-100"
+                                >
+                                  {isAdmin ? (
+                                    <Edit3 className="w-4 h-4 text-muted-foreground" />
+                                  ) : (
+                                    <Eye className="w-4 h-4 text-muted-foreground" />
+                                  )}
                                 </Link>
                               </div>
                             ))}

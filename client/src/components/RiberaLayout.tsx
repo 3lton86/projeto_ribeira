@@ -61,15 +61,15 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
             Navegação
           </div>
           {navItems.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href}>
-              <a
-                className={`nav-item ${location === href ? "active" : ""}`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span>{label}</span>
-                {location === href && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
-              </a>
+            <Link
+              key={href}
+              href={href}
+              className={`nav-item ${location === href ? "active" : ""}`}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span>{label}</span>
+              {location === href && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
             </Link>
           ))}
 
@@ -84,15 +84,15 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
             { label: "Jurídico", color: "badge-juridico", href: "/acoes?area=Jurídico" },
             { label: "Eco-Fin", color: "badge-ecofin", href: "/acoes?area=Eco-Fin" },
           ].map(({ label, color, href }) => (
-            <Link key={label} href={href}>
-              <a
-                className="nav-item"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}>
-                  {label}
-                </span>
-              </a>
+            <Link
+              key={label}
+              href={href}
+              className="nav-item"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}>
+                {label}
+              </span>
             </Link>
           ))}
         </nav>
@@ -130,10 +130,10 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               </button>
             </div>
           ) : (
-            <a href={getLoginUrl()} className="nav-item w-full">
+            <Link href={getLoginUrl()} className="nav-item w-full">
               <LogIn className="w-4 h-4" />
               <span>Entrar</span>
-            </a>
+            </Link>
           )}
         </div>
       </aside>

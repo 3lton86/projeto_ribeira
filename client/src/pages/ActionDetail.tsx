@@ -153,7 +153,7 @@ export default function ActionDetail() {
     return (
       <div className="p-6 text-center text-muted-foreground">
         Ação não encontrada.
-        <Link href="/acoes"><a className="block mt-2 text-primary hover:underline">Voltar para Ações</a></Link>
+        <Link href="/acoes" className="block mt-2 text-primary hover:underline">Voltar para Ações</Link>
       </div>
     );
   }
@@ -161,11 +161,9 @@ export default function ActionDetail() {
   return (
     <div className="p-6 space-y-5 max-w-4xl mx-auto">
       {/* Back */}
-      <Link href="/acoes">
-        <a className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Voltar para Ações
-        </a>
+      <Link href="/acoes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        Voltar para Ações
       </Link>
 
       {/* Main card */}

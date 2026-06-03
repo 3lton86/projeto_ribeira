@@ -245,8 +245,7 @@ export default function Dashboard() {
       {/* Area progress cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-stagger">
         {stats.byArea.map((area) => (
-          <Link key={area.area} href={`/acoes?area=${encodeURIComponent(area.area)}`}>
-            <a className="glass-card rounded-xl p-4 block hover:border-primary/40 transition-all duration-200 cursor-pointer group">
+          <Link key={area.area} href={`/acoes?area=${encodeURIComponent(area.area)}`} className="glass-card rounded-xl p-4 block hover:border-primary/40 transition-all duration-200 cursor-pointer group">
               <div className="flex items-center justify-between mb-3">
                 <span
                   className={`text-xs font-semibold px-2 py-0.5 rounded badge-${
@@ -279,8 +278,7 @@ export default function Dashboard() {
                   <span className="text-foreground font-medium">{area["Em Andamento"]}</span> em and.
                 </div>
               </div>
-            </a>
-          </Link>
+            </Link>
         ))}
       </div>
     </div>
