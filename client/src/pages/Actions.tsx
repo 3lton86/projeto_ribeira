@@ -14,6 +14,7 @@ import {
   FileText as FilePdf,
   Eye,
   Edit3,
+  Trash2,
   AlertCircle,
   Plus,
   Building2,
@@ -22,6 +23,7 @@ import {
   Mail,
   Calendar,
   FileText,
+  Pencil,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { toast } from "sonner";
@@ -77,6 +79,265 @@ function AreaBadge({ area }: { area: Area }) {
   );
 }
 
+// ---- Edit Inline Modal ----
+interface EditInlineForm {
+  description: string;
+  area: Area;
+  status: Status;
+  priority: Priority;
+  dueDate: string;
+  orgao: string;
+}
+
+interface EditInlineModalProps {
+  action: {
+    id: number;
+    description: string;
+    area: string;
+    status: string;
+    priority: string | null;
+    dueDate?: Date | null;
+    orgao?: string | null;
+  };
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function EditInlineModal({ action, onClose, onSaved }: EditInlineModalProps) {
+  const [form, setForm] = useState<EditInlineForm>({
+    description: action.description,
+    area: action.area as Area,
+    status: action.status as Status,
+    priority: (action.priority ?? "Média") as Priority,
+    dueDate: action.dueDate ? new Date(action.dueDate).toISOString().split("T")[0] : "",
+    orgao: (action as any).orgao ?? "",
+  });
+
+  const editMutation = trpc.actions.editInline.useMutation({
+    onSuccess: () => {
+      toast.success("Ação atualizada com sucesso!");
+      onSaved();
+      onClose();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao atualizar ação.");
+    },
+  });
+
+  const handleSave = () => {
+    if (!form.description.trim()) {
+      toast.error("A descrição é obrigatória.");
+      return;
+    }
+    editMutation.mutate({
+      id: action.id,
+      description: form.description.trim(),
+      area: form.area,
+      status: form.status,
+      priority: form.priority,
+      dueDate: form.dueDate ? new Date(form.dueDate) : null,
+      orgao: (form.orgao as any) || undefined,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 flex flex-col gap-5"
+        style={{
+          background: "oklch(0.13 0.02 220)",
+          border: "1px solid oklch(0.72 0.18 185 / 0.3)",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "oklch(0.65 0.20 50 / 0.15)", border: "1px solid oklch(0.65 0.20 50 / 0.4)" }}>
+              <Pencil className="w-4 h-4" style={{ color: "oklch(0.65 0.20 50)" }} />
+            </div>
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Editar Ação</h2>
+              <p className="text-xs text-muted-foreground">Campos principais da ação</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Campos */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Descrição *</label>
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
+              className="w-full rounded-lg px-3 py-2 text-sm bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary/60 text-foreground resize-none"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Frente Temática</label>
+            <select
+              value={form.area}
+              onChange={(e) => setForm(f => ({ ...f, area: e.target.value as Area }))}
+              className="rounded-lg px-3 py-2 text-sm bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary/60 text-foreground"
+            >
+              {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm(f => ({ ...f, status: e.target.value as Status }))}
+              className="rounded-lg px-3 py-2 text-sm bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary/60 text-foreground"
+            >
+              {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prioridade</label>
+            <select
+              value={form.priority}
+              onChange={(e) => setForm(f => ({ ...f, priority: e.target.value as Priority }))}
+              className="rounded-lg px-3 py-2 text-sm bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary/60 text-foreground"
+            >
+              {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Calendar className="w-3 h-3" /> Prazo Previsto
+            </label>
+            <input
+              type="date"
+              value={form.dueDate}
+              onChange={(e) => setForm(f => ({ ...f, dueDate: e.target.value }))}
+              className="rounded-lg px-3 py-2 text-sm bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary/60 text-foreground"
+            />
+          </div>
+
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Building2 className="w-3 h-3" /> Órgão Responsável
+            </label>
+            <select
+              value={form.orgao}
+              onChange={(e) => setForm(f => ({ ...f, orgao: e.target.value }))}
+              className="rounded-lg px-3 py-2 text-sm bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary/60 text-foreground"
+            >
+              <option value="">Selecione o órgão...</option>
+              {ORGAOS_MUNICIPAIS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Para editar outros campos (contato, base documental, documentos), acesse a ficha completa da ação.
+        </p>
+
+        {/* Botões */}
+        <div className="flex items-center justify-end gap-3 border-t border-border/30 pt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm font-medium glass-card hover:border-border transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={editMutation.isPending}
+            className="px-5 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ background: "oklch(0.65 0.20 50)", color: "#000" }}
+          >
+            {editMutation.isPending ? (
+              <><span className="animate-spin w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full" /> Salvando...</>
+            ) : (
+              <><Pencil className="w-3.5 h-3.5" /> Salvar</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Delete Confirm Dialog ----
+interface DeleteConfirmDialogProps {
+  actionDescription: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+}
+
+function DeleteConfirmDialog({ actionDescription, onConfirm, onCancel, isPending }: DeleteConfirmDialogProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-5"
+        style={{
+          background: "oklch(0.13 0.02 220)",
+          border: "1px solid oklch(0.60 0.22 25 / 0.4)",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "oklch(0.60 0.22 25 / 0.15)", border: "1px solid oklch(0.60 0.22 25 / 0.4)" }}>
+            <Trash2 className="w-5 h-5" style={{ color: "oklch(0.60 0.22 25)" }} />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-bold text-foreground">Excluir Ação</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Esta operação é irreversível. Todos os comentários, histórico e documentos associados também serão excluídos.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-lg p-3 bg-secondary/30 border border-border/40">
+          <p className="text-sm text-foreground line-clamp-3">{actionDescription}</p>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isPending}
+            className="px-4 py-2 rounded-lg text-sm font-medium glass-card hover:border-border transition-all disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="px-5 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ background: "oklch(0.45 0.22 25)", color: "#fff" }}
+          >
+            {isPending ? (
+              <><span className="animate-spin w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full" /> Excluindo...</>
+            ) : (
+              <><Trash2 className="w-3.5 h-3.5" /> Excluir</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Main Component ----
 export default function Actions() {
   const [, params] = useLocation();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
@@ -107,13 +368,27 @@ export default function Actions() {
     responsavelEmail: "",
   });
 
+  // Edit inline state
+  const [editingAction, setEditingAction] = useState<{
+    id: number;
+    description: string;
+    area: string;
+    status: string;
+    priority: string | null;
+    dueDate?: Date | null;
+    orgao?: string | null;
+  } | null>(null);
+
+  // Delete confirm state
+  const [deletingAction, setDeletingAction] = useState<{ id: number; description: string } | null>(null);
+
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery({});
   const { user } = useAuth();
   const { localUser } = useLocalAuth();
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
 
   const createActionMutation = trpc.actions.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Nova ação criada com sucesso!");
       setShowNewActionModal(false);
       setNewActionForm({
@@ -134,6 +409,17 @@ export default function Actions() {
     },
     onError: (err) => {
       toast.error(err.message || "Erro ao criar ação.");
+    },
+  });
+
+  const deleteActionMutation = trpc.actions.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Ação excluída com sucesso.");
+      setDeletingAction(null);
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao excluir ação.");
     },
   });
 
@@ -373,16 +659,16 @@ export default function Actions() {
               </div>
             </div>
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Área</div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Frente Temática</div>
+              <div className="flex flex-col gap-1.5">
                 {AREAS.map((area) => (
                   <button
                     key={area}
                     onClick={() => toggleArea(area)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium text-left transition-all ${
                       selectedAreas.includes(area)
-                        ? `badge-${area === "Eco-Fin" ? "ecofin" : area === "Governança" ? "governanca" : area === "Técnico" ? "tecnico" : "juridico"} opacity-100`
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                   >
                     {area}
@@ -392,15 +678,15 @@ export default function Actions() {
             </div>
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Status</div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 {STATUSES.map((s) => (
                   <button
                     key={s}
                     onClick={() => toggleStatus(s)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium text-left transition-all ${
                       selectedStatuses.includes(s)
-                        ? `badge-${s === "Em Andamento" ? "em-andamento" : s === "Concluído" ? "concluido" : s === "Cancelado" ? "cancelado" : "pendente"} opacity-100`
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                   >
                     {s}
@@ -410,15 +696,15 @@ export default function Actions() {
             </div>
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Prioridade</div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 {PRIORITIES.map((p) => (
                   <button
                     key={p}
                     onClick={() => togglePriority(p)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium text-left transition-all ${
                       selectedPriorities.includes(p)
-                        ? `badge-${p === "Alta" ? "alta" : p === "Média" ? "media" : "baixa"} opacity-100`
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                   >
                     {p}
@@ -443,9 +729,9 @@ export default function Actions() {
             const areaItems = grouped[area] ?? [];
             const groups = areaItems.filter((a) => a.isGroup === 1);
             const areaKey = `area-${area}`;
-                const isAreaExpanded = !expandedGroups.has(`collapsed-area-${area}`);
+            const isAreaExpanded = !expandedGroups.has(`collapsed-area-${area}`);
 
-                      return (
+            return (
               <div key={area} className="glass-card rounded-xl overflow-hidden">
                 {/* Area header */}
                 <button
@@ -543,16 +829,55 @@ export default function Actions() {
                                     })()}
                                   </div>
                                 </div>
-                                <Link
-                                  href={`/acoes/${action.id}`}
-                                  className="flex-shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors opacity-0 group-hover:opacity-100"
-                                >
-                                  {isAdmin ? (
-                                    <Edit3 className="w-4 h-4 text-muted-foreground" />
-                                  ) : (
-                                    <Eye className="w-4 h-4 text-muted-foreground" />
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {isAdmin && (
+                                    <>
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setEditingAction({
+                                            id: action.id,
+                                            description: action.description,
+                                            area: action.area,
+                                            status: action.status,
+                                            priority: action.priority,
+                                            dueDate: (action as any).dueDate,
+                                            orgao: (action as any).orgao,
+                                          });
+                                        }}
+                                        title="Editar ação"
+                                        className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" style={{ color: "oklch(0.65 0.20 50)" }} />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setDeletingAction({ id: action.id, description: action.description });
+                                        }}
+                                        title="Excluir ação"
+                                        className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" style={{ color: "oklch(0.55 0.22 25)" }} />
+                                      </button>
+                                    </>
                                   )}
-                                </Link>
+                                  <Link
+                                    href={`/acoes/${action.id}`}
+                                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                                    title="Ver ficha completa"
+                                  >
+                                    {isAdmin ? (
+                                      <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                                    )}
+                                  </Link>
+                                </div>
                               </div>
                             ))}
                         </div>
@@ -756,6 +1081,25 @@ export default function Actions() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Inline Modal */}
+      {editingAction && (
+        <EditInlineModal
+          action={editingAction}
+          onClose={() => setEditingAction(null)}
+          onSaved={() => refetch()}
+        />
+      )}
+
+      {/* Delete Confirm Dialog */}
+      {deletingAction && (
+        <DeleteConfirmDialog
+          actionDescription={deletingAction.description}
+          onConfirm={() => deleteActionMutation.mutate({ id: deletingAction.id })}
+          onCancel={() => setDeletingAction(null)}
+          isPending={deleteActionMutation.isPending}
+        />
       )}
     </div>
   );

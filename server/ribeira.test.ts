@@ -70,6 +70,7 @@ vi.mock("./db", () => ({
   deleteActionDocument: vi.fn().mockResolvedValue(undefined),
   createAction: vi.fn().mockResolvedValue(42),
   getNextItemCode: vi.fn().mockResolvedValue("G.99"),
+  deleteAction: vi.fn().mockResolvedValue(undefined),
 }));
 
 function makePublicCtx(): TrpcContext {
@@ -297,6 +298,88 @@ describe("actions.create", () => {
     const caller = appRouter.createCaller(makeAdminCtx());
     await expect(
       caller.actions.create({ area: "Técnico", description: "ab" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("actions.delete", () => {
+  it("rejects deletion without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.actions.delete({ id: 2 })
+    ).rejects.toThrow();
+  });
+
+  it("rejects deletion for non-admin OAuth user", async () => {
+    const nonAdminCtx: TrpcContext = {
+      user: {
+        id: 2, openId: "regular-user", email: "user@ribeira.com",
+        name: "Regular User", loginMethod: "manus", role: "user",
+        createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+    };
+    const caller = appRouter.createCaller(nonAdminCtx);
+    await expect(
+      caller.actions.delete({ id: 2 })
+    ).rejects.toThrow();
+  });
+
+  it("allows admin to delete an existing action", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.actions.delete({ id: 2 });
+    expect(result.success).toBe(true);
+  });
+
+  it("throws NOT_FOUND when action does not exist", async () => {
+    const { getActionById } = await import("./db");
+    (getActionById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.delete({ id: 9999 })
+    ).rejects.toThrow();
+  });
+});
+
+describe("actions.editInline", () => {
+  it("rejects editInline without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.actions.editInline({ id: 2, status: "Em Andamento" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects editInline for non-admin OAuth user", async () => {
+    const nonAdminCtx: TrpcContext = {
+      user: {
+        id: 2, openId: "regular-user", email: "user@ribeira.com",
+        name: "Regular User", loginMethod: "manus", role: "user",
+        createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+    };
+    const caller = appRouter.createCaller(nonAdminCtx);
+    await expect(
+      caller.actions.editInline({ id: 2, status: "Em Andamento" })
+    ).rejects.toThrow();
+  });
+
+  it("allows admin to editInline status and description", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.actions.editInline({
+      id: 2,
+      status: "Concluído",
+      description: "Levantamento físico-funcional dos ativos — atualizado",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects editInline with description too short", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.editInline({ id: 2, description: "ab" })
     ).rejects.toThrow();
   });
 });

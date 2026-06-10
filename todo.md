@@ -70,3 +70,10 @@
 - [x] Frontend: botão "Nova Ação" na página Actions (visível apenas para admins)
 - [x] Frontend: modal de criação com campos obrigatórios e opcionais
 - [x] Testes para createAction
+
+## Sprint 7
+- [x] Backend: mutation deleteAction (admin) com proteção
+- [x] Frontend: botões Editar e Excluir na listagem de ações (apenas admins)
+- [x] Frontend: modal de edição rápida inline na listagem
+- [x] Frontend: confirmação de exclusão com dialog
+- [x] Testes para deleteAction e editInline (8 novos testes, 30 total)

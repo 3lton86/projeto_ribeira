@@ -4,6 +4,7 @@ import {
   createAction,
   createComment,
   createHistory,
+  deleteAction,
   getActionById,
   getActions,
   getDashboardStats,
@@ -193,6 +194,73 @@ export const appRouter = router({
         }
 
         await updateAction(id, fields as any);
+        return { success: true };
+      }),
+
+    delete: localOrOauthAdminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const existing = await getActionById(input.id);
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Ação não encontrada." });
+        await deleteAction(input.id);
+        return { success: true };
+      }),
+
+    editInline: localOrOauthAdminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          description: z.string().min(3).max(2000).optional(),
+          area: areaEnum.optional(),
+          status: statusEnum.optional(),
+          priority: priorityEnum.optional(),
+          dueDate: z.date().nullable().optional(),
+          orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { id, description, ...fields } = input;
+        const current = await getActionById(id);
+        if (!current) throw new TRPCError({ code: "NOT_FOUND" });
+
+        const localUser = (ctx as any).localUser;
+        const historyUserId = localUser ? localUser.id : ctx.user!.id;
+
+        const fieldLabels: Record<string, string> = {
+          description: "Descrição",
+          area: "Frente Temática",
+          status: "Status",
+          priority: "Prioridade",
+          dueDate: "Prazo Previsto",
+          orgao: "Órgão Responsável",
+        };
+
+        const allFields: Record<string, any> = { ...fields };
+        if (description !== undefined) allFields.description = description;
+
+        for (const [key, newVal] of Object.entries(allFields)) {
+          if (newVal === undefined) continue;
+          const oldVal = (current as any)[key];
+          const oldStr = oldVal instanceof Date ? oldVal.toISOString() : String(oldVal ?? "");
+          const newStr = newVal instanceof Date ? newVal.toISOString() : String(newVal ?? "");
+          if (oldStr !== newStr) {
+            await createHistory({
+              actionId: id,
+              userId: Math.abs(historyUserId),
+              fieldChanged: fieldLabels[key] ?? key,
+              oldValue: oldStr || null,
+              newValue: newStr || null,
+            });
+          }
+        }
+
+        // updateAction only accepts certain fields, handle description separately
+        const updateFields: any = { ...fields };
+        if (description !== undefined) {
+          // description is not in updateAction's type, but we can pass it through
+          updateFields.description = description;
+        }
+        await updateAction(id, updateFields);
         return { success: true };
       }),
   }),
