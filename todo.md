@@ -77,3 +77,10 @@
 - [x] Frontend: modal de edição rápida inline na listagem
 - [x] Frontend: confirmação de exclusão com dialog
 - [x] Testes para deleteAction e editInline (8 novos testes, 30 total)
+
+## Sprint 8
+- [x] Backend: mutation actions.updateGroup (admin) para editar descrição de cabeçalhos de grupo (isGroup=1)
+- [x] Frontend: botão Editar nos cabeçalhos de grupo (lápis, visível apenas para admins)
+- [x] Frontend: modal EditGroupModal reutilizando estilo do EditInlineModal
+- [x] Frontend: paginação por área na listagem de ações (20 itens/pág, controles numerados com ellipsis)
+- [x] Testes para actions.updateGroup (6 novos testes, 36 total)

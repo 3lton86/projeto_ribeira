@@ -71,6 +71,7 @@ vi.mock("./db", () => ({
   createAction: vi.fn().mockResolvedValue(42),
   getNextItemCode: vi.fn().mockResolvedValue("G.99"),
   deleteAction: vi.fn().mockResolvedValue(undefined),
+  updateGroupDescription: vi.fn().mockResolvedValue(undefined),
 }));
 
 function makePublicCtx(): TrpcContext {
@@ -380,6 +381,76 @@ describe("actions.editInline", () => {
     const caller = appRouter.createCaller(makeAdminCtx());
     await expect(
       caller.actions.editInline({ id: 2, description: "ab" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("actions.updateGroup", () => {
+  it("rejects updateGroup without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.actions.updateGroup({ id: 1, description: "Novo nome do grupo" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects updateGroup for non-admin OAuth user", async () => {
+    const nonAdminCtx: TrpcContext = {
+      user: {
+        id: 2, openId: "regular-user", email: "user@ribeira.com",
+        name: "Regular User", loginMethod: "manus", role: "user",
+        createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+    };
+    const caller = appRouter.createCaller(nonAdminCtx);
+    await expect(
+      caller.actions.updateGroup({ id: 1, description: "Novo nome do grupo" })
+    ).rejects.toThrow();
+  });
+
+  it("allows admin to update group description", async () => {
+    const { getActionById } = await import("./db");
+    // Mock getActionById to return a group item
+    (getActionById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 1, area: "Técnico", itemCode: "1", parentCode: null, isGroup: 1,
+      description: "Diagnóstico Territorial", priority: null, status: "Pendente",
+      dueDate: null, requestDate: null, receiptDate: null, documentBase: null,
+      sortOrder: 10, createdAt: new Date(), updatedAt: new Date(),
+    });
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.actions.updateGroup({ id: 1, description: "Diagnóstico Territorial Atualizado" });
+    expect(result.success).toBe(true);
+  });
+
+  it("throws NOT_FOUND when group does not exist", async () => {
+    const { getActionById } = await import("./db");
+    (getActionById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.updateGroup({ id: 9999, description: "Grupo inexistente" })
+    ).rejects.toThrow();
+  });
+
+  it("throws BAD_REQUEST when trying to updateGroup on a non-group item", async () => {
+    const { getActionById } = await import("./db");
+    // Mock getActionById to return an action item (isGroup=0)
+    (getActionById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 2, area: "Técnico", itemCode: "1.1", parentCode: "1", isGroup: 0,
+      description: "Levantamento físico-funcional dos ativos", priority: "Alta", status: "Pendente",
+      dueDate: null, requestDate: null, receiptDate: null, documentBase: null,
+      sortOrder: 11, createdAt: new Date(), updatedAt: new Date(),
+    });
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.updateGroup({ id: 2, description: "Tentativa inválida" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects updateGroup with description too short", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.updateGroup({ id: 1, description: "ab" })
     ).rejects.toThrow();
   });
 });

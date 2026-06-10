@@ -13,6 +13,7 @@ import {
   getCommentsByActionId,
   getHistoryByActionId,
   updateAction,
+  updateGroupDescription,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -261,6 +262,35 @@ export const appRouter = router({
           updateFields.description = description;
         }
         await updateAction(id, updateFields);
+        return { success: true };
+      }),
+
+    updateGroup: localOrOauthAdminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          description: z.string().min(3).max(500),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const existing = await getActionById(input.id);
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Grupo não encontrado." });
+        if (existing.isGroup !== 1) throw new TRPCError({ code: "BAD_REQUEST", message: "Este item não é um cabeçalho de grupo." });
+
+        const localUser = (ctx as any).localUser;
+        const historyUserId = localUser ? localUser.id : ctx.user!.id;
+
+        if (existing.description !== input.description) {
+          await createHistory({
+            actionId: input.id,
+            userId: Math.abs(historyUserId),
+            fieldChanged: "Descrição do Grupo",
+            oldValue: existing.description,
+            newValue: input.description,
+          });
+        }
+
+        await updateGroupDescription(input.id, input.description);
         return { success: true };
       }),
   }),

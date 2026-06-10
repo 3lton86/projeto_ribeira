@@ -192,6 +192,12 @@ export async function deleteAction(id: number) {
   await db.delete(actions).where(eq(actions.id, id));
 }
 
+export async function updateGroupDescription(id: number, description: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(actions).set({ description }).where(eq(actions.id, id));
+}
+
 // ---- COMMENTS ----
 
 export async function getCommentsByActionId(actionId: number) {
