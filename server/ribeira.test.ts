@@ -68,6 +68,8 @@ vi.mock("./db", () => ({
   getDocumentsByActionId: vi.fn().mockResolvedValue([]),
   createActionDocument: vi.fn().mockResolvedValue(undefined),
   deleteActionDocument: vi.fn().mockResolvedValue(undefined),
+  createAction: vi.fn().mockResolvedValue(42),
+  getNextItemCode: vi.fn().mockResolvedValue("G.99"),
 }));
 
 function makePublicCtx(): TrpcContext {
@@ -251,6 +253,50 @@ describe("documents.create", () => {
     const caller = appRouter.createCaller(makePublicCtx());
     await expect(
       caller.documents.create({ actionId: 1, label: "Test Doc", url: "https://example.com/doc.pdf" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("actions.create", () => {
+  it("rejects creation without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.actions.create({ area: "Governança", description: "Nova ação teste" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects creation for non-admin OAuth user", async () => {
+    const nonAdminCtx: TrpcContext = {
+      user: {
+        id: 2, openId: "regular-user", email: "user@ribeira.com",
+        name: "Regular User", loginMethod: "manus", role: "user",
+        createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+    };
+    const caller = appRouter.createCaller(nonAdminCtx);
+    await expect(
+      caller.actions.create({ area: "Governança", description: "Nova ação teste" })
+    ).rejects.toThrow();
+  });
+
+  it("allows admin to create a new action and returns id", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.actions.create({
+      area: "Governança",
+      description: "Nova ação de teste criada pelo admin",
+      priority: "Alta",
+      status: "Pendente",
+    });
+    expect(result.success).toBe(true);
+    expect(result.id).toBe(42);
+  });
+
+  it("rejects creation with empty description", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.create({ area: "Técnico", description: "ab" })
     ).rejects.toThrow();
   });
 });

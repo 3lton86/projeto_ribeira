@@ -66,7 +66,7 @@
 - [x] Frontend Dashboard: adicionar gráfico de situação de prazo (no prazo / atrasado / sem prazo)
 
 ## Sprint 6
-- [ ] Backend: mutation createAction (admin) com geração automática de itemCode
-- [ ] Frontend: botão "Nova Ação" na página Actions (visível apenas para admins)
-- [ ] Frontend: modal de criação com campos obrigatórios e opcionais
-- [ ] Testes para createAction
+- [x] Backend: mutation createAction (admin) com geração automática de itemCode
+- [x] Frontend: botão "Nova Ação" na página Actions (visível apenas para admins)
+- [x] Frontend: modal de criação com campos obrigatórios e opcionais
+- [x] Testes para createAction
