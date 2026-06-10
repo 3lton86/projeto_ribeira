@@ -95,6 +95,72 @@ export async function getActionById(id: number) {
   return result[0] ?? null;
 }
 
+export async function getNextItemCode(area: string): Promise<string> {
+  const db = await getDb();
+  if (!db) return "1";
+  // Get all top-level items (isGroup=0) for this area, ordered by sortOrder desc
+  const rows = await db
+    .select({ itemCode: actions.itemCode, sortOrder: actions.sortOrder })
+    .from(actions)
+    .where(and(eq(actions.area, area as any), eq(actions.isGroup, 0)))
+    .orderBy(desc(actions.sortOrder))
+    .limit(1);
+  if (rows.length === 0) return "1";
+  // Generate next sequential code based on count
+  const allRows = await db
+    .select({ id: actions.id })
+    .from(actions)
+    .where(and(eq(actions.area, area as any), eq(actions.isGroup, 0)));
+  return String(allRows.length + 1);
+}
+
+export async function createAction(data: {
+  area: "Governança" | "Técnico" | "Jurídico" | "Eco-Fin";
+  description: string;
+  priority?: "Alta" | "Média" | "Baixa";
+  status?: "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
+  dueDate?: Date | null;
+  requestDate?: Date;
+  receiptDate?: Date;
+  documentBase?: string;
+  orgao?: string;
+  responsavelNome?: string;
+  responsavelCargo?: string;
+  responsavelTel?: string;
+  responsavelEmail?: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const itemCode = await getNextItemCode(data.area);
+  // Get max sortOrder for this area
+  const maxRows = await db
+    .select({ sortOrder: actions.sortOrder })
+    .from(actions)
+    .where(eq(actions.area, data.area as any))
+    .orderBy(desc(actions.sortOrder))
+    .limit(1);
+  const nextSortOrder = maxRows.length > 0 ? (maxRows[0].sortOrder + 1) : 1;
+  const result = await db.insert(actions).values({
+    area: data.area,
+    itemCode,
+    isGroup: 0,
+    description: data.description,
+    priority: data.priority ?? "Média",
+    status: data.status ?? "Pendente",
+    dueDate: data.dueDate ?? null,
+    requestDate: data.requestDate,
+    receiptDate: data.receiptDate,
+    documentBase: data.documentBase,
+    orgao: data.orgao,
+    responsavelNome: data.responsavelNome,
+    responsavelCargo: data.responsavelCargo,
+    responsavelTel: data.responsavelTel,
+    responsavelEmail: data.responsavelEmail,
+    sortOrder: nextSortOrder,
+  });
+  return (result as any).insertId as number;
+}
+
 export async function updateAction(
   id: number,
   data: Partial<{

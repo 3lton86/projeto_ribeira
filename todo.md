@@ -64,3 +64,9 @@
 - [x] Frontend ActionDetail: substituir campo Responsável pelo campo Prazo (date picker)
 - [x] Frontend Actions listagem: exibir prazo e indicador visual de atraso nos itens
 - [x] Frontend Dashboard: adicionar gráfico de situação de prazo (no prazo / atrasado / sem prazo)
+
+## Sprint 6
+- [ ] Backend: mutation createAction (admin) com geração automática de itemCode
+- [ ] Frontend: botão "Nova Ação" na página Actions (visível apenas para admins)
+- [ ] Frontend: modal de criação com campos obrigatórios e opcionais
+- [ ] Testes para createAction

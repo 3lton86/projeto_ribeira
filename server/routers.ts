@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
+  createAction,
   createComment,
   createHistory,
   getActionById,
@@ -94,6 +95,43 @@ export const appRouter = router({
         const action = await getActionById(input.id);
         if (!action) throw new TRPCError({ code: "NOT_FOUND" });
         return action;
+      }),
+
+    create: localOrOauthAdminProcedure
+      .input(
+        z.object({
+          area: areaEnum,
+          description: z.string().min(3).max(2000),
+          priority: priorityEnum.optional().default("Média"),
+          status: statusEnum.optional().default("Pendente"),
+          dueDate: z.date().nullable().optional(),
+          requestDate: z.date().optional(),
+          receiptDate: z.date().optional(),
+          documentBase: z.string().optional(),
+          orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).optional(),
+          responsavelNome: z.string().optional(),
+          responsavelCargo: z.string().optional(),
+          responsavelTel: z.string().optional(),
+          responsavelEmail: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const newId = await createAction({
+          area: input.area,
+          description: input.description,
+          priority: input.priority,
+          status: input.status,
+          dueDate: input.dueDate ?? null,
+          requestDate: input.requestDate,
+          receiptDate: input.receiptDate,
+          documentBase: input.documentBase,
+          orgao: input.orgao,
+          responsavelNome: input.responsavelNome,
+          responsavelCargo: input.responsavelCargo,
+          responsavelTel: input.responsavelTel,
+          responsavelEmail: input.responsavelEmail,
+        });
+        return { success: true, id: newId };
       }),
 
     update: localOrOauthAdminProcedure
