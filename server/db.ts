@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { actions, actionDocuments, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -86,6 +86,54 @@ export async function getActions(filters?: {
     ? db.select().from(actions).where(and(...conditions)).orderBy(actions.area, actions.sortOrder)
     : db.select().from(actions).orderBy(actions.area, actions.sortOrder);
   return query;
+}
+
+/**
+ * Retorna apenas os itens (isGroup=0) cujo campo `orgao` está na lista de órgãos permitidos do usuário setorial.
+ * Grupos (isGroup=1) são incluídos apenas se tiverem ao menos um filho visível — a filtragem de grupos
+ * é feita no frontend (já existente), então aqui retornamos todos os grupos + os itens filtrados.
+ */
+export async function getActionsForSetorial(
+  allowedOrgaos: string[],
+  filters?: {
+    area?: string[];
+    priority?: string[];
+    status?: string[];
+    search?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (filters?.area?.length) conditions.push(inArray(actions.area, filters.area as any) as any);
+  if (filters?.priority?.length) conditions.push(inArray(actions.priority, filters.priority as any) as any);
+  if (filters?.status?.length) conditions.push(inArray(actions.status, filters.status as any) as any);
+  if (filters?.search) conditions.push(like(actions.description, `%${filters.search}%`) as any);
+
+  // Buscar todos os registros (grupos + itens) com os filtros base
+  const baseQuery = conditions.length > 0
+    ? db.select().from(actions).where(and(...conditions)).orderBy(actions.area, actions.sortOrder)
+    : db.select().from(actions).orderBy(actions.area, actions.sortOrder);
+  const all = await baseQuery;
+
+  // Primeiro: identificar quais itens (isGroup=0) são visíveis para este setorial
+  const visibleItems = all.filter((a) => {
+    if (a.isGroup === 1) return false;
+    if (!a.orgao) return false;
+    return allowedOrgaos.includes(a.orgao);
+  });
+
+  // Um grupo é visível se algum item visível tem parentCode que começa com o itemCode do grupo
+  // (ex: grupo "1" é visível se há item com parentCode "1" ou "1.x")
+  const visibleGroups = all.filter((a) => {
+    if (a.isGroup !== 1) return false;
+    // Verificar se algum item visível pertence a este grupo (parentCode === grupo.itemCode)
+    return visibleItems.some((item) => item.parentCode === a.itemCode);
+  });
+
+  // Combinar grupos visíveis + itens visíveis, mantendo a ordem original
+  const visibleIds = new Set([...visibleGroups.map((g) => g.id), ...visibleItems.map((i) => i.id)]);
+  return all.filter((a) => visibleIds.has(a.id));
 }
 
 export async function getActionById(id: number) {

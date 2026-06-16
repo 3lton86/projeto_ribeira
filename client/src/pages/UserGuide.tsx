@@ -308,13 +308,13 @@ const SETORIAL_SECTIONS: Section[] = [
     icon: Eye,
     content: (
       <div className="space-y-3">
-        <p>Você pode visualizar todos os itens cadastrados na plataforma, independentemente do órgão. Use os filtros para encontrar rapidamente o que precisa:</p>
+        <p>A plataforma exibe <strong>apenas os itens dos órgãos para os quais você tem permissão</strong>, mantendo a interface focada e sem informações irrelevantes. Use os filtros para navegar rapidamente:</p>
         <ul className="space-y-1 pl-4">
-          <li className="list-disc text-sm">Filtre por área, status, prioridade ou órgão responsável.</li>
+          <li className="list-disc text-sm">Filtre por área, status ou prioridade para refinar a listagem.</li>
           <li className="list-disc text-sm">Use a busca por texto para localizar itens pelo nome ou descrição.</li>
           <li className="list-disc text-sm">Clique em qualquer item para abrir sua ficha completa com todos os detalhes.</li>
         </ul>
-        <InfoBox type="info">A visualização é irrestrita — você pode consultar todos os itens, mas só pode interagir (comentar/documentar) nos itens dos órgãos autorizados para o seu perfil.</InfoBox>
+        <InfoBox type="info">Você visualiza e pode interagir (comentar e incluir documentos) apenas nos itens dos órgãos autorizados para o seu perfil. Itens de outros órgãos não aparecem na listagem.</InfoBox>
       </div>
     ),
   },

@@ -27,6 +27,8 @@ import {
   markAllNotificationsRead,
   getAdminAndSuperAdminIds,
   getSetorialUserIdsForOrgao,
+  getUserOrgaos,
+  getActionsForSetorial,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -100,7 +102,24 @@ export const appRouter = router({
           search: z.string().optional(),
         }).optional()
       )
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        // Se o usuário é setorial, filtrar por seus órgãos permitidos
+        const token = extractLocalToken(ctx);
+        if (token) {
+          const payload = await verifyLocalJwt(token);
+          if (payload) {
+            const localUser = await getLocalUserById(payload.id);
+            if (localUser && localUser.active && localUser.role === 'setorial') {
+              const orgaos = await getUserOrgaos(localUser.id);
+              if (orgaos.includes('TODOS')) {
+                // Acesso total — sem filtro de órgão
+                return getActions(input);
+              }
+              // Filtrar apenas os itens dos órgãos permitidos
+              return getActionsForSetorial(orgaos, input);
+            }
+          }
+        }
         return getActions(input);
       }),
 

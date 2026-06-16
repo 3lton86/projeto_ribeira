@@ -157,3 +157,10 @@
 - [x] Eliminar estado selectAll separado — derivado diretamente de form.allowedOrgaos (sem useState extra)
 - [x] Corrigir onOpenChange do Dialog para não fechar em reentrâncias de foco do Radix
 - [x] Simplificar handleSubmit para usar form.allowedOrgaos diretamente
+
+## Sprint 17 — Filtro de visibilidade por órgão para usuários setoriais
+- [x] Backend: nova função getActionsForSetorial filtra itens por órgão do usuário setorial
+- [x] Backend: actions.list detecta token setorial e aplica filtro automaticamente
+- [x] Frontend: listagem de ações exibe apenas itens do órgão do setorial (sem mudança de código — filtro é no servidor)
+- [x] Backend: getActionsForSetorial remove grupos sem filhos visíveis (sem órgão permitido)
+- [x] Guia do Usuário atualizado: setorial só vê itens dos seus órgãos
