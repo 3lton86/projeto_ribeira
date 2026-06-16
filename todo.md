@@ -126,3 +126,18 @@
 - [x] Adicionar aba "Guia do Usuário" no sidebar com ícone BookOpen
 - [x] Registrar rota /guia no App.tsx
 - [x] Verificar TypeScript (zero erros) e salvar checkpoint
+
+## Sprint 13 — Auditoria Global e Sistema de Alertas
+- [ ] Schema: tabela notifications (id, userId, type, title, body, actionId, actionCode, orgao, isRead, createdAt)
+- [ ] Backend: funções createNotification, getNotifications, markAsRead, markAllAsRead, getUnreadCount no db.ts
+- [ ] Backend: router notifications (list, markRead, markAllRead, unreadCount)
+- [ ] Backend: disparar alertas tipo "item_change" em createAction, editInline, updateGroup, reorder, createSubItem, deleteAction
+- [ ] Backend: disparar alertas tipo "comment_doc" em comments.create e documents.create
+- [ ] Frontend: componente NotificationBell no header (sininho com badge de não lidos)
+- [ ] Frontend: dropdown de alertas com filtro por tipo (Alterações de Itens / Comentários e Documentos)
+- [ ] Frontend: alertas "item_change" visíveis apenas para admins
+- [ ] Frontend: alertas "comment_doc" visíveis para admins e setoriais do órgão do item
+- [ ] Frontend: página AuditLog.tsx com log global de todas as alterações (apenas admins)
+- [ ] Frontend: aba "Auditoria Global" no sidebar (apenas admins)
+- [ ] Frontend: atualizar UserGuide.tsx com instruções de alertas e auditoria global
+- [ ] Testes unitários para notifications router

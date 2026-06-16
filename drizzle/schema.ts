@@ -151,3 +151,19 @@ export const auditLog = mysqlTable("audit_log", {
 
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+// Notificações/Alertas do sistema
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),               // local_users.id do destinatário
+  type: mysqlEnum("type", ["item_change", "comment_doc"]).notNull(), // tipo de alerta
+  title: varchar("title", { length: 300 }).notNull(),
+  body: text("body"),                            // descrição detalhada
+  actionId: int("actionId"),                     // ação relacionada (opcional)
+  actionCode: varchar("actionCode", { length: 50 }), // código do item
+  orgao: varchar("orgao", { length: 100 }),      // órgão do item (para filtro setorial)
+  isRead: int("isRead").default(0).notNull(),    // 0 = não lido, 1 = lido
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

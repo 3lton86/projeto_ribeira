@@ -3,9 +3,12 @@ import { z } from "zod";
 import {
   createActionDocument,
   createAuditLog,
+  createNotificationsForAdmins,
   deleteActionDocument,
   getActionById,
+  getAdminAndSuperAdminIds,
   getDocumentsByActionId,
+  getSetorialUserIdsForOrgao,
   setorialUserHasOrgaoAccess,
 } from "../db";
 import { localAdminProcedure, localAuthProcedure } from "./localAuth";
@@ -53,6 +56,7 @@ export const documentsRouter = router({
         uploadedBy: localUser.id,
         uploaderName: localUser.name,
       });
+
       // Audit log
       await createAuditLog({
         actionId: input.actionId,
@@ -63,6 +67,27 @@ export const documentsRouter = router({
         eventType: "document",
         detail: `Documento incluído: "${input.label}" — ${input.url.slice(0, 100)}`,
       });
+
+      // Disparar alertas: admins + setoriais do órgão
+      try {
+        const action = await getActionById(input.actionId);
+        const adminIds = await getAdminAndSuperAdminIds();
+        const setorialIds = action?.orgao ? await getSetorialUserIdsForOrgao(action.orgao) : [];
+        const combined = [...adminIds, ...setorialIds];
+        const allIds = combined.filter((v, i, a) => a.indexOf(v) === i);
+        const recipientIds = allIds.filter(id => id !== localUser.id);
+        if (recipientIds.length > 0) {
+          await createNotificationsForAdmins({
+            type: "comment_doc",
+            title: `Novo documento incluído`,
+            body: `${localUser.name} incluiu o documento "${input.label}" no item ${action?.itemCode ?? ""}`,
+            actionId: input.actionId,
+            actionCode: action?.itemCode ?? null,
+            orgao: action?.orgao ?? null,
+          }, recipientIds);
+        }
+      } catch (_) {}
+
       return { success: true };
     }),
 

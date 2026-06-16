@@ -2,6 +2,7 @@ import {
   BarChart3,
   BookOpen,
   ChevronRight,
+  ClipboardList,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -16,6 +17,7 @@ import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { setLocalToken } from "@/lib/localToken";
+import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -105,6 +107,15 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                 <span>Usuários</span>
                 {location === "/usuarios" && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
               </Link>
+              <Link
+                href="/auditoria"
+                className={`nav-item ${location === "/auditoria" ? "active" : ""}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <ClipboardList className="w-4 h-4 flex-shrink-0" />
+                <span>Log de Auditoria</span>
+                {location === "/auditoria" && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
+              </Link>
             </>
           )}
         </nav>
@@ -144,14 +155,17 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => logoutMutation.mutate()}
-                className="nav-item w-full text-left"
-                disabled={logoutMutation.isPending}
-              >
-                <LogOut className="w-4 h-4" />
-                <span>{logoutMutation.isPending ? "Saindo..." : "Sair"}</span>
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => logoutMutation.mutate()}
+                  className="nav-item flex-1 text-left"
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>{logoutMutation.isPending ? "Saindo..." : "Sair"}</span>
+                </button>
+                <NotificationBell />
+              </div>
             </div>
           ) : null}
         </div>
@@ -175,7 +189,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <img
               src="/manus-storage/sempla-logo_0b157f04.png"
               alt="SEMPLA"
@@ -183,6 +197,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               style={{ background: "rgba(255,255,255,0.95)", padding: "2px 6px" }}
             />
           </div>
+          <NotificationBell />
         </header>
 
         {/* Page content */}

@@ -24,6 +24,8 @@ import {
   CheckCircle,
   Clock,
   Info,
+  Bell,
+  ClipboardList,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 
@@ -219,8 +221,54 @@ const ADMIN_SECTIONS: Section[] = [
     ),
   },
   {
+    id: "alerts",
+    title: "6. Sistema de Alertas (Sininho)",
+    icon: Bell,
+    content: (
+      <div className="space-y-3">
+        <p>O <strong>sininho de alertas</strong> fica no canto inferior do sidebar (ao lado do botão Sair) e no cabeçalho mobile. Exibe um contador vermelho com o número de alertas não lidos.</p>
+        <p className="font-semibold text-foreground">Tipos de alertas:</p>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm"><strong>Alterações de item</strong> — disparado quando qualquer item ou sub-item é criado, editado ou excluído. Visível apenas para administradores e super-admins.</div>
+          <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm"><strong>Comentários &amp; Documentos</strong> — disparado quando um usuário setorial adiciona um comentário ou um link de documento. Visível para administradores e para usuários setoriais dos órgãos envolvidos.</div>
+        </div>
+        <p className="font-semibold text-foreground">Como usar:</p>
+        <div className="space-y-2">
+          <Step n={1} text="Clique no sininho para abrir o painel de alertas." />
+          <Step n={2} text="Use as abas 'Todos', 'Alterações' e 'Comentários & Docs' para filtrar por tipo." />
+          <Step n={3} text="Clique em um alerta para marcá-lo como lido e acessar o item diretamente pelo link." />
+          <Step n={4} text="Use 'Marcar todos' para limpar todos os alertas pendentes de uma vez." />
+        </div>
+        <InfoBox type="tip">O painel atualiza automaticamente a cada 30 segundos. Alertas não lidos ficam com destaque azul e ponto vermelho; lidos ficam em cinza.</InfoBox>
+      </div>
+    ),
+  },
+  {
+    id: "audit-global",
+    title: "7. Log de Auditoria Global",
+    icon: ClipboardList,
+    content: (
+      <div className="space-y-3">
+        <p>Acesse <strong>Log de Auditoria</strong> no sidebar (seção Administração) para o histórico completo de todas as interações realizadas na plataforma.</p>
+        <p className="font-semibold text-foreground">O que é registrado:</p>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Comentários:</strong> usuário, órgão, item e texto do comentário.</div>
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Documentos:</strong> usuário, órgão, item e link incluído.</div>
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Alterações de item:</strong> criação, edição e exclusão de ações e sub-itens.</div>
+        </div>
+        <p className="font-semibold text-foreground">Filtros disponíveis:</p>
+        <div className="space-y-2">
+          <Step n={1} text="Busca por texto: nome do usuário, órgão ou detalhe do evento." />
+          <Step n={2} text="Tipo de evento: Comentários, Documentos ou Alterações de item." />
+          <Step n={3} text="Perfil: Super Admin, Administrador ou Setorial." />
+        </div>
+        <InfoBox type="info">Clique em 'Exportar CSV' para baixar o log filtrado em formato planilha para análise externa ou prestação de contas.</InfoBox>
+      </div>
+    ),
+  },
+  {
     id: "export",
-    title: "6. Exportar dados",
+    title: "8. Exportar dados",
     icon: Download,
     content: (
       <div className="space-y-3">
@@ -318,6 +366,27 @@ const SETORIAL_SECTIONS: Section[] = [
           <Step n={3} text="Visualize a lista de alterações com campo modificado, valor anterior, novo valor, responsável e data/hora." />
         </div>
         <InfoBox type="info">O histórico é somente leitura para usuários setoriais. Apenas administradores podem editar campos e gerar novos registros.</InfoBox>
+      </div>
+    ),
+  },
+  {
+    id: "alerts-s",
+    title: "6. Alertas e notificações",
+    icon: Bell,
+    content: (
+      <div className="space-y-3">
+        <p>O <strong>sininho de alertas</strong> fica no canto inferior do sidebar. Quando houver alertas não lidos, aparecerá um contador vermelho.</p>
+        <p className="font-semibold text-foreground">Quais alertas você recebe:</p>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm"><strong>Comentários &amp; Documentos</strong> — você será notificado quando outro usuário setorial do mesmo órgão adicionar um comentário ou documento em um item do seu órgão.</div>
+        </div>
+        <p className="font-semibold text-foreground">Como usar:</p>
+        <div className="space-y-2">
+          <Step n={1} text="Clique no sininho para abrir o painel de alertas." />
+          <Step n={2} text="Clique em um alerta para marcá-lo como lido." />
+          <Step n={3} text="Use 'Marcar todos' para limpar todos os alertas pendentes." />
+        </div>
+        <InfoBox type="info">Você só recebe alertas referentes aos órgãos autorizados no seu perfil. Alertas de alterações de item são exclusivos para administradores.</InfoBox>
       </div>
     ),
   },

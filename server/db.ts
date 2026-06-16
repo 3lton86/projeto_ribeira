@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, actionDocuments, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, userOrgaos, users } from "../drizzle/schema";
+import { actions, actionDocuments, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -600,4 +600,79 @@ export async function getAuditLogByActionId(actionId: number) {
     .from(auditLog)
     .where(eq(auditLog.actionId, actionId))
     .orderBy(desc(auditLog.createdAt));
+}
+export async function getAuditLogAll() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(auditLog)
+    .orderBy(desc(auditLog.createdAt))
+    .limit(500);
+}
+
+// ---- Notifications ----
+export async function createNotification(entry: InsertNotification): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(notifications).values(entry);
+}
+export async function createNotificationsForAdmins(
+  entry: Omit<InsertNotification, 'userId'>,
+  adminIds: number[]
+): Promise<void> {
+  const db = await getDb();
+  if (!db || adminIds.length === 0) return;
+  await db.insert(notifications).values(adminIds.map(uid => ({ ...entry, userId: uid })));
+}
+export async function getNotificationsForUser(userId: number, type?: 'item_change' | 'comment_doc') {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(notifications.userId, userId)];
+  if (type) conditions.push(eq(notifications.type, type));
+  return db
+    .select()
+    .from(notifications)
+    .where(and(...conditions))
+    .orderBy(desc(notifications.createdAt))
+    .limit(100);
+}
+export async function getUnreadCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
+  return Number(result[0]?.count ?? 0);
+}
+export async function markNotificationRead(id: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: 1 }).where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+}
+export async function markAllNotificationsRead(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: 1 }).where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
+}
+export async function getAdminAndSuperAdminIds(): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db
+    .select({ id: localUsers.id })
+    .from(localUsers)
+    .where(and(inArray(localUsers.role, ['admin', 'super_admin']), eq(localUsers.active, 1)));
+  return result.map(r => r.id);
+}
+export async function getSetorialUserIdsForOrgao(orgao: string): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  // Busca setoriais com acesso ao órgão específico ou com acesso a TODOS
+  const result = await db
+    .select({ userId: userOrgaos.userId })
+    .from(userOrgaos)
+    .where(or(eq(userOrgaos.orgao, orgao), eq(userOrgaos.orgao, 'TODOS')));
+  const ids = result.map(r => r.userId);
+  return ids.filter((v, i, a) => a.indexOf(v) === i);
 }

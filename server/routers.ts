@@ -19,6 +19,14 @@ import {
   setorialUserHasOrgaoAccess,
   createAuditLog,
   getAuditLogByActionId,
+  getAuditLogAll,
+  createNotificationsForAdmins,
+  getNotificationsForUser,
+  getUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getAdminAndSuperAdminIds,
+  getSetorialUserIdsForOrgao,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -122,7 +130,7 @@ export const appRouter = router({
           responsavelEmail: z.string().optional(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const newId = await createAction({
           area: input.area,
           description: input.description,
@@ -138,6 +146,20 @@ export const appRouter = router({
           responsavelTel: input.responsavelTel,
           responsavelEmail: input.responsavelEmail,
         });
+        // Disparar alerta para todos os admins
+        try {
+          const adminIds = await getAdminAndSuperAdminIds();
+          const localUser = (ctx as any).localUser;
+          const actorName = localUser?.name ?? ctx.user?.name ?? 'Administrador';
+          await createNotificationsForAdmins({
+            type: 'item_change',
+            title: `Novo item criado`,
+            body: `${actorName} criou o item: "${input.description.slice(0, 120)}"`,
+            actionId: newId,
+            actionCode: null,
+            orgao: input.orgao ?? null,
+          }, adminIds);
+        } catch (_) {}
         return { success: true, id: newId };
       }),
 
@@ -267,6 +289,19 @@ export const appRouter = router({
           updateFields.description = description;
         }
         await updateAction(id, updateFields);
+        // Disparar alerta para todos os admins
+        try {
+          const adminIds = await getAdminAndSuperAdminIds();
+          const actorName = localUser?.name ?? ctx.user?.name ?? 'Administrador';
+          await createNotificationsForAdmins({
+            type: 'item_change',
+            title: `Item atualizado`,
+            body: `${actorName} atualizou o item ${current.itemCode}: "${current.description?.slice(0, 80)}"`,
+            actionId: id,
+            actionCode: current.itemCode,
+            orgao: current.orgao ?? null,
+          }, adminIds);
+        } catch (_) {}
         return { success: true };
       }),
 
@@ -296,6 +331,19 @@ export const appRouter = router({
         }
 
         await updateGroupDescription(input.id, input.description);
+        // Disparar alerta para todos os admins
+        try {
+          const adminIds = await getAdminAndSuperAdminIds();
+          const actorName = localUser?.name ?? ctx.user?.name ?? 'Administrador';
+          await createNotificationsForAdmins({
+            type: 'item_change',
+            title: `Grupo renomeado`,
+            body: `${actorName} renomeou o grupo para: "${input.description.slice(0, 100)}"`,
+            actionId: input.id,
+            actionCode: existing.itemCode,
+            orgao: existing.orgao ?? null,
+          }, adminIds);
+        } catch (_) {}
         return { success: true };
       }),
 
@@ -355,6 +403,19 @@ export const appRouter = router({
           newValue: input.description,
         });
 
+        // Disparar alerta para todos os admins
+        try {
+          const adminIds = await getAdminAndSuperAdminIds();
+          const actorName = localUser?.name ?? ctx.user?.name ?? 'Administrador';
+          await createNotificationsForAdmins({
+            type: 'item_change',
+            title: `Sub-item criado`,
+            body: `${actorName} criou um sub-item de "${input.parentCode}": "${input.description.slice(0, 80)}"`,
+            actionId: newId,
+            actionCode: input.parentCode,
+            orgao: input.orgao ?? null,
+          }, adminIds);
+        } catch (_) {}
         return { success: true, id: newId };
       }),
   }),
@@ -423,9 +484,30 @@ export const appRouter = router({
             userRole: localUser.role,
             userOrgao: localUser.organization ?? null,
             eventType: "comment",
-            detail: `Comentário adicionado: "${input.content.slice(0, 120)}${input.content.length > 120 ? "..." : ""}"`,
+            detail: `Comentário adicionado: "${input.content.slice(0, 120)}${input.content.length > 120 ? "..." : ""}"`
           });
         }
+        // Disparar alertas: admins + setoriais do órgão
+        try {
+          const action = await getActionById(input.actionId);
+          const actorName = localUser?.name ?? ctx.user?.name ?? 'Usuário';
+          const adminIds = await getAdminAndSuperAdminIds();
+          const setorialIds = action?.orgao ? await getSetorialUserIdsForOrgao(action.orgao) : [];
+          const combined = [...adminIds, ...setorialIds];
+          const allIds = combined.filter((v, i, a) => a.indexOf(v) === i);
+          const actorId = localUser?.id ?? -1;
+          const recipientIds = allIds.filter(id => id !== actorId);
+          if (recipientIds.length > 0) {
+            await createNotificationsForAdmins({
+              type: 'comment_doc',
+              title: `Novo comentário`,
+              body: `${actorName} comentou no item ${action?.itemCode ?? ''}: "${input.content.slice(0, 100)}"`,
+              actionId: input.actionId,
+              actionCode: action?.itemCode ?? null,
+              orgao: action?.orgao ?? null,
+            }, recipientIds);
+          }
+        } catch (_) {}
         return { success: true };
       }),
   }),
@@ -462,6 +544,40 @@ export const appRouter = router({
       .input(z.object({ actionId: z.number() }))
       .query(async ({ input }) => {
         return getAuditLogByActionId(input.actionId);
+      }),
+    listAll: localAdminProcedure
+      .query(async () => {
+        return getAuditLogAll();
+      }),
+  }),
+  // ---- NOTIFICATIONS ----
+  notifications: router({
+    list: localAdminProcedure
+      .input(z.object({ type: z.enum(['item_change', 'comment_doc']).optional() }))
+      .query(async ({ ctx, input }) => {
+        return getNotificationsForUser(ctx.localUser.id, input.type);
+      }),
+    listSetorial: localAdminProcedure
+      .input(z.object({ type: z.enum(['item_change', 'comment_doc']).optional() }))
+      .query(async ({ ctx, input }) => {
+        // Para setoriais, retorna apenas notif do tipo comment_doc
+        const type = ctx.localUser.role === 'setorial' ? 'comment_doc' : input.type;
+        return getNotificationsForUser(ctx.localUser.id, type);
+      }),
+    unreadCount: localAdminProcedure
+      .query(async ({ ctx }) => {
+        return getUnreadCount(ctx.localUser.id);
+      }),
+    markRead: localAdminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await markNotificationRead(input.id, ctx.localUser.id);
+        return { success: true };
+      }),
+    markAllRead: localAdminProcedure
+      .mutation(async ({ ctx }) => {
+        await markAllNotificationsRead(ctx.localUser.id);
+        return { success: true };
       }),
   }),
   // ---- EXPORT ----
