@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2 } from "lucide-react";
 import { useLocation } from "wouter";
@@ -447,20 +447,33 @@ function UserFormDialog({
                 </div>
               </div>
               {!selectAll && (
-                <ScrollArea className="h-48 rounded border border-border/50">
+                <div className="h-48 overflow-y-auto rounded border border-border/50">
                   <div className="p-2 space-y-1">
                     {ORGAOS_MUNICIPAIS.map((orgao) => (
-                      <div key={orgao} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-secondary/50 cursor-pointer"
-                        onClick={() => toggleOrgao(orgao)}>
+                      <div
+                        key={orgao}
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-secondary/50 cursor-pointer"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleOrgao(orgao); }}
+                      >
                         <Checkbox
+                          id={`orgao-${orgao}`}
                           checked={form.allowedOrgaos.includes(orgao)}
-                          onCheckedChange={() => toggleOrgao(orgao)}
+                          onCheckedChange={(checked) => {
+                            if (typeof checked === 'boolean') toggleOrgao(orgao);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                         />
-                        <span className="text-xs text-foreground">{orgao}</span>
+                        <label
+                          htmlFor={`orgao-${orgao}`}
+                          className="text-xs text-foreground cursor-pointer select-none"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleOrgao(orgao); }}
+                        >
+                          {orgao}
+                        </label>
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               )}
               {selectAll ? (
                 <p className="text-xs text-teal-400">Este usuário terá acesso a todos os órgãos.</p>
