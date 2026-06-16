@@ -325,19 +325,15 @@ function UserFormDialog({
     allowedOrgaos: initial?.allowedOrgaos ?? [],
   });
   const [active, setActive] = useState(initial?.active ?? 1);
-  const [selectAll, setSelectAll] = useState(initial?.allowedOrgaos?.includes("TODOS") ?? false);
+
+  // Derivado diretamente do form — sem estado separado para evitar loop
+  const selectAll = form.allowedOrgaos.includes("TODOS");
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectAll(checked);
-    if (checked) {
-      setForm(f => ({ ...f, allowedOrgaos: ["TODOS"] }));
-    } else {
-      setForm(f => ({ ...f, allowedOrgaos: [] }));
-    }
+    setForm(f => ({ ...f, allowedOrgaos: checked ? ["TODOS"] : [] }));
   };
 
   const toggleOrgao = (orgao: string) => {
-    setSelectAll(false);
     setForm(f => {
       const current = f.allowedOrgaos.filter(o => o !== "TODOS");
       const next = current.includes(orgao) ? current.filter(o => o !== orgao) : [...current, orgao];
@@ -353,7 +349,7 @@ function UserFormDialog({
       role: form.role,
       position: form.position || undefined,
       organization: form.organization || undefined,
-      allowedOrgaos: form.role === "setorial" ? (selectAll ? ["TODOS"] : form.allowedOrgaos) : [],
+      allowedOrgaos: form.role === "setorial" ? form.allowedOrgaos : [],
     };
     if (form.password) data.password = form.password;
     if (isEdit) data.active = active;
@@ -361,7 +357,7 @@ function UserFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

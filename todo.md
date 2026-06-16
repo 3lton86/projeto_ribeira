@@ -152,3 +152,8 @@
 ## Sprint 15 — Correções no Modal de Cadastro de Usuários
 - [x] Corrigir dropdown de categorias extrapolando o formulário (textos encurtados + z-[200])
 - [x] Corrigir erro React #185 (Maximum update depth exceeded) ao selecionar órgãos para usuário setorial — substituído useEffect com dependência instável por handleSelectAll síncrono
+
+## Sprint 16 — Correção definitiva do erro React #185 no modal de usuários
+- [x] Eliminar estado selectAll separado — derivado diretamente de form.allowedOrgaos (sem useState extra)
+- [x] Corrigir onOpenChange do Dialog para não fechar em reentrâncias de foco do Radix
+- [x] Simplificar handleSubmit para usar form.allowedOrgaos diretamente
