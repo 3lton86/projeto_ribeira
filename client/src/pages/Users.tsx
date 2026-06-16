@@ -420,7 +420,7 @@ function UserFormDialog({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent portalled={false}>
                 {callerRole === "super_admin" && (
                   <SelectItem value="admin">Administrador — edita, comenta e gerencia usuários</SelectItem>
                 )}
@@ -494,7 +494,7 @@ function UserFormDialog({
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent portalled={false}>
                   <SelectItem value="1">Ativo</SelectItem>
                   <SelectItem value="0">Inativo</SelectItem>
                 </SelectContent>

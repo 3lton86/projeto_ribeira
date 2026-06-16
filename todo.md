@@ -143,3 +143,8 @@
 - [x] Testes unitários para notifications router (67 testes passando, zero erros TypeScript)
 - [x] Corrigir acesso setorial ao router de notificações (localAuthProcedure em vez de localAdminProcedure)
 - [x] Corrigir disparo de alerta na mutation reorder (getAdminAndSuperAdminIds + segundo argumento)
+
+## Sprint 14 — Correções de UI
+- [x] Adicionar logo SEMPLA no cabeçalho do PDF exportado pelo Dashboard (export.ts + sempla-logo-b64.ts)
+- [x] Typo "auditório" → "auditoria" (não encontrado no código-fonte atual; texto já estava correto)
+- [x] Corrigir erro removeChild no modal de cadastro de usuários ao selecionar categoria (portalled={false} no SelectContent dentro de Dialog)

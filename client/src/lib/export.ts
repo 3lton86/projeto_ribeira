@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { SEMPLA_LOGO_B64 } from "./sempla-logo-b64";
 
 // ---- Types ----
 
@@ -213,29 +214,40 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
   }
 
   // ---- Cover / Header ----
-  // Top bar
+  // Top bar (altura aumentada para acomodar logo)
   doc.setFillColor(...C.headerBg);
-  doc.rect(0, 0, pageW, 28, "F");
+  doc.rect(0, 0, pageW, 34, "F");
 
   // Accent stripe
   doc.setFillColor(...C.teal);
-  doc.rect(0, 28, pageW, 2, "F");
+  doc.rect(0, 34, pageW, 2, "F");
 
-  doc.setFontSize(17);
+  // Logo SEMPLA (canto direito do cabeçalho)
+  // Proporção original: 1181x315 → escalar para altura 18mm → largura ≈ 67mm
+  try {
+    doc.addImage(SEMPLA_LOGO_B64, "PNG", pageW - margin - 60, 8, 54, 14.4);
+  } catch (_) {
+    // fallback: se a imagem falhar, exibe texto
+    doc.setFontSize(7);
+    doc.setTextColor(...C.tealLight);
+    doc.text("SEMPLA", pageW - margin - 20, 16);
+  }
+
+  doc.setFontSize(14);
   doc.setTextColor(...C.white);
   doc.setFont("helvetica", "bold");
   doc.text("PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs", margin, 13);
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...C.tealLight);
-  doc.text("Controle de entrega de documentos e informações pelos órgãos municipais para estruturação do projeto PPP", margin, 20);
+  doc.text("Controle de entrega de documentos e informações pelos órgãos municipais para estruturação do projeto PPP", margin, 21);
 
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(...C.lightGray);
-  doc.text(`Relatório de Ações e Entregas  ·  ${formatDateTime(now)}  ·  ${data.length} item(ns)`, margin, 26);
+  doc.text(`Relatório de Ações e Entregas  ·  ${formatDateTime(now)}  ·  ${data.length} item(ns)`, margin, 28);
 
-  y = 36;
+  y = 42;
 
   // ---- Filter summary ----
   const hasFilters =
