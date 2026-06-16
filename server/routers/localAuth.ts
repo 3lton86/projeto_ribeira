@@ -8,7 +8,9 @@ import {
   getLocalUserById,
   getLocalUserByUsername,
   getLocalUsers,
+  getUserOrgaos,
   updateLocalUser,
+  upsertUserOrgaos,
 } from "../db";
 import { ENV } from "../_core/env";
 import { publicProcedure, router } from "../_core/trpc";
@@ -38,10 +40,8 @@ export async function verifyLocalJwt(token: string) {
 // ---- Helpers to extract token from cookie or Authorization header ----
 
 function extractToken(ctx: { req: { cookies?: Record<string, string>; headers: Record<string, string | string[] | undefined> } }): string | null {
-  // 1. Try cookie first
   const cookie = ctx.req.cookies?.[LOCAL_AUTH_COOKIE];
   if (cookie) return cookie;
-  // 2. Fallback: Authorization: Bearer <token>
   const authHeader = ctx.req.headers["authorization"];
   if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
     return authHeader.slice(7);
@@ -49,7 +49,7 @@ function extractToken(ctx: { req: { cookies?: Record<string, string>; headers: R
   return null;
 }
 
-// ---- Middleware: require local auth ----
+// ---- Middleware: require local auth (any role) ----
 
 const localAuthProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const token = extractToken(ctx);
@@ -61,16 +61,28 @@ const localAuthProcedure = publicProcedure.use(async ({ ctx, next }) => {
   return next({ ctx: { ...ctx, localUser: user } });
 });
 
+// Admin or super_admin
 const localAdminProcedure = localAuthProcedure.use(({ ctx, next }) => {
-  if ((ctx as any).localUser.role !== "admin" && (ctx as any).localUser.role !== "super_admin") {
+  const role = (ctx as any).localUser.role;
+  if (role !== "admin" && role !== "super_admin") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores." });
   }
   return next({ ctx });
 });
 
+// Super-admin only
 const localSuperAdminProcedure = localAuthProcedure.use(({ ctx, next }) => {
   if ((ctx as any).localUser.role !== "super_admin") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao super-administrador." });
+  }
+  return next({ ctx });
+});
+
+// Admin or super_admin (for user management — admins can create setorial users)
+const localAdminOrSuperProcedure = localAuthProcedure.use(({ ctx, next }) => {
+  const role = (ctx as any).localUser.role;
+  if (role !== "admin" && role !== "super_admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores." });
   }
   return next({ ctx });
 });
@@ -99,6 +111,13 @@ export const localAuthRouter = router({
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: "/",
       });
+
+      // For setorial users, also return their allowed orgãos
+      let allowedOrgaos: string[] = [];
+      if (user.role === "setorial") {
+        allowedOrgaos = await getUserOrgaos(user.id);
+      }
+
       return {
         success: true,
         token,
@@ -109,6 +128,7 @@ export const localAuthRouter = router({
           role: user.role,
           position: user.position,
           organization: user.organization,
+          allowedOrgaos,
         },
       };
     }),
@@ -127,6 +147,12 @@ export const localAuthRouter = router({
     if (!payload) return null;
     const user = await getLocalUserById(payload.id);
     if (!user || !user.active) return null;
+
+    let allowedOrgaos: string[] = [];
+    if (user.role === "setorial") {
+      allowedOrgaos = await getUserOrgaos(user.id);
+    }
+
     return {
       id: user.id,
       name: user.name,
@@ -134,27 +160,45 @@ export const localAuthRouter = router({
       role: user.role,
       position: user.position,
       organization: user.organization,
+      allowedOrgaos,
     };
   }),
 
-  // ---- User management (super_admin only) ----
+  // ---- User management (admin and super_admin) ----
   users: router({
-    list: localSuperAdminProcedure.query(async () => {
-      return getLocalUsers();
+    list: localAdminOrSuperProcedure.query(async () => {
+      const users = await getLocalUsers();
+      // Enrich setorial users with their orgãos
+      const enriched = await Promise.all(
+        users.map(async (u) => {
+          if (u.role === "setorial") {
+            const orgaos = await getUserOrgaos(u.id);
+            return { ...u, allowedOrgaos: orgaos };
+          }
+          return { ...u, allowedOrgaos: [] as string[] };
+        })
+      );
+      return enriched;
     }),
 
-    create: localSuperAdminProcedure
+    create: localAdminOrSuperProcedure
       .input(
         z.object({
           name: z.string().min(2).max(200),
-          username: z.string().min(3).max(100).regex(/^[a-z0-9._-]+$/, "Use apenas letras minúsculas, números, ponto, hífen ou underscore"),
+          username: z.string().min(3).max(100),
           password: z.string().min(6).max(100),
-          role: z.enum(["admin", "viewer"]),
+          role: z.enum(["admin", "setorial", "viewer"]),
           position: z.string().max(200).optional(),
           organization: z.string().max(200).optional(),
+          allowedOrgaos: z.array(z.string()).optional(), // for setorial users
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const callerRole = (ctx as any).localUser.role;
+        // Only super_admin can create admin users
+        if (input.role === "admin" && callerRole !== "super_admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o super-administrador pode criar administradores." });
+        }
         const existing = await getLocalUserByUsername(input.username.toLowerCase());
         if (existing) throw new TRPCError({ code: "CONFLICT", message: "Nome de usuário já existe." });
         const passwordHash = await bcrypt.hash(input.password, 12);
@@ -167,36 +211,64 @@ export const localAuthRouter = router({
           organization: input.organization ?? null,
           active: 1,
         });
+        // Save orgãos for setorial users
+        if (input.role === "setorial" && input.allowedOrgaos && input.allowedOrgaos.length > 0) {
+          const newUser = await getLocalUserByUsername(input.username.toLowerCase());
+          if (newUser) await upsertUserOrgaos(newUser.id, input.allowedOrgaos);
+        }
         return { success: true };
       }),
 
-    update: localSuperAdminProcedure
+    update: localAdminOrSuperProcedure
       .input(
         z.object({
           id: z.number(),
           name: z.string().min(2).max(200).optional(),
           username: z.string().min(3).max(100).optional(),
           password: z.string().min(6).max(100).optional(),
-          role: z.enum(["admin", "viewer"]).optional(),
+          role: z.enum(["admin", "setorial", "viewer"]).optional(),
           position: z.string().max(200).optional(),
           organization: z.string().max(200).optional(),
           active: z.number().min(0).max(1).optional(),
+          allowedOrgaos: z.array(z.string()).optional(), // for setorial users
         })
       )
-      .mutation(async ({ input }) => {
-        const { id, password, ...rest } = input;
+      .mutation(async ({ input, ctx }) => {
+        const callerRole = (ctx as any).localUser.role;
+        // Only super_admin can promote/demote to admin
+        if (input.role === "admin" && callerRole !== "super_admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o super-administrador pode promover a administrador." });
+        }
+        const { id, password, allowedOrgaos, ...rest } = input;
         const data: Record<string, unknown> = { ...rest };
         if (password) data.passwordHash = await bcrypt.hash(password, 12);
         if (rest.username) data.username = rest.username.toLowerCase();
         await updateLocalUser(id, data as any);
+        // Update orgãos if provided (for setorial users)
+        if (allowedOrgaos !== undefined) {
+          await upsertUserOrgaos(id, allowedOrgaos);
+        }
         return { success: true };
       }),
 
-    delete: localSuperAdminProcedure
+    delete: localAdminOrSuperProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const callerRole = (ctx as any).localUser.role;
+        const target = await getLocalUserById(input.id);
+        // Only super_admin can delete admin users
+        if (target?.role === "admin" && callerRole !== "super_admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o super-administrador pode excluir administradores." });
+        }
         await deleteLocalUser(input.id);
         return { success: true };
+      }),
+
+    // Get orgãos for a specific user
+    getOrgaos: localAdminOrSuperProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        return getUserOrgaos(input.userId);
       }),
   }),
 });

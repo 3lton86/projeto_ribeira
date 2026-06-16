@@ -16,6 +16,7 @@ import {
   updateGroupDescription,
   reorderActions,
   createSubItem,
+  setorialUserHasOrgaoAccess,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -364,10 +365,47 @@ export const appRouter = router({
         return getCommentsByActionId(input.actionId);
       }),
 
-    create: localOrOauthAdminProcedure
+    // Admin, super_admin, OAuth admin OR setorial user (if action orgão is in their allowed list)
+    create: publicProcedure
+      .use(async ({ ctx, next }) => {
+        // Try local session first
+        const token = ctx.req.cookies?.["ribeira_local_session"] ||
+          (ctx.req.headers["authorization"] as string)?.replace("Bearer ", "");
+        if (token) {
+          const { verifyLocalJwt } = await import("./routers/localAuth");
+          const payload = await verifyLocalJwt(token);
+          if (payload) {
+            const localUser = await getLocalUserById(payload.id);
+            if (localUser && localUser.active) {
+              return next({ ctx: { ...ctx, localUser } });
+            }
+          }
+        }
+        // Fall back to OAuth admin
+        if (ctx.user && ctx.user.role === "admin") {
+          return next({ ctx: { ...ctx, localUser: null } });
+        }
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Faça login para comentar." });
+      })
       .input(z.object({ actionId: z.number(), content: z.string().min(1).max(2000) }))
       .mutation(async ({ input, ctx }) => {
         const localUser = (ctx as any).localUser;
+
+        // Setorial users: check orgão access
+        if (localUser && localUser.role === "setorial") {
+          const action = await getActionById(input.actionId);
+          if (!action) throw new TRPCError({ code: "NOT_FOUND", message: "Ação não encontrada." });
+          const hasAccess = await setorialUserHasOrgaoAccess(localUser.id, action.orgao);
+          if (!hasAccess) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Seu perfil setorial não tem acesso ao órgão responsável por esta ação.",
+            });
+          }
+        } else if (localUser && localUser.role === "viewer") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Visualizadores não podem comentar." });
+        }
+
         const userId = localUser ? localUser.id : ctx.user!.id;
         await createComment({
           actionId: input.actionId,

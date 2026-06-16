@@ -5,9 +5,10 @@ export type LocalUser = {
   id: number;
   name: string;
   username: string;
-  role: "super_admin" | "admin" | "viewer";
+  role: "super_admin" | "admin" | "setorial" | "viewer";
   position: string | null;
   organization: string | null;
+  allowedOrgaos?: string[]; // only populated for setorial users
 };
 
 const STORAGE_KEY = "ribeira_local_user";
@@ -41,7 +42,10 @@ type LocalAuthContextType = {
   setLocalUser: (user: LocalUser | null) => void;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isSetorial: boolean;
   canEdit: boolean;
+  /** For setorial users: check if they can interact with a given orgão */
+  canInteractWithOrgao: (orgao: string | null | undefined) => boolean;
 };
 
 const LocalAuthContext = createContext<LocalAuthContextType>({
@@ -51,22 +55,21 @@ const LocalAuthContext = createContext<LocalAuthContextType>({
   setLocalUser: () => {},
   isAdmin: false,
   isSuperAdmin: false,
+  isSetorial: false,
   canEdit: false,
+  canInteractWithOrgao: () => false,
 });
 
 export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
-  // Initialize from cache so there's no flash of unauthenticated state
   const [localUser, setLocalUserState] = useState<LocalUser | null>(getCachedUser);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   const { data, isLoading, refetch } = trpc.localAuth.me.useQuery(undefined, {
     retry: false,
     staleTime: 60_000,
-    // Don't refetch on window focus to avoid flicker
     refetchOnWindowFocus: false,
   });
 
-  // Sync server state to local state and cache
   useEffect(() => {
     if (!isLoading) {
       const serverUser = (data as LocalUser | null | undefined) ?? null;
@@ -83,9 +86,22 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = localUser?.role === "admin" || localUser?.role === "super_admin";
   const isSuperAdmin = localUser?.role === "super_admin";
+  const isSetorial = localUser?.role === "setorial";
   const canEdit = isAdmin;
 
-  // Loading: only show spinner on first load if no cached user
+  /**
+   * For setorial users: returns true if the user has access to the given orgão.
+   * Admins always return true. Viewers and unauthenticated always return false.
+   */
+  const canInteractWithOrgao = (orgao: string | null | undefined): boolean => {
+    if (isAdmin) return true;
+    if (!isSetorial || !localUser?.allowedOrgaos) return false;
+    const allowed = localUser.allowedOrgaos;
+    if (allowed.includes("TODOS")) return true;
+    if (!orgao) return false;
+    return allowed.includes(orgao);
+  };
+
   const loading = isLoading && !initialCheckDone && !localUser;
 
   return (
@@ -97,7 +113,9 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
         setLocalUser,
         isAdmin,
         isSuperAdmin,
+        isSetorial,
         canEdit,
+        canInteractWithOrgao,
       }}
     >
       {children}

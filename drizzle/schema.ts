@@ -98,7 +98,7 @@ export const localUsers = mysqlTable("local_users", {
   name: varchar("name", { length: 200 }).notNull(),
   username: varchar("username", { length: 100 }).notNull().unique(), // login identifier
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
-  role: mysqlEnum("role", ["super_admin", "admin", "viewer"]).default("viewer").notNull(),
+  role: mysqlEnum("role", ["super_admin", "admin", "setorial", "viewer"]).default("viewer").notNull(),
   position: varchar("position", { length: 200 }), // cargo
   organization: varchar("organization", { length: 200 }), // órgão
   active: int("active").default(1).notNull(), // 1 = ativo, 0 = desativado
@@ -122,3 +122,16 @@ export const actionDocuments = mysqlTable("action_documents", {
 
 export type ActionDocument = typeof actionDocuments.$inferSelect;
 export type InsertActionDocument = typeof actionDocuments.$inferInsert;
+
+// Órgãos permitidos para usuários setoriais
+// Se não houver nenhuma linha para um usuário setorial, ele não acessa nada.
+// O valor especial "TODOS" indica acesso irrestrito a todos os órgãos.
+export const userOrgaos = mysqlTable("user_orgaos", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),         // local_users.id
+  orgao: varchar("orgao", { length: 100 }).notNull(), // nome do órgão ou "TODOS"
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserOrgao = typeof userOrgaos.$inferSelect;
+export type InsertUserOrgao = typeof userOrgaos.$inferInsert;

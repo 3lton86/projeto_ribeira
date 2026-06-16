@@ -98,13 +98,17 @@ function formatDate(d: Date | string | null | undefined): string {
 export default function ActionDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
-  const { canEdit } = useLocalAuth();
+  const { canEdit, isSetorial, canInteractWithOrgao } = useLocalAuth();
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
   const { data: comments } = trpc.comments.list.useQuery({ actionId: id });
   const { data: historyItems } = trpc.history.list.useQuery({ actionId: id });
   const { data: documents } = trpc.documents.list.useQuery({ actionId: id });
+
+  // For setorial users: check if they can interact with this action's orgão
+  const actionOrgao = (action as any)?.orgao ?? null;
+  const canInteract = canEdit || (isSetorial && canInteractWithOrgao(actionOrgao));
 
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<{
@@ -502,7 +506,7 @@ export default function ActionDetail() {
           {/* COMMENTS TAB */}
           {activeTab === "comments" && (
             <div className="space-y-4">
-              {canEdit ? (
+              {canInteract ? (
                 <div className="space-y-2">
                   <textarea
                     value={newComment}
@@ -528,7 +532,9 @@ export default function ActionDetail() {
               ) : (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-secondary/20 rounded-lg">
                   <Lock className="w-3.5 h-3.5" />
-                  Somente administradores podem adicionar comentários.
+                  {isSetorial
+                    ? "Seu perfil setorial não tem acesso ao órgão desta ação."
+                    : "Somente administradores e usuários setoriais autorizados podem comentar."}
                 </div>
               )}
 
@@ -598,7 +604,7 @@ export default function ActionDetail() {
           {/* DOCUMENTS TAB */}
           {activeTab === "documents" && (
             <div className="space-y-4">
-              {canEdit && (
+              {canInteract && (
                 <div className="flex justify-end">
                   <button
                     onClick={() => setShowAddDoc(true)}
@@ -642,7 +648,7 @@ export default function ActionDetail() {
                           <button
                             onClick={() => setDeleteDocId(doc.id)}
                             className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
-                            title="Remover"
+                            title="Remover (apenas admins)"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -655,7 +661,7 @@ export default function ActionDetail() {
                 <div className="text-center py-8 text-muted-foreground text-sm">
                   <Link2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   Nenhum documento vinculado.
-                  {canEdit && (
+                  {canInteract && (
                     <p className="text-xs mt-1">Clique em "Adicionar Link" para vincular um documento.</p>
                   )}
                 </div>

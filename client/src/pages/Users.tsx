@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -29,34 +30,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2 } from "lucide-react";
 import { useLocation } from "wouter";
+import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
 
 type UserRow = {
   id: number;
   name: string;
   username: string;
-  role: "super_admin" | "admin" | "viewer";
+  role: "super_admin" | "admin" | "setorial" | "viewer";
   position: string | null;
   organization: string | null;
   active: number;
   createdAt: Date;
+  allowedOrgaos: string[];
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   super_admin: { label: "Super Admin", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30", icon: <ShieldCheck className="w-3 h-3" /> },
   admin: { label: "Administrador", color: "text-primary bg-primary/10 border-primary/30", icon: <Shield className="w-3 h-3" /> },
+  setorial: { label: "Usuário Setorial", color: "text-teal-400 bg-teal-400/10 border-teal-400/30", icon: <Building2 className="w-3 h-3" /> },
   viewer: { label: "Visualizador", color: "text-muted-foreground bg-secondary border-border", icon: <Eye className="w-3 h-3" /> },
 };
 
 export default function Users() {
   const [, navigate] = useLocation();
-  const { isSuperAdmin, localUser } = useLocalAuth();
+  const { isSuperAdmin, isAdmin, localUser } = useLocalAuth();
   const utils = trpc.useUtils();
 
+  const canManage = isSuperAdmin || isAdmin;
+
   const { data: users = [], isLoading } = trpc.localAuth.users.list.useQuery(undefined, {
-    enabled: isSuperAdmin,
+    enabled: canManage,
   });
 
   const [showCreate, setShowCreate] = useState(false);
@@ -90,11 +97,11 @@ export default function Users() {
     onError: (e) => toast.error(e.message),
   });
 
-  if (!isSuperAdmin) {
+  if (!canManage) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         <ShieldCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
-        <p className="font-medium">Acesso restrito ao super-administrador.</p>
+        <p className="font-medium">Acesso restrito a administradores.</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>
           Voltar ao Dashboard
         </Button>
@@ -118,6 +125,15 @@ export default function Users() {
         </Button>
       </div>
 
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 text-xs">
+        {Object.entries(ROLE_LABELS).filter(([k]) => k !== "super_admin").map(([key, info]) => (
+          <span key={key} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-medium ${info.color}`}>
+            {info.icon} {info.label}
+          </span>
+        ))}
+      </div>
+
       {/* Users table */}
       <div className="glass-card rounded-xl overflow-hidden">
         {isLoading ? (
@@ -134,6 +150,7 @@ export default function Users() {
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cargo / Órgão</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Órgãos Permitidos</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
                 <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Ações</th>
               </tr>
@@ -155,6 +172,26 @@ export default function Users() {
                         {roleInfo.icon}
                         {roleInfo.label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px]">
+                      {u.role === "setorial" ? (
+                        u.allowedOrgaos.includes("TODOS") ? (
+                          <span className="text-teal-400 font-medium">Todos os órgãos</span>
+                        ) : u.allowedOrgaos.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {u.allowedOrgaos.slice(0, 3).map(o => (
+                              <span key={o} className="px-1.5 py-0.5 bg-secondary rounded text-xs">{o}</span>
+                            ))}
+                            {u.allowedOrgaos.length > 3 && (
+                              <span className="px-1.5 py-0.5 bg-secondary rounded text-xs">+{u.allowedOrgaos.length - 3}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-destructive/70">Nenhum órgão</span>
+                        )
+                      ) : (
+                        <span className="opacity-40">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {u.active ? (
@@ -204,6 +241,7 @@ export default function Users() {
         title="Novo Usuário"
         onSubmit={(data) => createMutation.mutate(data as any)}
         isPending={createMutation.isPending}
+        callerRole={localUser?.role ?? "admin"}
       />
 
       {/* Edit dialog */}
@@ -212,15 +250,11 @@ export default function Users() {
           open={!!editUser}
           onClose={() => setEditUser(null)}
           title="Editar Usuário"
-          initial={{
-              ...editUser,
-              role: editUser.role === "super_admin" ? "admin" : editUser.role,
-              position: editUser.position ?? undefined,
-              organization: editUser.organization ?? undefined,
-            }}
+          initial={editUser}
           onSubmit={(data) => updateMutation.mutate({ id: editUser.id, ...data } as any)}
           isPending={updateMutation.isPending}
           isEdit
+          callerRole={localUser?.role ?? "admin"}
         />
       )}
 
@@ -255,9 +289,10 @@ type FormData = {
   name: string;
   username: string;
   password: string;
-  role: "admin" | "viewer";
+  role: "admin" | "setorial" | "viewer";
   position: string;
   organization: string;
+  allowedOrgaos: string[];
   active?: number;
 };
 
@@ -269,24 +304,45 @@ function UserFormDialog({
   onSubmit,
   isPending,
   isEdit = false,
+  callerRole,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
-  initial?: Partial<FormData & { active: number }>;
+  initial?: Partial<UserRow>;
   onSubmit: (data: Partial<FormData>) => void;
   isPending: boolean;
   isEdit?: boolean;
+  callerRole: string;
 }) {
   const [form, setForm] = useState<FormData>({
     name: initial?.name ?? "",
     username: initial?.username ?? "",
     password: "",
-    role: (initial?.role as "admin" | "viewer") ?? "viewer",
+    role: (initial?.role === "super_admin" ? "admin" : initial?.role) ?? "viewer",
     position: initial?.position ?? "",
     organization: initial?.organization ?? "",
+    allowedOrgaos: initial?.allowedOrgaos ?? [],
   });
   const [active, setActive] = useState(initial?.active ?? 1);
+  const [selectAll, setSelectAll] = useState(initial?.allowedOrgaos?.includes("TODOS") ?? false);
+
+  useEffect(() => {
+    if (selectAll) {
+      setForm(f => ({ ...f, allowedOrgaos: ["TODOS"] }));
+    } else if (form.allowedOrgaos.includes("TODOS")) {
+      setForm(f => ({ ...f, allowedOrgaos: [] }));
+    }
+  }, [selectAll]);
+
+  const toggleOrgao = (orgao: string) => {
+    setForm(f => {
+      const current = f.allowedOrgaos.filter(o => o !== "TODOS");
+      const next = current.includes(orgao) ? current.filter(o => o !== orgao) : [...current, orgao];
+      return { ...f, allowedOrgaos: next };
+    });
+    setSelectAll(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,6 +352,7 @@ function UserFormDialog({
       role: form.role,
       position: form.position || undefined,
       organization: form.organization || undefined,
+      allowedOrgaos: form.role === "setorial" ? (selectAll ? ["TODOS"] : form.allowedOrgaos) : [],
     };
     if (form.password) data.password = form.password;
     if (isEdit) data.active = active;
@@ -304,7 +361,7 @@ function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -319,16 +376,15 @@ function UserFormDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Nome de usuário (login) *</Label>
+            <Label>Usuário (login) *</Label>
             <Input
               value={form.username}
               onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))}
-              placeholder="Ex: joao.silva"
+              placeholder="Ex: joao.silva ou email@orgao.gov.br"
               required
               disabled={isEdit}
               className={isEdit ? "opacity-60" : ""}
             />
-            <p className="text-xs text-muted-foreground">Apenas letras minúsculas, números, ponto, hífen ou underscore.</p>
           </div>
           <div className="space-y-2">
             <Label>{isEdit ? "Nova senha (deixe em branco para manter)" : "Senha *"}</Label>
@@ -350,7 +406,7 @@ function UserFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Órgão</Label>
+              <Label>Órgão de lotação</Label>
               <Input
                 value={form.organization}
                 onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
@@ -360,16 +416,64 @@ function UserFormDialog({
           </div>
           <div className="space-y-2">
             <Label>Perfil de acesso *</Label>
-            <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as "admin" | "viewer" }))}>
+            <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as FormData["role"] }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrador — pode editar e comentar</SelectItem>
+                {callerRole === "super_admin" && (
+                  <SelectItem value="admin">Administrador — edita, comenta e gerencia usuários</SelectItem>
+                )}
+                <SelectItem value="setorial">Usuário Setorial — leitura, comentários e documentos por órgão</SelectItem>
                 <SelectItem value="viewer">Visualizador — somente leitura</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {/* Órgãos permitidos — apenas para perfil setorial */}
+          {form.role === "setorial" && (
+            <div className="space-y-3 p-4 rounded-lg border border-teal-500/20 bg-teal-500/5">
+              <div className="flex items-center justify-between">
+                <Label className="text-teal-300 font-semibold">Órgãos com acesso permitido</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="select-all"
+                    checked={selectAll}
+                    onCheckedChange={(v) => setSelectAll(!!v)}
+                  />
+                  <label htmlFor="select-all" className="text-xs text-muted-foreground cursor-pointer">
+                    Selecionar todos
+                  </label>
+                </div>
+              </div>
+              {!selectAll && (
+                <ScrollArea className="h-48 rounded border border-border/50">
+                  <div className="p-2 space-y-1">
+                    {ORGAOS_MUNICIPAIS.map((orgao) => (
+                      <div key={orgao} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-secondary/50 cursor-pointer"
+                        onClick={() => toggleOrgao(orgao)}>
+                        <Checkbox
+                          checked={form.allowedOrgaos.includes(orgao)}
+                          onCheckedChange={() => toggleOrgao(orgao)}
+                        />
+                        <span className="text-xs text-foreground">{orgao}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+              {selectAll ? (
+                <p className="text-xs text-teal-400">Este usuário terá acesso a todos os órgãos.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {form.allowedOrgaos.length === 0
+                    ? "Nenhum órgão selecionado — o usuário não poderá comentar nem incluir documentos."
+                    : `${form.allowedOrgaos.length} órgão(s) selecionado(s).`}
+                </p>
+              )}
+            </div>
+          )}
+
           {isEdit && (
             <div className="space-y-2">
               <Label>Status</Label>

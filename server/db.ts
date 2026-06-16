@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, actionDocuments, comments, governanceNodes, history, InsertLocalUser, InsertUser, localUsers, users } from "../drizzle/schema";
+import { actions, actionDocuments, comments, governanceNodes, history, InsertLocalUser, InsertUser, localUsers, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -444,7 +444,7 @@ export async function createLocalUser(data: InsertLocalUser) {
 
 export async function updateLocalUser(
   id: number,
-  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "viewer"; position: string; organization: string; active: number }>
+  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; active: number }>
 ) {
   const db = await getDb();
   if (!db) return;
@@ -455,6 +455,39 @@ export async function deleteLocalUser(id: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(localUsers).where(eq(localUsers.id, id));
+}
+
+// ---- USER ORGAOS (acesso setorial por órgão) ----
+
+export async function getUserOrgaos(userId: number): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ orgao: userOrgaos.orgao }).from(userOrgaos).where(eq(userOrgaos.userId, userId));
+  return rows.map(r => r.orgao);
+}
+
+/**
+ * Replace all orgãos for a user.
+ * Pass ["TODOS"] for unrestricted access, or an empty array to revoke all access.
+ */
+export async function upsertUserOrgaos(userId: number, orgaos: string[]): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  // Delete existing entries for this user
+  await db.delete(userOrgaos).where(eq(userOrgaos.userId, userId));
+  if (orgaos.length === 0) return;
+  await db.insert(userOrgaos).values(orgaos.map(orgao => ({ userId, orgao })));
+}
+
+/**
+ * Check if a setorial user has access to a given orgão.
+ * Returns true if the user has "TODOS" or the specific orgão in their list.
+ */
+export async function setorialUserHasOrgaoAccess(userId: number, orgao: string | null | undefined): Promise<boolean> {
+  const allowed = await getUserOrgaos(userId);
+  if (allowed.includes("TODOS")) return true;
+  if (!orgao) return false;
+  return allowed.includes(orgao);
 }
 
 // ---- ACTION DOCUMENTS ----

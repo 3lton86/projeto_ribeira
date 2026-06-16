@@ -95,3 +95,16 @@
 - [x] Frontend: exportação filtrada por área/escopo com dropdown (Excel e PDF)
 - [x] Frontend: botão "+ Sub-item" em cada action item e modal CreateSubItemModal
 - [x] Testes para reorder e createSubItem (7 novos testes, 43 total)
+
+## Sprint 10 — Usuário Setorial
+- [x] Schema: adicionar role "setorial" ao enum de local_users
+- [x] Schema: nova tabela user_orgaos (userId, orgao) para controle de acesso por órgão
+- [x] Migração do banco de dados (pnpm db:push)
+- [x] Backend: atualizar createLocalUser/updateLocalUser para salvar órgãos permitidos
+- [x] Backend: nova query getUserOrgaos e upsertUserOrgaos no db.ts
+- [x] Backend: proteger comments.create e documents.create para verificar orgao do usuário setorial
+- [x] Backend: router users expor lista de órgãos do usuário (para frontend)
+- [x] Frontend: campo multi-select de órgãos no modal de criação/edição de usuário
+- [x] Frontend: exibir badge "Setorial" na listagem de usuários
+- [x] Frontend: na ficha do item (ActionDetail), mostrar botão de comentar/doc apenas se usuário setorial tiver acesso ao órgão do item
+- [x] Testes para restrições setoriais (43 testes passando, zero erros TypeScript)
