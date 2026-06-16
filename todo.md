@@ -148,3 +148,7 @@
 - [x] Adicionar logo SEMPLA no cabeçalho do PDF exportado pelo Dashboard (export.ts + sempla-logo-b64.ts)
 - [x] Typo "auditório" → "auditoria" (não encontrado no código-fonte atual; texto já estava correto)
 - [x] Corrigir erro removeChild no modal de cadastro de usuários ao selecionar categoria (portalled={false} no SelectContent dentro de Dialog)
+
+## Sprint 15 — Correções no Modal de Cadastro de Usuários
+- [x] Corrigir dropdown de categorias extrapolando o formulário (textos encurtados + z-[200])
+- [x] Corrigir erro React #185 (Maximum update depth exceeded) ao selecionar órgãos para usuário setorial — substituído useEffect com dependência instável por handleSelectAll síncrono

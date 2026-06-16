@@ -327,21 +327,22 @@ function UserFormDialog({
   const [active, setActive] = useState(initial?.active ?? 1);
   const [selectAll, setSelectAll] = useState(initial?.allowedOrgaos?.includes("TODOS") ?? false);
 
-  useEffect(() => {
-    if (selectAll) {
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
       setForm(f => ({ ...f, allowedOrgaos: ["TODOS"] }));
-    } else if (form.allowedOrgaos.includes("TODOS")) {
+    } else {
       setForm(f => ({ ...f, allowedOrgaos: [] }));
     }
-  }, [selectAll]);
+  };
 
   const toggleOrgao = (orgao: string) => {
+    setSelectAll(false);
     setForm(f => {
       const current = f.allowedOrgaos.filter(o => o !== "TODOS");
       const next = current.includes(orgao) ? current.filter(o => o !== orgao) : [...current, orgao];
       return { ...f, allowedOrgaos: next };
     });
-    setSelectAll(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -361,7 +362,7 @@ function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -420,12 +421,12 @@ function UserFormDialog({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent portalled={false}>
+              <SelectContent portalled={false} className="z-[200]">
                 {callerRole === "super_admin" && (
-                  <SelectItem value="admin">Administrador — edita, comenta e gerencia usuários</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
                 )}
-                <SelectItem value="setorial">Usuário Setorial — leitura, comentários e documentos por órgão</SelectItem>
-                <SelectItem value="viewer">Visualizador — somente leitura</SelectItem>
+                <SelectItem value="setorial">Usuário Setorial</SelectItem>
+                <SelectItem value="viewer">Visualizador</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -439,7 +440,7 @@ function UserFormDialog({
                   <Checkbox
                     id="select-all"
                     checked={selectAll}
-                    onCheckedChange={(v) => setSelectAll(!!v)}
+                    onCheckedChange={(v) => handleSelectAll(!!v)}
                   />
                   <label htmlFor="select-all" className="text-xs text-muted-foreground cursor-pointer">
                     Selecionar todos
