@@ -120,3 +120,9 @@
 - [x] Backend: router audit.list (localAdminProcedure, apenas admin/super_admin)
 - [x] Frontend: aba "Auditoria" na ficha do item (ActionDetail), visível apenas para admins
 - [x] Testes para audit.list e proteção de acesso (5 novos testes, 56 total)
+
+## Sprint 12 — Guia do Usuário
+- [x] Criar página UserGuide.tsx com conteúdo segmentado por perfil (Administrador, Setorial, Visualizador)
+- [x] Adicionar aba "Guia do Usuário" no sidebar com ícone BookOpen
+- [x] Registrar rota /guia no App.tsx
+- [x] Verificar TypeScript (zero erros) e salvar checkpoint

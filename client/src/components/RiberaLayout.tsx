@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   ChevronRight,
   FileText,
   LayoutDashboard,
@@ -19,6 +20,7 @@ import { setLocalToken } from "@/lib/localToken";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/acoes", label: "Ações & Entregas", icon: FileText },
+  { href: "/guia", label: "Guia do Usuário", icon: BookOpen },
 ];
 
 const ROLE_DISPLAY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
