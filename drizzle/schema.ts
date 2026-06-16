@@ -135,3 +135,19 @@ export const userOrgaos = mysqlTable("user_orgaos", {
 
 export type UserOrgao = typeof userOrgaos.$inferSelect;
 export type InsertUserOrgao = typeof userOrgaos.$inferInsert;
+
+// Auditoria de acesso setorial — registra ações de usuários setoriais (comentários e documentos)
+export const auditLog = mysqlTable("audit_log", {
+  id: int("id").autoincrement().primaryKey(),
+  actionId: int("actionId").notNull(),           // ação relacionada
+  userId: int("userId").notNull(),               // local_users.id
+  userName: varchar("userName", { length: 200 }).notNull(), // snapshot do nome
+  userRole: varchar("userRole", { length: 50 }).notNull(),  // snapshot do role
+  userOrgao: varchar("userOrgao", { length: 100 }), // órgão do usuário no momento
+  eventType: mysqlEnum("eventType", ["comment", "document"]).notNull(),
+  detail: text("detail"),                        // descrição do evento
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLog.$inferSelect;
+export type InsertAuditLog = typeof auditLog.$inferInsert;

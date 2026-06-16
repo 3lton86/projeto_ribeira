@@ -20,6 +20,8 @@ import {
   Plus,
   Trash2,
   ExternalLink,
+  ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -105,6 +107,10 @@ export default function ActionDetail() {
   const { data: comments } = trpc.comments.list.useQuery({ actionId: id });
   const { data: historyItems } = trpc.history.list.useQuery({ actionId: id });
   const { data: documents } = trpc.documents.list.useQuery({ actionId: id });
+  const { data: auditItems } = trpc.audit.list.useQuery(
+    { actionId: id },
+    { enabled: canEdit } // only fetch for admins
+  );
 
   // For setorial users: check if they can interact with this action's orgão
   const actionOrgao = (action as any)?.orgao ?? null;
@@ -125,7 +131,7 @@ export default function ActionDetail() {
     responsavelEmail: string;
   } | null>(null);
   const [newComment, setNewComment] = useState("");
-  const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents">("comments");
+  const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents" | "auditoria">("comments");
   const [showAddDoc, setShowAddDoc] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
 
@@ -479,6 +485,7 @@ export default function ActionDetail() {
             { key: "comments", label: "Comentários", icon: MessageSquare, count: comments?.length },
             { key: "history", label: "Histórico", icon: History, count: historyItems?.length },
             { key: "documents", label: "Documentos", icon: Link2, count: documents?.length },
+            ...(canEdit ? [{ key: "auditoria", label: "Auditoria", icon: ShieldCheck, count: auditItems?.length }] : []),
           ].map(({ key, label, icon: Icon, count }) => (
             <button
               key={key}
@@ -597,6 +604,56 @@ export default function ActionDetail() {
                 ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground text-sm">Nenhuma alteração registrada.</div>
+              )}
+            </div>
+          )}
+
+          {/* AUDIT TAB — admin only */}
+          {activeTab === "auditoria" && canEdit && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-3 p-3 rounded-lg text-xs" style={{ background: "oklch(0.38 0.16 240 / 0.06)", border: "1px solid oklch(0.38 0.16 240 / 0.20)" }}>
+                <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.38 0.16 240)" }} />
+                <span className="text-muted-foreground">Registro de ações de usuários setoriais neste item. Visível apenas para administradores.</span>
+              </div>
+              {auditItems && auditItems.length > 0 ? (
+                <div className="space-y-2">
+                  {auditItems.map((entry) => (
+                    <div key={entry.id} className="flex gap-3 items-start p-3 rounded-lg bg-secondary/20 border border-border/30">
+                      <div
+                        className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                        style={{ background: entry.eventType === "comment" ? "oklch(0.38 0.16 240 / 0.15)" : "oklch(0.45 0.18 145 / 0.15)", color: entry.eventType === "comment" ? "oklch(0.30 0.16 240)" : "oklch(0.30 0.18 145)" }}
+                      >
+                        {entry.eventType === "comment" ? <MessageSquare className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-xs font-semibold text-foreground">{entry.userName}</span>
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: "oklch(0.38 0.16 240 / 0.10)", color: "oklch(0.30 0.16 240)" }}
+                          >
+                            {entry.userRole}
+                          </span>
+                          {entry.userOrgao && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Building2 className="w-3 h-3" />
+                              {entry.userOrgao}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {new Date(entry.createdAt).toLocaleString("pt-BR")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{entry.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <ShieldCheck className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  Nenhum evento de auditoria registrado para este item.
+                </div>
               )}
             </div>
           )}

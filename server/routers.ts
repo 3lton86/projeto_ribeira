@@ -17,6 +17,8 @@ import {
   reorderActions,
   createSubItem,
   setorialUserHasOrgaoAccess,
+  createAuditLog,
+  getAuditLogByActionId,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -412,6 +414,18 @@ export const appRouter = router({
           userId: Math.abs(userId),
           content: input.content,
         });
+        // Audit log
+        if (localUser) {
+          await createAuditLog({
+            actionId: input.actionId,
+            userId: localUser.id,
+            userName: localUser.name,
+            userRole: localUser.role,
+            userOrgao: localUser.organization ?? null,
+            eventType: "comment",
+            detail: `Comentário adicionado: "${input.content.slice(0, 120)}${input.content.length > 120 ? "..." : ""}"`,
+          });
+        }
         return { success: true };
       }),
   }),
@@ -442,6 +456,14 @@ export const appRouter = router({
   // ---- DOCUMENTS ----
   documents: documentsRouter,
 
+  // ---- AUDIT LOG ----
+  audit: router({
+    list: localAdminProcedure
+      .input(z.object({ actionId: z.number() }))
+      .query(async ({ input }) => {
+        return getAuditLogByActionId(input.actionId);
+      }),
+  }),
   // ---- EXPORT ----
   export: router({
     data: publicProcedure

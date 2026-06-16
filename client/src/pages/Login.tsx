@@ -65,7 +65,7 @@ export default function Login() {
           </div>
           <div className="geo-line mt-4 mx-auto w-32" />
           <p className="text-muted-foreground text-xs mt-3 tracking-wide uppercase opacity-70">
-            Plataforma de Acompanhamento do Plano de Equilíbrio Fiscal
+            PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs
           </p>
         </div>
 

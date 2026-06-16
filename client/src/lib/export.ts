@@ -204,7 +204,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
     doc.setFontSize(7);
     doc.setTextColor(...C.gray);
     doc.text(
-      `RIBEIRA SUSTENTÁVEL — Relatório de Ações e Entregas — Gerado em ${formatDateTime(now)} — Página ${pg}`,
+      `PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs — Relatório de Ações e Entregas — Gerado em ${formatDateTime(now)} — Página ${pg}`,
       margin,
       pageH - 8
     );
@@ -224,7 +224,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
   doc.setFontSize(17);
   doc.setTextColor(...C.white);
   doc.setFont("helvetica", "bold");
-  doc.text("RIBEIRA SUSTENTÁVEL", margin, 13);
+  doc.text("PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs", margin, 13);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");

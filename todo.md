@@ -108,3 +108,15 @@
 - [x] Frontend: exibir badge "Setorial" na listagem de usuários
 - [x] Frontend: na ficha do item (ActionDetail), mostrar botão de comentar/doc apenas se usuário setorial tiver acesso ao órgão do item
 - [x] Testes para restrições setoriais (43 testes passando, zero erros TypeScript)
+
+## Sprint 11 — Rebranding PPPs + Tema Claro + Auditoria
+- [x] Substituir "Plataforma de Acompanhamento do Plano de Equilíbrio Fiscal" por "PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs" em todos os componentes
+- [x] Reformular visual: tema claro (light mode) com paleta SEMPLA (azul institucional #1E4D8C, cinza #6B7280, branco)
+- [x] Atualizar index.css com variáveis light mode e cores SEMPLA
+- [x] Atualizar RiberaLayout, Login e export.ts com novo nome e visual
+- [x] Schema: tabela audit_log (id, actionId, userId, userName, userOrgao, userRole, eventType, detail, createdAt)
+- [x] Migração do banco de dados (pnpm db:push)
+- [x] Backend: registrar audit_log em comments.create e documents.create para usuários setoriais
+- [x] Backend: router audit.list (localAdminProcedure, apenas admin/super_admin)
+- [x] Frontend: aba "Auditoria" na ficha do item (ActionDetail), visível apenas para admins
+- [x] Testes para audit.list e proteção de acesso (5 novos testes, 56 total)

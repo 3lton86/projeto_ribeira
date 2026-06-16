@@ -43,6 +43,13 @@
       "when": 1781579170789,
       "tag": "0005_amazing_toxin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1781580309657,
+      "tag": "0006_silent_blacklash",
+      "breakpoints": true
     }
   ]
 }

@@ -5,56 +5,58 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* SEMPLA palette: institutional navy blue + slate gray */
-  --background: oklch(0.10 0.02 240);
-  --foreground: oklch(0.95 0.01 240);
-  --card: oklch(0.13 0.025 240);
-  --card-foreground: oklch(0.95 0.01 240);
-  --popover: oklch(0.12 0.025 240);
-  --popover-foreground: oklch(0.95 0.01 240);
-  --primary: oklch(0.48 0.16 240);       /* SEMPLA navy blue */
-  --primary-foreground: oklch(0.97 0.01 240);
-  --secondary: oklch(0.18 0.03 240);
-  --secondary-foreground: oklch(0.85 0.01 240);
-  --muted: oklch(0.17 0.025 240);
-  --muted-foreground: oklch(0.60 0.02 240);
-  --accent: oklch(0.72 0.04 240);         /* Slate gray accent */
-  --accent-foreground: oklch(0.10 0.02 240);
+  /* SEMPLA Light Theme — Azul Institucional #1E4D8C + Branco + Cinza */
+  --background: oklch(0.98 0.005 240);          /* near-white background */
+  --foreground: oklch(0.18 0.04 240);           /* dark navy text */
+  --card: oklch(1.00 0.00 0);                   /* pure white cards */
+  --card-foreground: oklch(0.18 0.04 240);
+  --popover: oklch(1.00 0.00 0);
+  --popover-foreground: oklch(0.18 0.04 240);
+  --primary: oklch(0.38 0.16 240);              /* SEMPLA navy #1E4D8C */
+  --primary-foreground: oklch(0.98 0.005 240);
+  --secondary: oklch(0.94 0.01 240);            /* light blue-gray */
+  --secondary-foreground: oklch(0.28 0.06 240);
+  --muted: oklch(0.95 0.008 240);
+  --muted-foreground: oklch(0.52 0.04 240);
+  --accent: oklch(0.92 0.02 240);
+  --accent-foreground: oklch(0.28 0.06 240);
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.95 0.01 240);
-  --border: oklch(0.22 0.03 240);
-  --input: oklch(0.18 0.025 240);
-  --ring: oklch(0.55 0.16 240);
+  --destructive-foreground: oklch(0.98 0.005 240);
+  --border: oklch(0.88 0.015 240);
+  --input: oklch(0.96 0.008 240);
+  --ring: oklch(0.45 0.16 240);
   --radius: 0.75rem;
 
-  /* Custom tokens */
-  --blue: oklch(0.55 0.18 240);
-  --blue-dim: oklch(0.40 0.14 240);
-  --blue-glow: oklch(0.55 0.18 240 / 0.3);
-  --navy: oklch(0.30 0.14 240);
-  --navy-dark: oklch(0.18 0.10 240);
-  --slate: oklch(0.65 0.04 240);
-  --slate-dim: oklch(0.50 0.03 240);
-  --surface-1: oklch(0.13 0.025 240);
-  --surface-2: oklch(0.16 0.025 240);
-  --surface-3: oklch(0.20 0.03 240);
+  /* Custom tokens — light palette */
+  --blue: oklch(0.38 0.16 240);                 /* SEMPLA navy */
+  --blue-mid: oklch(0.48 0.16 240);             /* medium blue */
+  --blue-light: oklch(0.72 0.10 240);           /* light blue */
+  --blue-dim: oklch(0.30 0.12 240);
+  --blue-glow: oklch(0.45 0.16 240 / 0.20);
+  --navy: oklch(0.28 0.12 240);
+  --navy-dark: oklch(0.20 0.10 240);
+  --slate: oklch(0.55 0.04 240);
+  --slate-dim: oklch(0.65 0.03 240);
+  --surface-1: oklch(0.97 0.006 240);
+  --surface-2: oklch(0.94 0.010 240);
+  --surface-3: oklch(0.90 0.015 240);
 
   /* Status colors */
-  --status-pendente: oklch(0.65 0.14 60);
-  --status-em-andamento: oklch(0.65 0.18 200);
-  --status-concluido: oklch(0.65 0.18 145);
-  --status-cancelado: oklch(0.55 0.14 25);
+  --status-pendente: oklch(0.60 0.14 60);
+  --status-em-andamento: oklch(0.50 0.18 200);
+  --status-concluido: oklch(0.50 0.18 145);
+  --status-cancelado: oklch(0.50 0.14 25);
 
   /* Priority colors */
-  --priority-alta: oklch(0.60 0.22 25);
-  --priority-media: oklch(0.65 0.18 60);
-  --priority-baixa: oklch(0.65 0.14 145);
+  --priority-alta: oklch(0.52 0.22 25);
+  --priority-media: oklch(0.58 0.18 60);
+  --priority-baixa: oklch(0.52 0.14 145);
 
   /* Area colors */
-  --area-governanca: oklch(0.55 0.18 240);
-  --area-tecnico: oklch(0.55 0.16 200);
-  --area-juridico: oklch(0.55 0.18 290);
-  --area-ecofin: oklch(0.55 0.18 145);
+  --area-governanca: oklch(0.38 0.16 240);
+  --area-tecnico: oklch(0.45 0.16 200);
+  --area-juridico: oklch(0.45 0.18 290);
+  --area-ecofin: oklch(0.45 0.18 145);
 
   font-family: 'Inter', sans-serif;
 }
@@ -102,9 +104,9 @@ html, body {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--surface-1); }
+::-webkit-scrollbar-track { background: var(--surface-2); }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--blue-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--blue-light); }
 
 /* Container */
 .container {
@@ -116,96 +118,97 @@ html, body {
 /* Flex min-size fix */
 .flex { min-width: 0; min-height: 0; }
 
-/* SEMPLA institutional background */
+/* SEMPLA institutional background — light version */
 .cinema-bg {
-  background: 
-    radial-gradient(ellipse 80% 60% at 20% 80%, oklch(0.25 0.10 240 / 0.30) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 20%, oklch(0.30 0.08 220 / 0.20) 0%, transparent 55%),
-    radial-gradient(ellipse 100% 100% at 50% 50%, oklch(0.08 0.02 240) 0%, oklch(0.05 0.01 240) 100%);
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 80%, oklch(0.38 0.16 240 / 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, oklch(0.45 0.12 220 / 0.06) 0%, transparent 55%),
+    oklch(0.97 0.006 240);
 }
 
-/* Glass card */
+/* Glass card — light version */
 .glass-card {
-  background: oklch(0.13 0.025 240 / 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.25 0.04 240 / 0.6);
+  background: oklch(1.00 0.00 0 / 0.90);
+  backdrop-filter: blur(8px);
+  border: 1px solid oklch(0.88 0.015 240 / 0.80);
+  box-shadow: 0 1px 4px oklch(0.38 0.16 240 / 0.06), 0 4px 16px oklch(0.38 0.16 240 / 0.04);
 }
 
-/* Primary blue button (SEMPLA) */
+/* Primary blue button (SEMPLA navy) */
 .btn-teal {
-  background: linear-gradient(135deg, oklch(0.55 0.18 240), oklch(0.42 0.15 250));
-  color: oklch(0.97 0.01 240);
-  box-shadow: 0 0 20px oklch(0.55 0.18 240 / 0.30);
+  background: linear-gradient(135deg, oklch(0.42 0.16 240), oklch(0.34 0.14 250));
+  color: oklch(0.98 0.005 240);
+  box-shadow: 0 2px 8px oklch(0.38 0.16 240 / 0.25);
   transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .btn-teal:hover {
-  box-shadow: 0 0 30px oklch(0.55 0.18 240 / 0.45);
+  box-shadow: 0 4px 16px oklch(0.38 0.16 240 / 0.35);
   transform: translateY(-1px);
 }
 .btn-teal:active { transform: scale(0.97); }
 
-/* Status badges */
+/* Status badges — light mode */
 .badge-pendente {
-  background: oklch(0.65 0.14 60 / 0.15);
-  color: oklch(0.75 0.14 60);
-  border: 1px solid oklch(0.65 0.14 60 / 0.4);
+  background: oklch(0.60 0.14 60 / 0.10);
+  color: oklch(0.45 0.14 60);
+  border: 1px solid oklch(0.60 0.14 60 / 0.35);
 }
 .badge-em-andamento {
-  background: oklch(0.65 0.18 200 / 0.15);
-  color: oklch(0.75 0.18 200);
-  border: 1px solid oklch(0.65 0.18 200 / 0.4);
+  background: oklch(0.50 0.18 200 / 0.10);
+  color: oklch(0.38 0.18 200);
+  border: 1px solid oklch(0.50 0.18 200 / 0.35);
 }
 .badge-concluido {
-  background: oklch(0.65 0.18 145 / 0.15);
-  color: oklch(0.75 0.18 145);
-  border: 1px solid oklch(0.65 0.18 145 / 0.4);
+  background: oklch(0.50 0.18 145 / 0.10);
+  color: oklch(0.38 0.18 145);
+  border: 1px solid oklch(0.50 0.18 145 / 0.35);
 }
 .badge-cancelado {
-  background: oklch(0.55 0.14 25 / 0.15);
-  color: oklch(0.65 0.14 25);
-  border: 1px solid oklch(0.55 0.14 25 / 0.4);
+  background: oklch(0.50 0.14 25 / 0.10);
+  color: oklch(0.40 0.14 25);
+  border: 1px solid oklch(0.50 0.14 25 / 0.35);
 }
 
 /* Priority badges */
 .badge-alta {
-  background: oklch(0.60 0.22 25 / 0.15);
-  color: oklch(0.70 0.22 25);
-  border: 1px solid oklch(0.60 0.22 25 / 0.4);
+  background: oklch(0.52 0.22 25 / 0.10);
+  color: oklch(0.40 0.22 25);
+  border: 1px solid oklch(0.52 0.22 25 / 0.35);
 }
 .badge-media {
-  background: oklch(0.65 0.18 60 / 0.15);
-  color: oklch(0.75 0.18 60);
-  border: 1px solid oklch(0.65 0.18 60 / 0.4);
+  background: oklch(0.58 0.18 60 / 0.10);
+  color: oklch(0.44 0.18 60);
+  border: 1px solid oklch(0.58 0.18 60 / 0.35);
 }
 .badge-baixa {
-  background: oklch(0.65 0.14 145 / 0.15);
-  color: oklch(0.75 0.14 145);
-  border: 1px solid oklch(0.65 0.14 145 / 0.4);
+  background: oklch(0.52 0.14 145 / 0.10);
+  color: oklch(0.38 0.14 145);
+  border: 1px solid oklch(0.52 0.14 145 / 0.35);
 }
 
 /* Area badges */
 .badge-governanca {
-  background: oklch(0.55 0.18 240 / 0.15);
-  color: oklch(0.72 0.18 240);
-  border: 1px solid oklch(0.55 0.18 240 / 0.4);
+  background: oklch(0.38 0.16 240 / 0.10);
+  color: oklch(0.30 0.16 240);
+  border: 1px solid oklch(0.38 0.16 240 / 0.35);
 }
 .badge-tecnico {
-  background: oklch(0.55 0.16 200 / 0.15);
-  color: oklch(0.72 0.16 200);
-  border: 1px solid oklch(0.55 0.16 200 / 0.4);
+  background: oklch(0.45 0.16 200 / 0.10);
+  color: oklch(0.34 0.16 200);
+  border: 1px solid oklch(0.45 0.16 200 / 0.35);
 }
 .badge-juridico {
-  background: oklch(0.55 0.18 290 / 0.15);
-  color: oklch(0.72 0.18 290);
-  border: 1px solid oklch(0.55 0.18 290 / 0.4);
+  background: oklch(0.45 0.18 290 / 0.10);
+  color: oklch(0.34 0.18 290);
+  border: 1px solid oklch(0.45 0.18 290 / 0.35);
 }
 .badge-ecofin {
-  background: oklch(0.55 0.18 145 / 0.15);
-  color: oklch(0.72 0.18 145);
-  border: 1px solid oklch(0.55 0.18 145 / 0.4);
+  background: oklch(0.45 0.18 145 / 0.10);
+  color: oklch(0.34 0.18 145);
+  border: 1px solid oklch(0.45 0.18 145 / 0.35);
 }
 
-/* Sidebar nav item */
+/* Sidebar nav item — light mode */
 .nav-item {
   display: flex;
   align-items: center;
@@ -214,24 +217,24 @@ html, body {
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: oklch(0.65 0.02 240);
+  color: oklch(0.40 0.04 240);
   transition: all 0.15s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
   text-decoration: none;
 }
 .nav-item:hover {
-  background: oklch(0.18 0.03 240);
-  color: oklch(0.90 0.01 240);
+  background: oklch(0.38 0.16 240 / 0.08);
+  color: oklch(0.28 0.12 240);
 }
 .nav-item.active {
-  background: oklch(0.55 0.18 240 / 0.15);
-  color: oklch(0.75 0.18 240);
-  border-left: 2px solid oklch(0.55 0.18 240);
+  background: oklch(0.38 0.16 240 / 0.12);
+  color: oklch(0.30 0.16 240);
+  border-left: 2px solid oklch(0.38 0.16 240);
 }
 
 /* Progress bar */
 .progress-teal {
-  background: linear-gradient(90deg, oklch(0.55 0.18 240), oklch(0.45 0.14 250));
+  background: linear-gradient(90deg, oklch(0.42 0.16 240), oklch(0.34 0.14 250));
   border-radius: 999px;
   height: 6px;
   transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
@@ -240,12 +243,12 @@ html, body {
 /* Geometric decorations */
 .geo-line {
   height: 1px;
-  background: linear-gradient(90deg, transparent, oklch(0.55 0.18 240 / 0.5), transparent);
+  background: linear-gradient(90deg, transparent, oklch(0.38 0.16 240 / 0.3), transparent);
 }
 
 /* Table row hover */
 .table-row-hover:hover {
-  background: oklch(0.16 0.025 240 / 0.5);
+  background: oklch(0.38 0.16 240 / 0.04);
 }
 
 /* Input styling */
@@ -270,8 +273,8 @@ input:focus, textarea:focus, select:focus {
   to { opacity: 1; }
 }
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px var(--blue-glow); }
-  50% { box-shadow: 0 0 25px var(--blue-glow), 0 0 50px var(--blue-glow); }
+  0%, 100% { box-shadow: 0 0 8px var(--blue-glow); }
+  50% { box-shadow: 0 0 20px var(--blue-glow); }
 }
 
 .animate-fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }

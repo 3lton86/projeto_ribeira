@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, actionDocuments, comments, governanceNodes, history, InsertLocalUser, InsertUser, localUsers, userOrgaos, users } from "../drizzle/schema";
+import { actions, actionDocuments, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -582,4 +582,22 @@ export async function getExportData(filters?: {
     comments: commentsByAction[r.id] ?? [],
     documents: docsByAction[r.id] ?? [],
   }));
+}
+
+// ---- Audit Log ----
+
+export async function createAuditLog(entry: InsertAuditLog): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(auditLog).values(entry);
+}
+
+export async function getAuditLogByActionId(actionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(auditLog)
+    .where(eq(auditLog.actionId, actionId))
+    .orderBy(desc(auditLog.createdAt));
 }

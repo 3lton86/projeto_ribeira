@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   createActionDocument,
+  createAuditLog,
   deleteActionDocument,
   getActionById,
   getDocumentsByActionId,
@@ -51,6 +52,16 @@ export const documentsRouter = router({
         url: input.url,
         uploadedBy: localUser.id,
         uploaderName: localUser.name,
+      });
+      // Audit log
+      await createAuditLog({
+        actionId: input.actionId,
+        userId: localUser.id,
+        userName: localUser.name,
+        userRole: localUser.role,
+        userOrgao: localUser.organization ?? null,
+        eventType: "document",
+        detail: `Documento incluído: "${input.label}" — ${input.url.slice(0, 100)}`,
       });
       return { success: true };
     }),

@@ -22,8 +22,9 @@ const navItems = [
 ];
 
 const ROLE_DISPLAY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  super_admin: { label: "Super Admin", icon: ShieldCheck, color: "text-yellow-400" },
+  super_admin: { label: "Super Admin", icon: ShieldCheck, color: "text-amber-600" },
   admin: { label: "Administrador", icon: Shield, color: "text-primary" },
+  setorial: { label: "Usuário Setorial", icon: Eye, color: "text-blue-600" },
   viewer: { label: "Visualizador", icon: Eye, color: "text-muted-foreground" },
 };
 
@@ -63,7 +64,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
           <div className="geo-line mt-3" />
           <div className="mt-2 text-center">
             <div className="text-[10px] text-muted-foreground leading-relaxed opacity-70">
-              Plataforma de Acompanhamento do Plano de Equilíbrio Fiscal
+              PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs
             </div>
           </div>
         </div>
@@ -122,7 +123,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{
-                    background: "linear-gradient(135deg, oklch(0.55 0.18 240), oklch(0.42 0.15 250))",
+                    background: "linear-gradient(135deg, oklch(0.38 0.16 240), oklch(0.30 0.14 250))",
                     color: "white",
                   }}
                 >
