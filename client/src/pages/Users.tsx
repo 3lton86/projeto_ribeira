@@ -450,23 +450,17 @@ function UserFormDialog({
                       <div
                         key={orgao}
                         className="flex items-center gap-2 px-2 py-1 rounded hover:bg-secondary/50 cursor-pointer"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleOrgao(orgao); }}
+                        onClick={() => toggleOrgao(orgao)}
                       >
                         <Checkbox
                           id={`orgao-${orgao}`}
                           checked={form.allowedOrgaos.includes(orgao)}
-                          onCheckedChange={(checked) => {
-                            if (typeof checked === 'boolean') toggleOrgao(orgao);
-                          }}
+                          onCheckedChange={() => {}}
                           onClick={(e) => e.stopPropagation()}
                         />
-                        <label
-                          htmlFor={`orgao-${orgao}`}
-                          className="text-xs text-foreground cursor-pointer select-none"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleOrgao(orgao); }}
-                        >
+                        <span className="text-xs text-foreground select-none">
                           {orgao}
-                        </label>
+                        </span>
                       </div>
                     ))}
                   </div>
