@@ -84,3 +84,14 @@
 - [x] Frontend: modal EditGroupModal reutilizando estilo do EditInlineModal
 - [x] Frontend: paginação por área na listagem de ações (20 itens/pág, controles numerados com ellipsis)
 - [x] Testes para actions.updateGroup (6 novos testes, 36 total)
+
+## Sprint 9
+- [x] Upload da logo SEMPLA e rebranding: nome "SEMPLA", cores azul/cinza da logo, substituir "BUREAU PAD"
+- [x] Remover abas Governança e áreas temáticas do sidebar (substituídas pelos filtros)
+- [x] Backend: mutation actions.reorder (sortOrder bulk update)
+- [x] Backend: suporte a sub-itens (createSubItem com parentCode aninhado)
+- [x] Frontend: drag-and-drop na listagem (dnd-kit) com persistência via reorder mutation
+- [x] Frontend: filtros rápidos "Atrasados" e "Vence esta semana" com contadores na barra de filtros
+- [x] Frontend: exportação filtrada por área/escopo com dropdown (Excel e PDF)
+- [x] Frontend: botão "+ Sub-item" em cada action item e modal CreateSubItemModal
+- [x] Testes para reorder e createSubItem (7 novos testes, 43 total)

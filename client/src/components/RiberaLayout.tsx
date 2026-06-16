@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  Building2,
   ChevronRight,
   FileText,
   LayoutDashboard,
@@ -16,12 +15,10 @@ import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { setLocalToken } from "@/lib/localToken";
-import { toast } from "sonner";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/acoes", label: "Ações & Entregas", icon: FileText },
-  { href: "/governanca", label: "Governança", icon: Building2 },
 ];
 
 const ROLE_DISPLAY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -53,29 +50,22 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static lg:flex`}
       >
-        {/* Logo */}
-        <div className="p-5 border-b border-border/50">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }}
-            >
-              <Shield className="w-5 h-5 text-black" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-display font-bold text-sm text-foreground leading-tight">RIBEIRA</div>
-              <div className="text-xs text-muted-foreground leading-tight">Sustentável</div>
-            </div>
-            <div className="flex-shrink-0">
-              <img
-                src="/manus-storage/bureau-pad-logo_79a273e0.webp"
-                alt="Bureau Pad"
-                className="h-8 w-auto object-contain rounded"
-                style={{ background: "rgba(255,255,255,0.92)", padding: "2px 6px" }}
-              />
+        {/* Logo SEMPLA */}
+        <div className="p-4 border-b border-border/50">
+          <div className="flex items-center justify-center">
+            <img
+              src="/manus-storage/sempla-logo_0b157f04.png"
+              alt="SEMPLA — Secretaria Municipal de Planejamento"
+              className="w-full max-w-[200px] h-auto object-contain"
+              style={{ background: "rgba(255,255,255,0.96)", padding: "8px 12px", borderRadius: "8px" }}
+            />
+          </div>
+          <div className="geo-line mt-3" />
+          <div className="mt-2 text-center">
+            <div className="text-[10px] text-muted-foreground leading-relaxed opacity-70">
+              Plataforma de Acompanhamento do Plano de Equilíbrio Fiscal
             </div>
           </div>
-          <div className="geo-line mt-4" />
         </div>
 
         {/* Navigation */}
@@ -114,47 +104,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               </Link>
             </>
           )}
-
-          <div className="geo-line my-3" />
-
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">
-            Áreas Temáticas
-          </div>
-          {[
-            { label: "Governança", color: "badge-governanca", href: "/acoes?area=Governança" },
-            { label: "Técnico", color: "badge-tecnico", href: "/acoes?area=Técnico" },
-            { label: "Jurídico", color: "badge-juridico", href: "/acoes?area=Jurídico" },
-            { label: "Eco-Fin", color: "badge-ecofin", href: "/acoes?area=Eco-Fin" },
-          ].map(({ label, color, href }) => (
-            <Link
-              key={label}
-              href={href}
-              className="nav-item"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}>
-                {label}
-              </span>
-            </Link>
-          ))}
         </nav>
-
-        {/* Footer / Company signature */}
-        <div className="px-4 py-3 border-t border-border/30 bg-black/20">
-          <div className="text-center space-y-0.5">
-            <div className="text-xs font-semibold" style={{ color: "oklch(0.72 0.18 185)" }}>Bureau Pad</div>
-            <div className="text-[10px] text-muted-foreground leading-relaxed">
-              Bureau de Inteligência Fundiária e Serviços Ltda
-            </div>
-            <div className="text-[10px] text-muted-foreground opacity-70">
-              CNPJ 58.565.943/0001-41
-            </div>
-            <div className="text-[10px] text-muted-foreground opacity-60 leading-relaxed">
-              Av. Eng. Roberto Freire, 1962<br />
-              Capim Macio • Natal–RN • 59.082-095
-            </div>
-          </div>
-        </div>
 
         {/* User section */}
         <div className="p-3 border-t border-border/50">
@@ -172,8 +122,8 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{
-                    background: "linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50))",
-                    color: "black",
+                    background: "linear-gradient(135deg, oklch(0.55 0.18 240), oklch(0.42 0.15 250))",
+                    color: "white",
                   }}
                 >
                   {localUser.name.charAt(0).toUpperCase()}
@@ -223,8 +173,12 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5" style={{ color: "oklch(0.72 0.18 185)" }} />
-            <span className="font-display font-bold text-sm">RIBEIRA SUSTENTÁVEL</span>
+            <img
+              src="/manus-storage/sempla-logo_0b157f04.png"
+              alt="SEMPLA"
+              className="h-7 w-auto object-contain rounded"
+              style={{ background: "rgba(255,255,255,0.95)", padding: "2px 6px" }}
+            />
           </div>
         </header>
 

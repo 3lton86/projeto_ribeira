@@ -14,6 +14,8 @@ import {
   getHistoryByActionId,
   updateAction,
   updateGroupDescription,
+  reorderActions,
+  createSubItem,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -292,6 +294,65 @@ export const appRouter = router({
 
         await updateGroupDescription(input.id, input.description);
         return { success: true };
+      }),
+
+    reorder: localOrOauthAdminProcedure
+      .input(
+        z.object({
+          items: z.array(
+            z.object({ id: z.number(), sortOrder: z.number() })
+          ).min(1).max(500),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await reorderActions(input.items);
+        return { success: true };
+      }),
+
+    createSubItem: localOrOauthAdminProcedure
+      .input(
+        z.object({
+          parentId: z.number(),
+          parentCode: z.string().min(1),
+          area: areaEnum,
+          description: z.string().min(3).max(500),
+          priority: priorityEnum.optional(),
+          status: statusEnum.optional(),
+          dueDate: z.date().optional().nullable(),
+          orgao: z.string().optional(),
+          responsavelNome: z.string().optional(),
+          responsavelCargo: z.string().optional(),
+          responsavelTel: z.string().optional(),
+          responsavelEmail: z.string().email().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const newId = await createSubItem({
+          area: input.area,
+          parentId: input.parentId,
+          parentCode: input.parentCode,
+          description: input.description,
+          priority: input.priority,
+          status: input.status,
+          dueDate: input.dueDate,
+          orgao: input.orgao,
+          responsavelNome: input.responsavelNome,
+          responsavelCargo: input.responsavelCargo,
+          responsavelTel: input.responsavelTel,
+          responsavelEmail: input.responsavelEmail,
+        });
+
+        const localUser = (ctx as any).localUser;
+        const historyUserId = localUser ? localUser.id : ctx.user!.id;
+        await createHistory({
+          actionId: newId,
+          userId: Math.abs(historyUserId),
+          fieldChanged: "Criação de Sub-item",
+          oldValue: null,
+          newValue: input.description,
+        });
+
+        return { success: true, id: newId };
       }),
   }),
 

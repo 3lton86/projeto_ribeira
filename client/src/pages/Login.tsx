@@ -1,85 +1,72 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { setLocalToken } from "@/lib/localToken";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
-import { Button } from "@/components/ui/button";
+import { setLocalToken } from "@/lib/localToken";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Eye, EyeOff, Lock, User, Waves } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Lock, User, AlertCircle } from "lucide-react";
 
 export default function Login() {
-  const [, navigate] = useLocation();
-  const { refetch, localUser, loading, setLocalUser } = useLocalAuth();
-
-  // If already logged in, redirect to dashboard
-  useEffect(() => {
-    if (!loading && localUser) {
-      navigate("/");
-    }
-  }, [loading, localUser, navigate]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [, navigate] = useLocation();
+  const { setLocalUser } = useLocalAuth();
 
   const loginMutation = trpc.localAuth.login.useMutation({
     onSuccess: (data) => {
-      // Save JWT token for Authorization header fallback
-      setLocalToken(data.token);
-      // Set user immediately in context + localStorage so ProtectedRouter sees it right away
-      setLocalUser(data.user as any);
-      toast.success("Login realizado com sucesso!");
-      navigate("/");
-      // Also trigger background refetch to sync with server
-      refetch();
+      if (data.token && data.user) {
+        setLocalToken(data.token);
+        setLocalUser(data.user as any);
+        navigate("/");
+      }
     },
     onError: (err) => {
-      toast.error(err.message || "Usuário ou senha inválidos.");
+      setError(err.message || "Usuário ou senha inválidos.");
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password) return;
+    setError("");
+    if (!username.trim() || !password.trim()) {
+      setError("Preencha usuário e senha.");
+      return;
+    }
     loginMutation.mutate({ username: username.trim(), password });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Cinematic background */}
-      <div className="absolute inset-0 bg-background" />
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 20% 40%, oklch(0.45 0.15 185) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, oklch(0.45 0.18 45) 0%, transparent 55%)",
-        }}
-      />
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(ellipse 80% 60% at 20% 40%, oklch(0.25 0.10 240 / 0.35) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, oklch(0.20 0.08 250 / 0.25) 0%, transparent 55%), oklch(0.08 0.02 240)",
+      }}
+    >
       {/* Geometric decorations */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-60" />
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-40" />
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-40" />
       <div className="absolute top-1/4 right-8 w-px h-32 bg-gradient-to-b from-transparent via-primary/40 to-transparent hidden lg:block" />
-      <div className="absolute bottom-1/4 left-8 w-px h-24 bg-gradient-to-b from-transparent via-accent/40 to-transparent hidden lg:block" />
+      <div className="absolute bottom-1/4 left-8 w-px h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent hidden lg:block" />
 
       <div className="relative z-10 w-full max-w-md px-6">
-        {/* Logo / Brand */}
+        {/* Logo SEMPLA */}
         <div className="text-center mb-8 animate-fade-in-up">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 mb-4 shadow-lg shadow-primary/10">
-            <Waves className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">RIBEIRA</h1>
-          <p className="text-muted-foreground text-sm mt-1 tracking-widest uppercase">Sustentável</p>
-          <div className="geo-line mt-4 mx-auto w-24" />
-          {/* Bureau Pad logo */}
-          <div className="mt-5 flex items-center justify-center">
+          <div className="flex items-center justify-center mb-5">
             <img
-              src="/manus-storage/bureau-pad-logo_79a273e0.webp"
-              alt="Bureau Pad"
-              className="h-10 w-auto object-contain rounded-md"
-              style={{ background: "rgba(255,255,255,0.90)", padding: "4px 10px" }}
+              src="/manus-storage/sempla-logo_0b157f04.png"
+              alt="SEMPLA — Secretaria Municipal de Planejamento"
+              className="h-20 w-auto object-contain rounded-xl"
+              style={{ background: "rgba(255,255,255,0.96)", padding: "10px 20px" }}
             />
           </div>
+          <div className="geo-line mt-4 mx-auto w-32" />
+          <p className="text-muted-foreground text-xs mt-3 tracking-wide uppercase opacity-70">
+            Plataforma de Acompanhamento do Plano de Equilíbrio Fiscal
+          </p>
         </div>
 
         {/* Login card */}
@@ -102,7 +89,7 @@ export default function Login() {
                   placeholder="nome.usuario"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-9 bg-secondary/50 border-border/60 focus:border-primary/60"
+                  className="pl-9"
                   autoComplete="username"
                   autoFocus
                 />
@@ -117,31 +104,31 @@ export default function Login() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 pr-10 bg-secondary/50 border-border/60 focus:border-primary/60"
+                  className="pl-9"
                   autoComplete="current-password"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
             <Button
               type="submit"
-              className="w-full font-semibold"
-              disabled={loginMutation.isPending || !username || !password}
+              className="w-full btn-teal font-semibold"
+              disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
                   Entrando...
                 </span>
               ) : (
@@ -151,8 +138,8 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6 opacity-60">
-          Acesso restrito. Credenciais fornecidas pelo administrador do sistema.
+        <p className="text-center text-xs text-muted-foreground mt-6 opacity-50">
+          Prefeitura Municipal do Natal · SEMPLA · {new Date().getFullYear()}
         </p>
       </div>
     </div>

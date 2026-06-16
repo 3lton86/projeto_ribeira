@@ -198,6 +198,83 @@ export async function updateGroupDescription(id: number, description: string) {
   await db.update(actions).set({ description }).where(eq(actions.id, id));
 }
 
+/**
+ * Bulk-update sortOrder for a list of action IDs.
+ * Accepts an array of { id, sortOrder } pairs.
+ */
+export async function reorderActions(items: { id: number; sortOrder: number }[]) {
+  const db = await getDb();
+  if (!db || items.length === 0) return;
+  // Execute individual updates in a transaction-like batch
+  for (const item of items) {
+    await db.update(actions).set({ sortOrder: item.sortOrder }).where(eq(actions.id, item.id));
+  }
+}
+
+/**
+ * Create a sub-item under an existing action item.
+ * parentCode is the itemCode of the parent (e.g. "3").
+ * The new sub-item gets itemCode like "3.1", "3.2", etc.
+ */
+export async function createSubItem(data: {
+  area: "Governança" | "Técnico" | "Jurídico" | "Eco-Fin";
+  parentId: number;
+  parentCode: string;
+  description: string;
+  priority?: "Alta" | "Média" | "Baixa";
+  status?: "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
+  dueDate?: Date | null;
+  orgao?: string;
+  responsavelNome?: string;
+  responsavelCargo?: string;
+  responsavelTel?: string;
+  responsavelEmail?: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Count existing sub-items with the same parentCode in this area
+  const existingSubs = await db
+    .select({ id: actions.id })
+    .from(actions)
+    .where(
+      and(
+        eq(actions.area, data.area as any),
+        eq(actions.parentCode, data.parentCode),
+        eq(actions.isGroup, 0)
+      )
+    );
+  const subIndex = existingSubs.length + 1;
+  const itemCode = `${data.parentCode}.${subIndex}`;
+
+  // Get max sortOrder for this area to place at end
+  const maxRows = await db
+    .select({ sortOrder: actions.sortOrder })
+    .from(actions)
+    .where(eq(actions.area, data.area as any))
+    .orderBy(desc(actions.sortOrder))
+    .limit(1);
+  const nextSortOrder = maxRows.length > 0 ? (maxRows[0].sortOrder + 1) : 1;
+
+  const result = await db.insert(actions).values({
+    area: data.area,
+    itemCode,
+    parentCode: data.parentCode,
+    isGroup: 0,
+    description: data.description,
+    priority: data.priority ?? "Média",
+    status: data.status ?? "Pendente",
+    dueDate: data.dueDate ?? null,
+    orgao: data.orgao,
+    responsavelNome: data.responsavelNome,
+    responsavelCargo: data.responsavelCargo,
+    responsavelTel: data.responsavelTel,
+    responsavelEmail: data.responsavelEmail,
+    sortOrder: nextSortOrder,
+  });
+  return (result as any).insertId as number;
+}
+
 // ---- COMMENTS ----
 
 export async function getCommentsByActionId(actionId: number) {

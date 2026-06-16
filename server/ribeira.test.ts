@@ -72,6 +72,8 @@ vi.mock("./db", () => ({
   getNextItemCode: vi.fn().mockResolvedValue("G.99"),
   deleteAction: vi.fn().mockResolvedValue(undefined),
   updateGroupDescription: vi.fn().mockResolvedValue(undefined),
+  reorderActions: vi.fn().mockResolvedValue(undefined),
+  createSubItem: vi.fn().mockResolvedValue(99),
 }));
 
 function makePublicCtx(): TrpcContext {
@@ -452,5 +454,74 @@ describe("actions.updateGroup", () => {
     await expect(
       caller.actions.updateGroup({ id: 1, description: "ab" })
     ).rejects.toThrow();
+  });
+});
+
+describe("actions.reorder", () => {
+  it("rejects reorder without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.actions.reorder({ items: [{ id: 1, sortOrder: 1 }] })
+    ).rejects.toThrow();
+  });
+
+  it("rejects empty items array", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.reorder({ items: [] })
+    ).rejects.toThrow();
+  });
+
+  it("allows admin to reorder items", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.actions.reorder({
+      items: [{ id: 1, sortOrder: 2 }, { id: 2, sortOrder: 1 }],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("actions.createSubItem", () => {
+  it("rejects createSubItem without authentication", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    await expect(
+      caller.actions.createSubItem({ parentId: 1, parentCode: "1", area: "T\u00e9cnico", description: "Sub-item v\u00e1lido" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects description shorter than 3 chars", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(
+      caller.actions.createSubItem({ parentId: 1, parentCode: "1", area: "T\u00e9cnico", description: "ab" })
+    ).rejects.toThrow();
+  });
+
+  it("allows admin to create sub-item and returns id", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.actions.createSubItem({
+      parentId: 2,
+      parentCode: "1.1",
+      area: "T\u00e9cnico",
+      description: "Sub-item de valida\u00e7\u00e3o funcional",
+      priority: "Alta",
+      status: "Pendente",
+    });
+    expect(result.success).toBe(true);
+    expect(result.id).toBe(99);
+  });
+
+  it("registers history entry on sub-item creation", async () => {
+    const { createHistory } = await import("./db");
+    (createHistory as ReturnType<typeof vi.fn>).mockClear();
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await caller.actions.createSubItem({
+      parentId: 2,
+      parentCode: "1.1",
+      area: "T\u00e9cnico",
+      description: "Sub-item com hist\u00f3rico registrado",
+    });
+    expect(createHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ fieldChanged: "Cria\u00e7\u00e3o de Sub-item" })
+    );
   });
 });

@@ -5,38 +5,39 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Cinematic palette: deep teal + burnt orange */
-  --background: oklch(0.10 0.02 220);
-  --foreground: oklch(0.95 0.01 220);
-  --card: oklch(0.13 0.025 220);
-  --card-foreground: oklch(0.95 0.01 220);
-  --popover: oklch(0.12 0.025 220);
-  --popover-foreground: oklch(0.95 0.01 220);
-  --primary: oklch(0.72 0.18 185);       /* Teal */
-  --primary-foreground: oklch(0.10 0.02 220);
-  --secondary: oklch(0.18 0.03 220);
-  --secondary-foreground: oklch(0.85 0.01 220);
-  --muted: oklch(0.17 0.025 220);
-  --muted-foreground: oklch(0.60 0.02 220);
-  --accent: oklch(0.65 0.20 50);         /* Burnt orange */
-  --accent-foreground: oklch(0.10 0.02 220);
+  /* SEMPLA palette: institutional navy blue + slate gray */
+  --background: oklch(0.10 0.02 240);
+  --foreground: oklch(0.95 0.01 240);
+  --card: oklch(0.13 0.025 240);
+  --card-foreground: oklch(0.95 0.01 240);
+  --popover: oklch(0.12 0.025 240);
+  --popover-foreground: oklch(0.95 0.01 240);
+  --primary: oklch(0.48 0.16 240);       /* SEMPLA navy blue */
+  --primary-foreground: oklch(0.97 0.01 240);
+  --secondary: oklch(0.18 0.03 240);
+  --secondary-foreground: oklch(0.85 0.01 240);
+  --muted: oklch(0.17 0.025 240);
+  --muted-foreground: oklch(0.60 0.02 240);
+  --accent: oklch(0.72 0.04 240);         /* Slate gray accent */
+  --accent-foreground: oklch(0.10 0.02 240);
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.95 0.01 220);
-  --border: oklch(0.22 0.03 220);
-  --input: oklch(0.18 0.025 220);
-  --ring: oklch(0.72 0.18 185);
+  --destructive-foreground: oklch(0.95 0.01 240);
+  --border: oklch(0.22 0.03 240);
+  --input: oklch(0.18 0.025 240);
+  --ring: oklch(0.55 0.16 240);
   --radius: 0.75rem;
 
   /* Custom tokens */
-  --teal: oklch(0.72 0.18 185);
-  --teal-dim: oklch(0.55 0.15 185);
-  --teal-glow: oklch(0.72 0.18 185 / 0.3);
-  --orange: oklch(0.65 0.20 50);
-  --orange-dim: oklch(0.50 0.18 50);
-  --orange-glow: oklch(0.65 0.20 50 / 0.3);
-  --surface-1: oklch(0.13 0.025 220);
-  --surface-2: oklch(0.16 0.025 220);
-  --surface-3: oklch(0.20 0.03 220);
+  --blue: oklch(0.55 0.18 240);
+  --blue-dim: oklch(0.40 0.14 240);
+  --blue-glow: oklch(0.55 0.18 240 / 0.3);
+  --navy: oklch(0.30 0.14 240);
+  --navy-dark: oklch(0.18 0.10 240);
+  --slate: oklch(0.65 0.04 240);
+  --slate-dim: oklch(0.50 0.03 240);
+  --surface-1: oklch(0.13 0.025 240);
+  --surface-2: oklch(0.16 0.025 240);
+  --surface-3: oklch(0.20 0.03 240);
 
   /* Status colors */
   --status-pendente: oklch(0.65 0.14 60);
@@ -50,10 +51,10 @@
   --priority-baixa: oklch(0.65 0.14 145);
 
   /* Area colors */
-  --area-governanca: oklch(0.65 0.20 50);
-  --area-tecnico: oklch(0.72 0.18 185);
-  --area-juridico: oklch(0.65 0.18 290);
-  --area-ecofin: oklch(0.65 0.18 145);
+  --area-governanca: oklch(0.55 0.18 240);
+  --area-tecnico: oklch(0.55 0.16 200);
+  --area-juridico: oklch(0.55 0.18 290);
+  --area-ecofin: oklch(0.55 0.18 145);
 
   font-family: 'Inter', sans-serif;
 }
@@ -103,7 +104,7 @@ html, body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--surface-1); }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--teal-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--blue-dim); }
 
 /* Container */
 .container {
@@ -115,30 +116,30 @@ html, body {
 /* Flex min-size fix */
 .flex { min-width: 0; min-height: 0; }
 
-/* Cinematic background */
+/* SEMPLA institutional background */
 .cinema-bg {
   background: 
-    radial-gradient(ellipse 80% 60% at 20% 80%, oklch(0.35 0.12 185 / 0.25) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 20%, oklch(0.40 0.15 50 / 0.20) 0%, transparent 55%),
-    radial-gradient(ellipse 100% 100% at 50% 50%, oklch(0.08 0.02 220) 0%, oklch(0.05 0.01 220) 100%);
+    radial-gradient(ellipse 80% 60% at 20% 80%, oklch(0.25 0.10 240 / 0.30) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, oklch(0.30 0.08 220 / 0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 100% at 50% 50%, oklch(0.08 0.02 240) 0%, oklch(0.05 0.01 240) 100%);
 }
 
 /* Glass card */
 .glass-card {
-  background: oklch(0.13 0.025 220 / 0.85);
+  background: oklch(0.13 0.025 240 / 0.85);
   backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.25 0.04 220 / 0.6);
+  border: 1px solid oklch(0.25 0.04 240 / 0.6);
 }
 
-/* Teal glow button */
+/* Primary blue button (SEMPLA) */
 .btn-teal {
-  background: linear-gradient(135deg, oklch(0.72 0.18 185), oklch(0.60 0.15 200));
-  color: oklch(0.10 0.02 220);
-  box-shadow: 0 0 20px oklch(0.72 0.18 185 / 0.35);
+  background: linear-gradient(135deg, oklch(0.55 0.18 240), oklch(0.42 0.15 250));
+  color: oklch(0.97 0.01 240);
+  box-shadow: 0 0 20px oklch(0.55 0.18 240 / 0.30);
   transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .btn-teal:hover {
-  box-shadow: 0 0 30px oklch(0.72 0.18 185 / 0.5);
+  box-shadow: 0 0 30px oklch(0.55 0.18 240 / 0.45);
   transform: translateY(-1px);
 }
 .btn-teal:active { transform: scale(0.97); }
@@ -184,24 +185,24 @@ html, body {
 
 /* Area badges */
 .badge-governanca {
-  background: oklch(0.65 0.20 50 / 0.15);
-  color: oklch(0.75 0.20 50);
-  border: 1px solid oklch(0.65 0.20 50 / 0.4);
+  background: oklch(0.55 0.18 240 / 0.15);
+  color: oklch(0.72 0.18 240);
+  border: 1px solid oklch(0.55 0.18 240 / 0.4);
 }
 .badge-tecnico {
-  background: oklch(0.72 0.18 185 / 0.15);
-  color: oklch(0.80 0.18 185);
-  border: 1px solid oklch(0.72 0.18 185 / 0.4);
+  background: oklch(0.55 0.16 200 / 0.15);
+  color: oklch(0.72 0.16 200);
+  border: 1px solid oklch(0.55 0.16 200 / 0.4);
 }
 .badge-juridico {
-  background: oklch(0.65 0.18 290 / 0.15);
-  color: oklch(0.75 0.18 290);
-  border: 1px solid oklch(0.65 0.18 290 / 0.4);
+  background: oklch(0.55 0.18 290 / 0.15);
+  color: oklch(0.72 0.18 290);
+  border: 1px solid oklch(0.55 0.18 290 / 0.4);
 }
 .badge-ecofin {
-  background: oklch(0.65 0.18 145 / 0.15);
-  color: oklch(0.75 0.18 145);
-  border: 1px solid oklch(0.65 0.18 145 / 0.4);
+  background: oklch(0.55 0.18 145 / 0.15);
+  color: oklch(0.72 0.18 145);
+  border: 1px solid oklch(0.55 0.18 145 / 0.4);
 }
 
 /* Sidebar nav item */
@@ -213,24 +214,24 @@ html, body {
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: oklch(0.65 0.02 220);
+  color: oklch(0.65 0.02 240);
   transition: all 0.15s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
   text-decoration: none;
 }
 .nav-item:hover {
-  background: oklch(0.18 0.03 220);
-  color: oklch(0.90 0.01 220);
+  background: oklch(0.18 0.03 240);
+  color: oklch(0.90 0.01 240);
 }
 .nav-item.active {
-  background: oklch(0.72 0.18 185 / 0.15);
-  color: oklch(0.80 0.18 185);
-  border-left: 2px solid oklch(0.72 0.18 185);
+  background: oklch(0.55 0.18 240 / 0.15);
+  color: oklch(0.75 0.18 240);
+  border-left: 2px solid oklch(0.55 0.18 240);
 }
 
 /* Progress bar */
 .progress-teal {
-  background: linear-gradient(90deg, oklch(0.72 0.18 185), oklch(0.65 0.20 50));
+  background: linear-gradient(90deg, oklch(0.55 0.18 240), oklch(0.45 0.14 250));
   border-radius: 999px;
   height: 6px;
   transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
@@ -239,12 +240,12 @@ html, body {
 /* Geometric decorations */
 .geo-line {
   height: 1px;
-  background: linear-gradient(90deg, transparent, oklch(0.72 0.18 185 / 0.5), transparent);
+  background: linear-gradient(90deg, transparent, oklch(0.55 0.18 240 / 0.5), transparent);
 }
 
 /* Table row hover */
 .table-row-hover:hover {
-  background: oklch(0.16 0.025 220 / 0.5);
+  background: oklch(0.16 0.025 240 / 0.5);
 }
 
 /* Input styling */
@@ -254,8 +255,8 @@ input, textarea, select {
   border-color: var(--border) !important;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--teal) !important;
-  box-shadow: 0 0 0 2px var(--teal-glow) !important;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 2px var(--blue-glow) !important;
   outline: none !important;
 }
 
@@ -269,8 +270,8 @@ input:focus, textarea:focus, select:focus {
   to { opacity: 1; }
 }
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px var(--teal-glow); }
-  50% { box-shadow: 0 0 25px var(--teal-glow), 0 0 50px var(--teal-glow); }
+  0%, 100% { box-shadow: 0 0 10px var(--blue-glow); }
+  50% { box-shadow: 0 0 25px var(--blue-glow), 0 0 50px var(--blue-glow); }
 }
 
 .animate-fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
