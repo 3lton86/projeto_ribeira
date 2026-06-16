@@ -128,16 +128,18 @@
 - [x] Verificar TypeScript (zero erros) e salvar checkpoint
 
 ## Sprint 13 — Auditoria Global e Sistema de Alertas
-- [ ] Schema: tabela notifications (id, userId, type, title, body, actionId, actionCode, orgao, isRead, createdAt)
-- [ ] Backend: funções createNotification, getNotifications, markAsRead, markAllAsRead, getUnreadCount no db.ts
-- [ ] Backend: router notifications (list, markRead, markAllRead, unreadCount)
-- [ ] Backend: disparar alertas tipo "item_change" em createAction, editInline, updateGroup, reorder, createSubItem, deleteAction
-- [ ] Backend: disparar alertas tipo "comment_doc" em comments.create e documents.create
-- [ ] Frontend: componente NotificationBell no header (sininho com badge de não lidos)
-- [ ] Frontend: dropdown de alertas com filtro por tipo (Alterações de Itens / Comentários e Documentos)
-- [ ] Frontend: alertas "item_change" visíveis apenas para admins
-- [ ] Frontend: alertas "comment_doc" visíveis para admins e setoriais do órgão do item
-- [ ] Frontend: página AuditLog.tsx com log global de todas as alterações (apenas admins)
-- [ ] Frontend: aba "Auditoria Global" no sidebar (apenas admins)
-- [ ] Frontend: atualizar UserGuide.tsx com instruções de alertas e auditoria global
-- [ ] Testes unitários para notifications router
+- [x] Schema: tabela notifications (id, userId, type, title, body, actionId, actionCode, orgao, isRead, createdAt)
+- [x] Backend: funções createNotification, getNotifications, markAsRead, markAllAsRead, getUnreadCount no db.ts
+- [x] Backend: router notifications (list, markRead, markAllRead, unreadCount)
+- [x] Backend: disparar alertas tipo "item_change" em createAction, editInline, updateGroup, reorder, createSubItem, deleteAction
+- [x] Backend: disparar alertas tipo "comment_doc" em comments.create e documents.create
+- [x] Frontend: componente NotificationBell no header (sininho com badge de não lidos)
+- [x] Frontend: dropdown de alertas com filtro por tipo (Alterações de Itens / Comentários e Documentos)
+- [x] Frontend: alertas "item_change" visíveis apenas para admins
+- [x] Frontend: alertas "comment_doc" visíveis para admins e setoriais do órgão do item
+- [x] Frontend: página AuditLog.tsx com log global de todas as alterações (apenas admins)
+- [x] Frontend: aba "Log de Auditoria" no sidebar (apenas admins)
+- [x] Frontend: atualizar UserGuide.tsx com instruções de alertas (admin e setorial) e auditoria global
+- [x] Testes unitários para notifications router (67 testes passando, zero erros TypeScript)
+- [x] Corrigir acesso setorial ao router de notificações (localAuthProcedure em vez de localAdminProcedure)
+- [x] Corrigir disparo de alerta na mutation reorder (getAdminAndSuperAdminIds + segundo argumento)

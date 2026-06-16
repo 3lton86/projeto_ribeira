@@ -33,7 +33,7 @@ import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { localAuthRouter, localAdminProcedure, localSuperAdminProcedure, verifyLocalJwt } from "./routers/localAuth";
+import { localAuthRouter, localAdminProcedure, localSuperAdminProcedure, localAuthProcedure, verifyLocalJwt } from "./routers/localAuth";
 import { documentsRouter } from "./routers/documents";
 import { getLocalUserById } from "./db";
 
@@ -355,8 +355,21 @@ export const appRouter = router({
           ).min(1).max(500),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         await reorderActions(input.items);
+        try {
+          const adminIds = await getAdminAndSuperAdminIds();
+          const localUser = (ctx as any).localUser;
+          const actorName = localUser?.name ?? ctx.user?.name ?? 'Administrador';
+          await createNotificationsForAdmins({
+            type: 'item_change',
+            title: 'Itens reordenados',
+            body: `${actorName} reordenou ${input.items.length} item(s).`,
+            actionId: null,
+            actionCode: null,
+            orgao: null,
+          }, adminIds);
+        } catch (_) {}
         return { success: true };
       }),
 
@@ -552,31 +565,32 @@ export const appRouter = router({
   }),
   // ---- NOTIFICATIONS ----
   notifications: router({
-    list: localAdminProcedure
+    // Retorna notificações do usuário autenticado (todos os perfis)
+    // Admins recebem item_change + comment_doc; setoriais recebem apenas comment_doc do seu órgão
+    list: localAuthProcedure
       .input(z.object({ type: z.enum(['item_change', 'comment_doc']).optional() }))
       .query(async ({ ctx, input }) => {
-        return getNotificationsForUser(ctx.localUser.id, input.type);
+        const localUser = (ctx as any).localUser;
+        // Setoriais só veem comment_doc
+        const type = localUser.role === 'setorial' ? 'comment_doc' : input.type;
+        return getNotificationsForUser(localUser.id, type);
       }),
-    listSetorial: localAdminProcedure
-      .input(z.object({ type: z.enum(['item_change', 'comment_doc']).optional() }))
-      .query(async ({ ctx, input }) => {
-        // Para setoriais, retorna apenas notif do tipo comment_doc
-        const type = ctx.localUser.role === 'setorial' ? 'comment_doc' : input.type;
-        return getNotificationsForUser(ctx.localUser.id, type);
-      }),
-    unreadCount: localAdminProcedure
+    unreadCount: localAuthProcedure
       .query(async ({ ctx }) => {
-        return getUnreadCount(ctx.localUser.id);
+        const localUser = (ctx as any).localUser;
+        return getUnreadCount(localUser.id);
       }),
-    markRead: localAdminProcedure
+    markRead: localAuthProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        await markNotificationRead(input.id, ctx.localUser.id);
+        const localUser = (ctx as any).localUser;
+        await markNotificationRead(input.id, localUser.id);
         return { success: true };
       }),
-    markAllRead: localAdminProcedure
+    markAllRead: localAuthProcedure
       .mutation(async ({ ctx }) => {
-        await markAllNotificationsRead(ctx.localUser.id);
+        const localUser = (ctx as any).localUser;
+        await markAllNotificationsRead(localUser.id);
         return { success: true };
       }),
   }),
