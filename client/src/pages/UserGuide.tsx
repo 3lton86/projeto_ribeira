@@ -189,6 +189,19 @@ const ADMIN_SECTIONS: Section[] = [
           <Step n={2} text="Salvar as alterações — o histórico de mudanças é registrado automaticamente." />
           <Step n={3} text="Acessar as abas: Comentários, Histórico, Documentos e Auditoria (admin)." />
         </div>
+        <p className="font-semibold text-foreground">Aba Documentos — Status de conformidade (exclusivo para admins):</p>
+        <p>Cada documento (link) vinculado a um item pode receber um <strong>status de conformidade</strong> definido pelo administrador, para comunicar ao órgão se o documento está conforme ou precisa ser revisado.</p>
+        <div className="space-y-2">
+          <Step n={1} text="Abra a ficha do item e clique na aba 'Documentos'." />
+          <Step n={2} text="Localize o documento desejado. À direita de cada linha, clique no dropdown '— Status —'." />
+          <Step n={3} text="Selecione 'DOC ACEITO' se o documento está conforme (badge verde com ✓), ou 'DOC COM PENDÊNCIA' se precisa ser revisado ou reenviado (badge âmbar com ⚠)." />
+          <Step n={4} text="O status é salvo imediatamente. Abaixo do documento aparece o nome do administrador que fez a avaliação." />
+        </div>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" /><span><strong>DOC ACEITO</strong> — o documento foi analisado e está em conformidade com o solicitado.</span></div>
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" /><span><strong>DOC COM PENDÊNCIA</strong> — o documento não está conforme e precisa ser revisado ou reenviado pelo órgão.</span></div>
+        </div>
+        <InfoBox type="info">O status de documento é visível para todos os usuários com acesso ao item (incluindo setoriais), mas <strong>somente administradores podem alterar o status</strong>.</InfoBox>
         <p className="font-semibold text-foreground">Aba Auditoria (exclusiva para admins):</p>
         <p>Registra todas as interações de usuários setoriais no item: comentários adicionados e documentos vinculados, com identificação do órgão e horário exato.</p>
         <InfoBox type="info">O Histórico registra automaticamente cada alteração de campo realizada por qualquer administrador, com data, hora e valores anterior/posterior.</InfoBox>
