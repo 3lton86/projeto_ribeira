@@ -194,3 +194,12 @@
 - [x] Frontend: filtros rápidos de documento na listagem de ações (Com documentos, Com pendência, Doc aceito)
 - [x] Frontend: função exportAuditLogToPdf no export.ts com logo SEMPLA no cabeçalho
 - [x] Frontend: botão 'Exportar PDF' na página de Auditoria (ao lado do CSV)
+
+## Sprint 21 — Numeração Hierárquica de Itens
+
+- [x] Investigar schema: campos itemCode, parentCode, isGroup, sortOrder
+- [x] Implementar função buildHierarchicalNumbers em shared/hierarchyNumbers.ts
+- [x] Exibir numeração hierárquica (1, 1.1, 1.1.1) na listagem de ações (Actions.tsx)
+- [x] Exibir numeração hierárquica na ficha do item (ActionDetail.tsx)
+- [x] Numeração automática ao criar sub-itens (derivada dinamicamente do array)
+- [x] 67 testes passando, zero erros TypeScript

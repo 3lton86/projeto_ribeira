@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
+import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useState, useMemo, useCallback } from "react";
 import { useLocation, Link } from "wouter";
@@ -118,9 +119,10 @@ interface SortableActionRowProps {
   onDelete: (action: any) => void;
   onAddSubItem: (action: any) => void;
   idx: number;
+  hierNum?: string;
 }
 
-function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx }: SortableActionRowProps) {
+function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum }: SortableActionRowProps) {
   const {
     attributes,
     listeners,
@@ -160,7 +162,7 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
         </button>
       )}
 
-      <span className="text-xs text-muted-foreground w-8 flex-shrink-0 pt-0.5 font-mono">{action.itemCode}</span>
+      <span className="text-xs text-muted-foreground w-8 flex-shrink-0 pt-0.5 font-mono" title={`Código interno: ${action.itemCode}`}>{hierNum ?? action.itemCode}</span>
 
       <div className="flex-1 min-w-0">
         <p className="text-sm text-foreground leading-relaxed line-clamp-2">{action.description}</p>
@@ -615,6 +617,20 @@ export default function Actions() {
     return map;
   }, [filtered]);
 
+  // Hierarchical display numbers (1, 1.1, 1.1.1) — derived from allActions to stay stable across filters
+  const hierNums = useMemo(() => {
+    if (!allActions) return new Map<string, string>();
+    return buildHierarchicalNumbers(
+      allActions.map((a) => ({
+        id: a.id,
+        itemCode: a.itemCode,
+        parentCode: (a as any).parentCode ?? null,
+        isGroup: a.isGroup,
+        sortOrder: (a as any).sortOrder ?? 0,
+      }))
+    );
+  }, [allActions]);
+
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -1017,7 +1033,7 @@ export default function Actions() {
                               className="flex-1 flex items-center gap-3 px-4 py-2.5"
                             >
                               {isGroupExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
-                              <span className="text-xs font-bold text-muted-foreground w-6">{group.itemCode}</span>
+                              <span className="text-xs font-bold text-muted-foreground w-6" title={`Código interno: ${group.itemCode}`}>{hierNums.get(group.itemCode) ?? group.itemCode}</span>
                               <span className="text-sm font-semibold text-foreground flex-1 text-left">{group.description}</span>
                               <span className="text-xs text-muted-foreground">{allChildren.length} itens</span>
                             </button>
@@ -1052,6 +1068,7 @@ export default function Actions() {
                                       onDelete={setDeletingAction}
                                       onAddSubItem={setAddingSubItemTo}
                                       idx={idx}
+                                      hierNum={hierNums.get(action.itemCode)}
                                     />
                                   ))}
                                 </SortableContext>
@@ -1067,6 +1084,7 @@ export default function Actions() {
                                   onDelete={setDeletingAction}
                                   onAddSubItem={setAddingSubItemTo}
                                   idx={idx}
+                                  hierNum={hierNums.get(action.itemCode)}
                                 />
                               ))
                             )

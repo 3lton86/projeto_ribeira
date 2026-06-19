@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import {
   ArrowLeft,
@@ -105,6 +106,23 @@ export default function ActionDetail() {
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
+  const { data: allActions } = trpc.actions.list.useQuery({});
+
+  // Compute hierarchical display number for this action
+  const hierNum = useMemo(() => {
+    if (!allActions || !action) return null;
+    const map = buildHierarchicalNumbers(
+      allActions.map((a) => ({
+        id: a.id,
+        itemCode: a.itemCode,
+        parentCode: (a as any).parentCode ?? null,
+        isGroup: a.isGroup,
+        sortOrder: (a as any).sortOrder ?? 0,
+      }))
+    );
+    return map.get(action.itemCode) ?? null;
+  }, [allActions, action]);
+
   const { data: comments } = trpc.comments.list.useQuery({ actionId: id });
   const { data: historyItems } = trpc.history.list.useQuery({ actionId: id });
   const { data: documents } = trpc.documents.list.useQuery({ actionId: id });
@@ -238,8 +256,11 @@ export default function ActionDetail() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <AreaBadge area={action.area} />
-              <span className="text-xs font-mono text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
-                {action.itemCode}
+              <span
+                className="text-xs font-mono text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded"
+                title={`Código interno: ${action.itemCode}`}
+              >
+                {hierNum ?? action.itemCode}
               </span>
               <StatusBadge status={action.status as Status} />
             </div>
