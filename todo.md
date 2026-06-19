@@ -211,3 +211,11 @@
 - [x] Adicionar campo area ao tipo ActionForHierarchy para processar cada área independentemente
 - [x] Corrigir chamadas a hierNums.get() em Actions.tsx e ActionDetail.tsx para usar action.id
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 22 — Campo Observações na Ficha do Item
+
+- [x] Schema: adicionar coluna observacoes (text, nullable) na tabela actions
+- [x] Migração do banco (pnpm db:push)
+- [x] Backend: incluir observacoes em updateAction (db.ts) e router actions.update (routers.ts)
+- [x] Frontend ActionDetail: exibir campo Observações abaixo de Documento Base (leitura e edição)
+- [x] 67 testes passando, zero erros TypeScript

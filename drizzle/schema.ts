@@ -39,6 +39,7 @@ export const actions = mysqlTable("actions", {
   requestDate: timestamp("requestDate"),
   receiptDate: timestamp("receiptDate"),
   documentBase: text("documentBase"),
+  observacoes: text("observacoes"), // campo de observações livres
   orgao: varchar("orgao", { length: 50 }), // órgão responsável pela entrega
   responsavelNome: varchar("responsavelNome", { length: 200 }),
   responsavelCargo: varchar("responsavelCargo", { length: 200 }),

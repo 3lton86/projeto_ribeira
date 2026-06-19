@@ -218,6 +218,7 @@ export async function updateAction(
     requestDate: Date;
     receiptDate: Date;
     documentBase: string;
+    observacoes: string;
     orgao: string;
     responsavelNome: string;
     responsavelCargo: string;

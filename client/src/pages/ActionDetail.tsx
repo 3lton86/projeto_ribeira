@@ -144,6 +144,7 @@ export default function ActionDetail() {
     requestDate: string;
     receiptDate: string;
     documentBase: string;
+    observacoes: string;
     orgao: string;
     responsavelNome: string;
     responsavelCargo: string;
@@ -197,6 +198,7 @@ export default function ActionDetail() {
       requestDate: formatDate(action.requestDate),
       receiptDate: formatDate(action.receiptDate),
       documentBase: action.documentBase ?? "",
+      observacoes: (action as any).observacoes ?? "",
       orgao: (action as any).orgao ?? "",
       responsavelNome: (action as any).responsavelNome ?? "",
       responsavelCargo: (action as any).responsavelCargo ?? "",
@@ -216,6 +218,7 @@ export default function ActionDetail() {
       requestDate: form.requestDate ? new Date(form.requestDate) : undefined,
       receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
       documentBase: form.documentBase || undefined,
+      observacoes: form.observacoes || undefined,
       orgao: (form.orgao || undefined) as any,
       responsavelNome: form.responsavelNome || undefined,
       responsavelCargo: form.responsavelCargo || undefined,
@@ -354,6 +357,16 @@ export default function ActionDetail() {
                   className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground resize-none"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Observações</label>
+                <textarea
+                  value={form.observacoes}
+                  onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                  rows={4}
+                  placeholder="Anotações, observações e informações complementares..."
+                  className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground resize-none"
+                />
+              </div>
 
               {/* Órgão e Contato do Responsável */}
               <div className="pt-2 border-t border-border/30">
@@ -440,6 +453,7 @@ export default function ActionDetail() {
                   { label: "Data da Solicitação", value: formatDateTime(action.requestDate), icon: Calendar },
                   { label: "Data do Recebimento", value: formatDateTime(action.receiptDate), icon: Calendar },
                   { label: "Base Documental", value: action.documentBase, icon: FileText, full: true },
+                  { label: "Observações", value: (action as any).observacoes, icon: FileText, full: true },
                 ].map(({ label, value, icon: Icon, full }) => (
                   <div key={label} className={`${full ? "sm:col-span-2 lg:col-span-3" : ""}`}>
                     <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider flex items-center gap-1.5">

@@ -71,6 +71,13 @@
       "when": 1781905078347,
       "tag": "0009_ambitious_talkback",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1781912173474,
+      "tag": "0010_spooky_thunderbolt",
+      "breakpoints": true
     }
   ]
 }
