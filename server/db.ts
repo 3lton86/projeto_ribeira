@@ -559,6 +559,30 @@ export async function deleteActionDocument(id: number) {
   if (!db) return;
   await db.delete(actionDocuments).where(eq(actionDocuments.id, id));
 }
+/**
+ * Retorna os IDs de actions que possuem documentos com o status especificado.
+ * docFilter: 'any' = tem pelo menos 1 doc, 'pending' = tem doc com pendência, 'accepted' = tem doc aceito
+ */
+export async function getActionIdsWithDocFilter(docFilter: 'any' | 'pending' | 'accepted'): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  let rows: { actionId: number }[];
+  if (docFilter === 'any') {
+    rows = await db.selectDistinct({ actionId: actionDocuments.actionId }).from(actionDocuments);
+  } else {
+    const statusVal = docFilter === 'pending' ? 'pending' : 'accepted';
+    rows = await db.selectDistinct({ actionId: actionDocuments.actionId })
+      .from(actionDocuments)
+      .where(eq(actionDocuments.docStatus, statusVal));
+  }
+  return rows.map(r => r.actionId);
+}
+export async function getDocumentById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(actionDocuments).where(eq(actionDocuments.id, id)).limit(1);
+  return result[0] ?? null;
+}
 export async function updateDocumentStatus(id: number, docStatus: string | null, updaterName: string) {
   const db = await getDb();
   if (!db) return;

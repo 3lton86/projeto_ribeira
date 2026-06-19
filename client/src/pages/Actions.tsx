@@ -30,6 +30,9 @@ import {
   Clock,
   AlertTriangle,
   GitBranch,
+  FileCheck2,
+  FileWarning,
+  Files,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { toast } from "sonner";
@@ -56,6 +59,7 @@ type Area = "Governança" | "Técnico" | "Jurídico" | "Eco-Fin";
 type Status = "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
 type Priority = "Alta" | "Média" | "Baixa";
 type DeadlineFilter = "all" | "overdue" | "this_week";
+type DocFilter = "all" | "any" | "pending" | "accepted";
 
 const AREAS: Area[] = ["Governança", "Técnico", "Jurídico", "Eco-Fin"];
 const STATUSES: Status[] = ["Pendente", "Em Andamento", "Concluído", "Cancelado"];
@@ -497,6 +501,7 @@ export default function Actions() {
   const [orgaoSearch, setOrgaoSearch] = useState("");
   const [searchText, setSearchText] = useState("");
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>("all");
+  const [docFilter, setDocFilter] = useState<DocFilter>("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [isDragMode, setIsDragMode] = useState(false);
@@ -532,7 +537,9 @@ export default function Actions() {
   const [exportScope, setExportScope] = useState<"all" | Area>("all");
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery({});
+  const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
+    docFilter !== "all" ? { docFilter: docFilter as "any" | "pending" | "accepted" } : {}
+  );
   const { user } = useAuth();
   const { localUser } = useLocalAuth();
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
@@ -650,10 +657,10 @@ export default function Actions() {
   const clearFilters = () => {
     setSelectedAreas([]); setSelectedStatuses([]); setSelectedPriorities([]);
     setSelectedOrgaos([]); setOrgaoSearch(""); setSearchText("");
-    setDeadlineFilter("all"); setAreaPages({});
+    setDeadlineFilter("all"); setDocFilter("all"); setAreaPages({});
   };
 
-  const hasFilters = selectedAreas.length > 0 || selectedStatuses.length > 0 || selectedPriorities.length > 0 || selectedOrgaos.length > 0 || searchText.length > 0 || deadlineFilter !== "all";
+  const hasFilters = selectedAreas.length > 0 || selectedStatuses.length > 0 || selectedPriorities.length > 0 || selectedOrgaos.length > 0 || searchText.length > 0 || deadlineFilter !== "all" || docFilter !== "all";
   const totalItems = filtered.filter(a => a.isGroup === 0).length;
 
   const getAreaPage = (area: string) => areaPages[area] ?? 1;
@@ -774,14 +781,14 @@ export default function Actions() {
             <Filter className="w-3.5 h-3.5" /> Filtros
             {hasFilters && (
               <span className="ml-1 bg-black/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
-                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + (searchText ? 1 : 0) + (deadlineFilter !== "all" ? 1 : 0)}
+                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + (searchText ? 1 : 0) + (deadlineFilter !== "all" ? 1 : 0) + (docFilter !== "all" ? 1 : 0)}
               </span>
             )}
           </button>
         </div>
       </div>
 
-      {/* Quick deadline filters */}
+      {/* Quick deadline filters + doc filters */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => { setDeadlineFilter("all"); setAreaPages({}); }}
@@ -804,6 +811,39 @@ export default function Actions() {
           <Clock className="w-3.5 h-3.5" />
           Vence esta semana
           {thisWeekCount > 0 && <span className="ml-1 bg-amber-500/30 text-amber-400 rounded-full px-1.5 py-0 text-[10px] font-bold">{thisWeekCount}</span>}
+        </button>
+
+        {/* Separador visual */}
+        <span className="text-border/50 text-xs hidden sm:inline">|</span>
+
+        {/* Filtros de documento */}
+        <button
+          onClick={() => { setDocFilter("all"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${docFilter === "all" ? "bg-primary/20 text-primary border border-primary/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <Files className="w-3.5 h-3.5" />
+          Todos os docs
+        </button>
+        <button
+          onClick={() => { setDocFilter("any"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${docFilter === "any" ? "bg-blue-500/20 text-blue-400 border border-blue-500/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <Files className="w-3.5 h-3.5" />
+          Com documentos
+        </button>
+        <button
+          onClick={() => { setDocFilter("pending"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${docFilter === "pending" ? "bg-amber-500/20 text-amber-400 border border-amber-500/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <FileWarning className="w-3.5 h-3.5" />
+          Com pendência
+        </button>
+        <button
+          onClick={() => { setDocFilter("accepted"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${docFilter === "accepted" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <FileCheck2 className="w-3.5 h-3.5" />
+          Doc aceito
         </button>
       </div>
 

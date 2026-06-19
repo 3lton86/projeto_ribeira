@@ -29,6 +29,7 @@ import {
   getSetorialUserIdsForOrgao,
   getUserOrgaos,
   getActionsForSetorial,
+  getActionIdsWithDocFilter,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -100,9 +101,17 @@ export const appRouter = router({
           priority: z.array(priorityEnum).optional(),
           status: z.array(statusEnum).optional(),
           search: z.string().optional(),
+          docFilter: z.enum(['any', 'pending', 'accepted']).optional(),
         }).optional()
       )
       .query(async ({ ctx, input }) => {
+        // Resolver IDs de actions com filtro de documento (se solicitado)
+        let docFilterIds: number[] | undefined;
+        if (input?.docFilter) {
+          docFilterIds = await getActionIdsWithDocFilter(input.docFilter);
+        }
+        // Filtros base (sem docFilter)
+        const baseFilters = input ? { area: input.area, priority: input.priority, status: input.status, search: input.search } : undefined;
         // Se o usuário é setorial, filtrar por seus órgãos permitidos
         const token = extractLocalToken(ctx);
         if (token) {
@@ -111,16 +120,28 @@ export const appRouter = router({
             const localUser = await getLocalUserById(payload.id);
             if (localUser && localUser.active && localUser.role === 'setorial') {
               const orgaos = await getUserOrgaos(localUser.id);
+              let result;
               if (orgaos.includes('TODOS')) {
-                // Acesso total — sem filtro de órgão
-                return getActions(input);
+                result = await getActions(baseFilters);
+              } else {
+                result = await getActionsForSetorial(orgaos, baseFilters);
               }
-              // Filtrar apenas os itens dos órgãos permitidos
-              return getActionsForSetorial(orgaos, input);
+              // Aplicar filtro de docStatus no resultado
+              if (docFilterIds !== undefined) {
+                const idSet = new Set(docFilterIds);
+                return result.filter(a => a.isGroup === 1 || idSet.has(a.id));
+              }
+              return result;
             }
           }
         }
-        return getActions(input);
+        const result = await getActions(baseFilters);
+        // Aplicar filtro de docStatus no resultado
+        if (docFilterIds !== undefined) {
+          const idSet = new Set(docFilterIds);
+          return result.filter(a => a.isGroup === 1 || idSet.has(a.id));
+        }
+        return result;
       }),
 
     getById: publicProcedure

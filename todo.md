@@ -185,3 +185,12 @@
 - [x] Frontend: badge verde 'DOC ACEITO' e badge âmbar 'DOC COM PENDÊNCIA' em cada documento
 - [x] Frontend: dropdown para admin alterar o status do documento
 - [x] Frontend: exibe 'Status por {nome}' abaixo do documento quando status definido
+
+## Sprint 20 — Notificação de pendência, filtros de doc e PDF de auditoria
+- [x] Backend: função getDocumentById no db.ts
+- [x] Backend: router documents.updateStatus dispara notificação ao setorial do órgão quando doc recebe 'DOC COM PENDÊNCIA'
+- [x] Backend: getActionIdsWithDocFilter no db.ts para filtros de documento
+- [x] Backend: actions.list aceita docFilter (any/pending/accepted)
+- [x] Frontend: filtros rápidos de documento na listagem de ações (Com documentos, Com pendência, Doc aceito)
+- [x] Frontend: função exportAuditLogToPdf no export.ts com logo SEMPLA no cabeçalho
+- [x] Frontend: botão 'Exportar PDF' na página de Auditoria (ao lado do CSV)

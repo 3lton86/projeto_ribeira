@@ -7,6 +7,7 @@ import {
   Shield,
   ShieldCheck,
   User,
+  FileDown,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -22,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLocation } from "wouter";
+import { exportAuditLogToPdf } from "@/lib/export";
 
 const EVENT_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   comment: { label: "Comentário", color: "bg-blue-100 text-blue-700", icon: MessageSquare },
@@ -73,6 +75,10 @@ export default function AuditLog() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  const handleExportPdf = () => {
+    exportAuditLogToPdf(filtered, { search, eventFilter, roleFilter });
+  };
+
   const handleExport = () => {
     const header = ["Data/Hora", "Usuário", "Perfil", "Órgão", "Evento", "Item ID", "Detalhe"];
     const rows = filtered.map((log: any) => [
@@ -107,16 +113,29 @@ export default function AuditLog() {
             Registro completo de todas as alterações realizadas na plataforma
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          className="gap-2"
-          disabled={filtered.length === 0}
-        >
-          <Download className="w-4 h-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            className="gap-2"
+            disabled={filtered.length === 0}
+          >
+            <Download className="w-4 h-4" />
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPdf}
+            className="gap-2"
+            disabled={filtered.length === 0}
+            style={{ borderColor: "oklch(0.42 0.15 250 / 0.5)", color: "oklch(0.65 0.18 250)" }}
+          >
+            <FileDown className="w-4 h-4" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

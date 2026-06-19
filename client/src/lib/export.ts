@@ -182,6 +182,136 @@ function wrapText(doc: jsPDF, text: string, maxWidth: number, fontSize: number):
   return doc.splitTextToSize(text, maxWidth);
 }
 
+// ---- Audit Log PDF Export ----
+
+export function exportAuditLogToPdf(
+  logs: Array<{
+    id: number;
+    createdAt: Date | null;
+    userName: string | null;
+    userRole: string | null;
+    userOrgao: string | null;
+    eventType: string;
+    actionId: number | null;
+    detail: string | null;
+  }>,
+  filters?: { search?: string; eventFilter?: string; roleFilter?: string }
+) {
+  const ROLE_LABELS: Record<string, string> = {
+    super_admin: "Super Admin",
+    admin: "Administrador",
+    setorial: "Setorial",
+    viewer: "Visualizador",
+  };
+  const EVENT_LABELS: Record<string, string> = {
+    comment: "Comentário",
+    document: "Documento",
+    item_change: "Alteração de Item",
+    create: "Criação",
+  };
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = 297;
+  const pageH = 210;
+  const margin = 14;
+  const now = new Date();
+
+  // ---- Header ----
+  doc.setFillColor(...C.headerBg);
+  doc.rect(0, 0, pageW, 34, "F");
+  doc.setFillColor(...C.teal);
+  doc.rect(0, 34, pageW, 2, "F");
+
+  // Logo SEMPLA
+  try {
+    doc.addImage(SEMPLA_LOGO_B64, "PNG", pageW - margin - 60, 8, 54, 14.4);
+  } catch (_) {
+    doc.setFontSize(7);
+    doc.setTextColor(...C.tealLight);
+    doc.text("SEMPLA", pageW - margin - 20, 16);
+  }
+
+  doc.setFontSize(14);
+  doc.setTextColor(...C.white);
+  doc.setFont("helvetica", "bold");
+  doc.text("PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs", margin, 13);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...C.tealLight);
+  doc.text("Log de Auditoria — Registro completo de todas as alterações realizadas na plataforma", margin, 21);
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(...C.lightGray);
+  doc.text(`Gerado em ${formatDateTime(now)}  ·  ${logs.length} registro(s)`, margin, 28);
+
+  // ---- Filter summary ----
+  const hasF = filters && (filters.search || (filters.eventFilter && filters.eventFilter !== "all") || (filters.roleFilter && filters.roleFilter !== "all"));
+  let startY = 42;
+  if (hasF) {
+    doc.setFontSize(7);
+    doc.setTextColor(...C.gray);
+    const parts: string[] = [];
+    if (filters?.search) parts.push(`Busca: "${filters.search}"`);
+    if (filters?.eventFilter && filters.eventFilter !== "all") parts.push(`Evento: ${EVENT_LABELS[filters.eventFilter] ?? filters.eventFilter}`);
+    if (filters?.roleFilter && filters.roleFilter !== "all") parts.push(`Perfil: ${ROLE_LABELS[filters.roleFilter] ?? filters.roleFilter}`);
+    doc.text(`Filtros aplicados: ${parts.join(" | ")}`, margin, startY);
+    startY += 6;
+  }
+
+  // ---- Table ----
+  autoTable(doc, {
+    startY,
+    margin: { left: margin, right: margin },
+    head: [["Data/Hora", "Usuário", "Perfil", "Órgão", "Evento", "Item", "Detalhe"]],
+    body: logs.map(log => [
+      log.createdAt ? new Date(log.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—",
+      log.userName ?? "—",
+      ROLE_LABELS[log.userRole ?? ""] ?? log.userRole ?? "—",
+      log.userOrgao ?? "—",
+      EVENT_LABELS[log.eventType] ?? log.eventType ?? "—",
+      log.actionId ? `#${log.actionId}` : "—",
+      log.detail ?? "—",
+    ]),
+    headStyles: {
+      fillColor: C.headerBg,
+      textColor: C.white,
+      fontSize: 7,
+      fontStyle: "bold",
+      cellPadding: 2.5,
+    },
+    bodyStyles: {
+      fontSize: 6.5,
+      cellPadding: 2,
+      textColor: C.black,
+    },
+    alternateRowStyles: { fillColor: C.rowAlt },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 28 },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 40 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 12 },
+      6: { cellWidth: "auto" },
+    },
+    didDrawPage: (data: any) => {
+      const pg = data.pageNumber;
+      doc.setFontSize(7);
+      doc.setTextColor(...C.gray);
+      doc.text(
+        `PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs — Log de Auditoria — Gerado em ${formatDateTime(now)} — Página ${pg}`,
+        margin,
+        pageH - 8
+      );
+      doc.setDrawColor(...C.lightGray);
+      doc.line(margin, pageH - 11, pageW - margin, pageH - 11);
+    },
+  });
+
+  doc.save(`auditoria_${now.toISOString().slice(0, 10)}.pdf`);
+}
+
 export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = 210;

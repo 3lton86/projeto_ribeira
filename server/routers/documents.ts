@@ -7,6 +7,7 @@ import {
   deleteActionDocument,
   getActionById,
   getAdminAndSuperAdminIds,
+  getDocumentById,
   getDocumentsByActionId,
   getSetorialUserIdsForOrgao,
   setorialUserHasOrgaoAccess,
@@ -111,6 +112,31 @@ export const documentsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const localUser = (ctx as any).localUser;
       await updateDocumentStatus(input.id, input.docStatus, localUser.name);
+
+      // Disparar notificação ao setorial quando doc recebe pendência
+      if (input.docStatus === "pending") {
+        try {
+          const doc = await getDocumentById(input.id);
+          if (doc) {
+            const action = await getActionById(doc.actionId);
+            if (action?.orgao) {
+              const setorialIds = await getSetorialUserIdsForOrgao(action.orgao);
+              const recipientIds = setorialIds.filter(id => id !== localUser.id);
+              if (recipientIds.length > 0) {
+                await createNotificationsForAdmins({
+                  type: "comment_doc",
+                  title: "Documento com pendência",
+                  body: `O documento "${doc.label}" no item ${action.itemCode} foi marcado com pendência pelo administrador ${localUser.name}. Por favor, revise e reenvie.`,
+                  actionId: action.id,
+                  actionCode: action.itemCode ?? null,
+                  orgao: action.orgao ?? null,
+                }, recipientIds);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       return { success: true };
     }),
 });
