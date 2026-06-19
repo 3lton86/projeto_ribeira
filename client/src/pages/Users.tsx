@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
 
@@ -65,6 +65,9 @@ export default function Users() {
   const { data: users = [], isLoading } = trpc.localAuth.users.list.useQuery(undefined, {
     enabled: canManage,
   });
+  const { data: pendingUsers = [], isLoading: pendingLoading } = trpc.localAuth.users.listPending.useQuery(undefined, {
+    enabled: canManage,
+  });
 
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<UserRow | null>(null);
@@ -88,6 +91,20 @@ export default function Users() {
     onError: (e) => toast.error(e.message),
   });
 
+  const approveMutation = trpc.localAuth.users.approve.useMutation({
+    onSuccess: () => {
+      utils.localAuth.users.listPending.invalidate();
+      toast.success("Usuário aprovado! Acesso liberado.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const rejectMutation = trpc.localAuth.users.reject.useMutation({
+    onSuccess: () => {
+      utils.localAuth.users.listPending.invalidate();
+      toast.success("Solicitação rejeitada e removida.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
   const deleteMutation = trpc.localAuth.users.delete.useMutation({
     onSuccess: () => {
       utils.localAuth.users.list.invalidate();
@@ -233,6 +250,70 @@ export default function Users() {
           </table>
         )}
       </div>
+
+      {/* Pending approvals */}
+      {(pendingLoading || pendingUsers.length > 0) && (
+        <div className="glass-card rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-amber-500/10">
+            <Clock className="w-4 h-4 text-amber-400" />
+            <h2 className="text-sm font-semibold text-amber-300">Cadastros Pendentes de Aprovação</h2>
+            {!pendingLoading && (
+              <span className="ml-auto text-xs bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
+                {pendingUsers.length} aguardando
+              </span>
+            )}
+          </div>
+          {pendingLoading ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">Carregando...</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/30 bg-secondary/20">
+                  <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Nome</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Usuário</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Cargo / Órgão</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Solicitado em</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-muted-foreground">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingUsers.map((u) => (
+                  <tr key={u.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors">
+                    <td className="px-4 py-3 font-medium text-foreground">{u.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{u.username}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {[u.position, u.organization].filter(Boolean).join(" · ") || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {new Date(u.createdAt).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => approveMutation.mutate({ id: u.id })}
+                          disabled={approveMutation.isPending}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 text-xs font-medium transition-colors"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Aprovar
+                        </button>
+                        <button
+                          onClick={() => rejectMutation.mutate({ id: u.id })}
+                          disabled={rejectMutation.isPending}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 hover:bg-destructive/30 text-destructive text-xs font-medium transition-colors"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          Rejeitar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       {/* Create dialog */}
       <UserFormDialog

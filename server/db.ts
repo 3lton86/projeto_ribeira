@@ -724,3 +724,23 @@ export async function getSetorialUserIdsForOrgao(orgao: string): Promise<number[
   const ids = result.map(r => r.userId);
   return ids.filter((v, i, a) => a.indexOf(v) === i);
 }
+
+// ---- Auto-cadastro e aprovação ----
+export async function getPendingUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(localUsers).where(eq(localUsers.pendingApproval, 1)).orderBy(desc(localUsers.createdAt));
+}
+
+export async function approveUser(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(localUsers).set({ pendingApproval: 0, active: 1 }).where(eq(localUsers.id, id));
+}
+
+export async function rejectUser(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  // Remove o usuário rejeitado
+  await db.delete(localUsers).where(eq(localUsers.id, id));
+}

@@ -4,10 +4,15 @@ import { SignJWT, jwtVerify } from "jose";
 import { z } from "zod";
 import {
   createLocalUser,
+  createNotification,
   deleteLocalUser,
+  getAdminAndSuperAdminIds,
   getLocalUserById,
   getLocalUserByUsername,
   getLocalUsers,
+  getPendingUsers,
+  approveUser,
+  rejectUser,
   getUserOrgaos,
   updateLocalUser,
   upsertUserOrgaos,
@@ -270,7 +275,90 @@ export const localAuthRouter = router({
       .query(async ({ input }) => {
         return getUserOrgaos(input.userId);
       }),
+
+    // List users pending approval (self-registered)
+    listPending: localAdminOrSuperProcedure.query(async () => {
+      return getPendingUsers();
+    }),
+
+    // Approve a self-registered user
+    approve: localAdminOrSuperProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await approveUser(input.id);
+        return { success: true };
+      }),
+
+    // Reject (delete) a self-registered user
+    reject: localAdminOrSuperProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await rejectUser(input.id);
+        return { success: true };
+      }),
   }),
+
+  // ---- Change password (any authenticated local user) ----
+  changePassword: localAuthProcedure
+    .input(
+      z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(6).max(100),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const localUser = (ctx as any).localUser;
+      const user = await getLocalUserById(localUser.id);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+      const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+      if (!valid) throw new TRPCError({ code: "BAD_REQUEST", message: "Senha atual incorreta." });
+      const newHash = await bcrypt.hash(input.newPassword, 12);
+      await updateLocalUser(user.id, { passwordHash: newHash } as any);
+      return { success: true };
+    }),
+
+  // ---- Public self-registration (requires admin approval) ----
+  register: publicProcedure
+    .input(
+      z.object({
+        name: z.string().min(2).max(200),
+        username: z.string().min(3).max(100),
+        password: z.string().min(6).max(100),
+        position: z.string().max(200).optional(),
+        organization: z.string().max(200).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const existing = await getLocalUserByUsername(input.username.toLowerCase());
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Nome de usuário já existe." });
+      const passwordHash = await bcrypt.hash(input.password, 12);
+      await createLocalUser({
+        name: input.name,
+        username: input.username.toLowerCase(),
+        passwordHash,
+        role: "viewer",
+        position: input.position ?? null,
+        organization: input.organization ?? null,
+        active: 0,
+        pendingApproval: 1,
+      });
+      // Notify all admins
+      try {
+        const adminIds = await getAdminAndSuperAdminIds();
+        await Promise.all(
+          adminIds.map((adminId) =>
+            createNotification({
+              userId: adminId,
+              type: "item_change",
+              title: "Novo cadastro pendente de aprovação",
+              body: `O usuário '${input.name}' (${input.username}) solicitou acesso à plataforma e aguarda aprovação.`,
+              actionId: null,
+            })
+          )
+        );
+      } catch { /* non-critical */ }
+      return { success: true };
+    }),
 });
 
 // Export helpers for use in other routers

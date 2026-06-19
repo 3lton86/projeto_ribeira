@@ -101,11 +101,11 @@ export const localUsers = mysqlTable("local_users", {
   role: mysqlEnum("role", ["super_admin", "admin", "setorial", "viewer"]).default("viewer").notNull(),
   position: varchar("position", { length: 200 }), // cargo
   organization: varchar("organization", { length: 200 }), // órgão
-  active: int("active").default(1).notNull(), // 1 = ativo, 0 = desativado
+    active: int("active").default(1).notNull(), // 1 = ativo, 0 = desativado
+  pendingApproval: int("pendingApproval").default(0).notNull(), // 1 = aguardando aprovação do admin
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type LocalUser = typeof localUsers.$inferSelect;
 export type InsertLocalUser = typeof localUsers.$inferInsert;
 

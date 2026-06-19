@@ -11,8 +11,10 @@ import {
   Users,
   Eye,
   ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import { useState } from "react";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
@@ -36,6 +38,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
   const [location, navigate] = useLocation();
   const { localUser, loading, isSuperAdmin, setLocalUser } = useLocalAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const logoutMutation = trpc.localAuth.logout.useMutation({
     onSuccess: () => {
@@ -164,8 +167,16 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                   <LogOut className="w-4 h-4" />
                   <span>{logoutMutation.isPending ? "Saindo..." : "Sair"}</span>
                 </button>
+                <button
+                  onClick={() => setShowChangePassword(true)}
+                  className="p-2 rounded-lg hover:bg-secondary/60 transition-colors text-muted-foreground hover:text-foreground"
+                  title="Alterar senha"
+                >
+                  <KeyRound className="w-4 h-4" />
+                </button>
                 <NotificationBell />
               </div>
+              <ChangePasswordModal open={showChangePassword} onClose={() => setShowChangePassword(false)} />
             </div>
           ) : null}
         </div>

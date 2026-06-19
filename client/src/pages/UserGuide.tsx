@@ -130,7 +130,7 @@ const ADMIN_SECTIONS: Section[] = [
           <Step n={2} text="Informe seu e-mail e senha nos campos indicados." />
           <Step n={3} text="Clique em 'Entrar'. Você será redirecionado ao Dashboard." />
         </div>
-        <InfoBox type="tip">Se esqueceu a senha, solicite ao super-admin que redefina seu acesso na página de Gerenciamento de Usuários.</InfoBox>
+        <InfoBox type="tip">Para alterar sua própria senha, clique no ícone de <strong>chave</strong> (cadeado) ao lado do botão Sair no sidebar. Informe a senha atual e a nova senha desejada.</InfoBox>
       </div>
     ),
   },
@@ -217,6 +217,14 @@ const ADMIN_SECTIONS: Section[] = [
           <Step n={4} text="Clique em 'Salvar'. O usuário poderá fazer login imediatamente." />
         </div>
         <InfoBox type="tip">Você pode editar os órgãos permitidos de um usuário setorial a qualquer momento clicando no ícone de lápis na listagem de usuários.</InfoBox>
+        <p className="font-semibold text-foreground">Aprovar solicitações de cadastro:</p>
+        <div className="space-y-2">
+          <p className="text-sm">Quando um novo usuário se cadastra pela página de <strong>Solicitar Acesso</strong> (link na tela de login), sua conta fica pendente até aprovação. Uma notificação é enviada automaticamente ao administrador.</p>
+          <Step n={1} text="Acesse a página 'Usuários' no menu lateral." />
+          <Step n={2} text="A seção 'Cadastros Pendentes de Aprovação' aparece no topo quando há solicitações aguardando." />
+          <Step n={3} text="Clique em 'Aprovar' para liberar o acesso ou 'Rejeitar' para recusar e remover a solicitação." />
+        </div>
+        <InfoBox type="warning">Usuários aprovados recebem o perfil 'Visualizador' por padrão. Edite o perfil após a aprovação se necessário.</InfoBox>
       </div>
     ),
   },

@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Actions from "./pages/Actions";
 import ActionDetail from "./pages/ActionDetail";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Users from "./pages/Users";
 import UserGuide from "./pages/UserGuide";
 import AuditLog from "./pages/AuditLog";
@@ -57,6 +58,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/registro" component={Register} />
       <Route component={ProtectedRouter} />
     </Switch>
   );

@@ -164,3 +164,15 @@
 - [x] Frontend: listagem de ações exibe apenas itens do órgão do setorial (sem mudança de código — filtro é no servidor)
 - [x] Backend: getActionsForSetorial remove grupos sem filhos visíveis (sem órgão permitido)
 - [x] Guia do Usuário atualizado: setorial só vê itens dos seus órgãos
+
+## Sprint 18 — Troca de senha e auto-cadastro com aprovação
+- [x] Backend: endpoint localAuth.changePassword (usuário autenticado altera própria senha)
+- [x] Frontend: modal ChangePasswordModal com ícone de chave no sidebar
+- [x] Schema: campo pendingApproval adicionado à tabela localUsers + migration
+- [x] Backend: endpoint público localAuth.register (auto-cadastro, cria conta com pendingApproval=1)
+- [x] Backend: endpoints listPending, approve, reject para fluxo de aprovação
+- [x] Backend: notificação ao admin quando novo cadastro pendente chega
+- [x] Frontend: página pública /registro com formulário de solicitação de acesso
+- [x] Frontend: link 'Solicitar cadastro' na página de login
+- [x] Frontend: seção 'Cadastros Pendentes de Aprovação' na página de Usuários
+- [x] Guia do Usuário: atualizado com instruções de troca de senha e aprovação de cadastros

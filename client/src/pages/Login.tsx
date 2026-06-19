@@ -138,7 +138,13 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6 opacity-50">
+        <p className="text-center text-xs text-muted-foreground mt-4">
+          Não tem acesso?{" "}
+          <a href="/registro" className="text-primary hover:underline">
+            Solicitar cadastro
+          </a>
+        </p>
+        <p className="text-center text-xs text-muted-foreground mt-3 opacity-50">
           Prefeitura Municipal do Natal · SEMPLA · {new Date().getFullYear()}
         </p>
       </div>
