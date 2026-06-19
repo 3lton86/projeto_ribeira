@@ -163,6 +163,7 @@ const ADMIN_SECTIONS: Section[] = [
           <li className="list-disc text-sm">Área temática, status, prioridade e órgão responsável.</li>
           <li className="list-disc text-sm"><strong>Atrasados</strong> e <strong>Vence esta semana</strong> — filtros rápidos de prazo com contadores.</li>
           <li className="list-disc text-sm">Campo de busca por texto livre.</li>
+          <li className="list-disc text-sm"><strong>Filtros de documento:</strong> <em>Com documentos</em> (itens que possuem ao menos um link vinculado), <em>Com pendência</em> (itens com pelo menos um documento marcado como DOC COM PENDÊNCIA) e <em>Doc aceito</em> (itens com ao menos um documento marcado como DOC ACEITO). Os filtros são aplicados no servidor e combinam com os demais filtros ativos.</li>
         </ul>
         <p className="font-semibold text-foreground">Ações disponíveis para o Administrador:</p>
         <div className="space-y-2">
@@ -283,7 +284,12 @@ const ADMIN_SECTIONS: Section[] = [
           <Step n={2} text="Tipo de evento: Comentários, Documentos ou Alterações de item." />
           <Step n={3} text="Perfil: Super Admin, Administrador ou Setorial." />
         </div>
-        <InfoBox type="info">Clique em 'Exportar CSV' para baixar o log filtrado em formato planilha para análise externa ou prestação de contas.</InfoBox>
+        <p className="font-semibold text-foreground">Exportar o log:</p>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Exportar CSV:</strong> clique no botão 'Exportar CSV' para baixar o log filtrado em formato planilha para análise externa.</div>
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Exportar PDF:</strong> clique no botão 'Exportar PDF' para gerar um relatório em PDF com cabeçalho institucional (logo SEMPLA), tabela completa com data/hora, usuário, perfil, órgão, evento, item e detalhe, e rodapé com número de página. Ideal para prestação de contas e registros formais.</div>
+        </div>
+        <InfoBox type="info">Ambas as exportações respeitam os filtros ativos na listagem. Para exportar tudo, certifique-se de que nenhum filtro está aplicado.</InfoBox>
       </div>
     ),
   },
