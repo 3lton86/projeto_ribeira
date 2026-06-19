@@ -118,9 +118,10 @@ export default function ActionDetail() {
         parentCode: (a as any).parentCode ?? null,
         isGroup: a.isGroup,
         sortOrder: (a as any).sortOrder ?? 0,
+        area: a.area,
       }))
     );
-    return map.get(action.itemCode) ?? null;
+    return map.get(action.id) ?? null;
   }, [allActions, action]);
 
   const { data: comments } = trpc.comments.list.useQuery({ actionId: id });

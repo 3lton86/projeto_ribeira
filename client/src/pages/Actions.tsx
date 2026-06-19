@@ -619,7 +619,7 @@ export default function Actions() {
 
   // Hierarchical display numbers (1, 1.1, 1.1.1) — derived from allActions to stay stable across filters
   const hierNums = useMemo(() => {
-    if (!allActions) return new Map<string, string>();
+    if (!allActions) return new Map<number, string>();
     return buildHierarchicalNumbers(
       allActions.map((a) => ({
         id: a.id,
@@ -627,6 +627,7 @@ export default function Actions() {
         parentCode: (a as any).parentCode ?? null,
         isGroup: a.isGroup,
         sortOrder: (a as any).sortOrder ?? 0,
+        area: a.area,
       }))
     );
   }, [allActions]);
@@ -1033,7 +1034,7 @@ export default function Actions() {
                               className="flex-1 flex items-center gap-3 px-4 py-2.5"
                             >
                               {isGroupExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
-                              <span className="text-xs font-bold text-muted-foreground w-6" title={`Código interno: ${group.itemCode}`}>{hierNums.get(group.itemCode) ?? group.itemCode}</span>
+                              <span className="text-xs font-bold text-muted-foreground w-6" title={`Código interno: ${group.itemCode}`}>{hierNums.get(group.id) ?? group.itemCode}</span>
                               <span className="text-sm font-semibold text-foreground flex-1 text-left">{group.description}</span>
                               <span className="text-xs text-muted-foreground">{allChildren.length} itens</span>
                             </button>
@@ -1068,7 +1069,7 @@ export default function Actions() {
                                       onDelete={setDeletingAction}
                                       onAddSubItem={setAddingSubItemTo}
                                       idx={idx}
-                                      hierNum={hierNums.get(action.itemCode)}
+                                      hierNum={hierNums.get(action.id)}
                                     />
                                   ))}
                                 </SortableContext>
@@ -1084,7 +1085,7 @@ export default function Actions() {
                                   onDelete={setDeletingAction}
                                   onAddSubItem={setAddingSubItemTo}
                                   idx={idx}
-                                  hierNum={hierNums.get(action.itemCode)}
+                                  hierNum={hierNums.get(action.id)}
                                 />
                               ))
                             )

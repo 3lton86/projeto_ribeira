@@ -203,3 +203,11 @@
 - [x] Exibir numeração hierárquica na ficha do item (ActionDetail.tsx)
 - [x] Numeração automática ao criar sub-itens (derivada dinamicamente do array)
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 21b — Correção da Numeração Hierárquica
+
+- [x] Corrigir bug: itemCode duplicado entre áreas causava numeração errada (ex: grupo "1" existe em Governança e Técnico)
+- [x] Reescrever buildHierarchicalNumbers para usar id (único) como chave do Map em vez de itemCode
+- [x] Adicionar campo area ao tipo ActionForHierarchy para processar cada área independentemente
+- [x] Corrigir chamadas a hierNums.get() em Actions.tsx e ActionDetail.tsx para usar action.id
+- [x] 67 testes passando, zero erros TypeScript
