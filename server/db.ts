@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, actionDocuments, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, userOrgaos, users } from "../drizzle/schema";
+import { actions, actionDocuments, actionOrgaos, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -778,4 +778,67 @@ export async function rejectUser(id: number): Promise<void> {
   if (!db) return;
   // Remove o usuário rejeitado
   await db.delete(localUsers).where(eq(localUsers.id, id));
+}
+
+// ---- Action Orgaos (múltiplos órgãos responsáveis) ----
+
+export async function getActionOrgaos(actionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(actionOrgaos)
+    .where(eq(actionOrgaos.actionId, actionId))
+    .orderBy(actionOrgaos.sortOrder, actionOrgaos.createdAt);
+}
+
+export async function addActionOrgao(data: {
+  actionId: number;
+  orgao: string;
+  responsavelNome?: string;
+  responsavelCargo?: string;
+  responsavelTel?: string;
+  responsavelEmail?: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Get next sortOrder for this action
+  const maxRows = await db
+    .select({ sortOrder: actionOrgaos.sortOrder })
+    .from(actionOrgaos)
+    .where(eq(actionOrgaos.actionId, data.actionId))
+    .orderBy(desc(actionOrgaos.sortOrder))
+    .limit(1);
+  const nextSortOrder = maxRows.length > 0 ? (maxRows[0].sortOrder + 1) : 1;
+  const result = await db.insert(actionOrgaos).values({
+    actionId: data.actionId,
+    orgao: data.orgao,
+    responsavelNome: data.responsavelNome ?? null,
+    responsavelCargo: data.responsavelCargo ?? null,
+    responsavelTel: data.responsavelTel ?? null,
+    responsavelEmail: data.responsavelEmail ?? null,
+    sortOrder: nextSortOrder,
+  });
+  return (result as any).insertId as number;
+}
+
+export async function updateActionOrgao(
+  id: number,
+  data: Partial<{
+    orgao: string;
+    responsavelNome: string | null;
+    responsavelCargo: string | null;
+    responsavelTel: string | null;
+    responsavelEmail: string | null;
+  }>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(actionOrgaos).set(data).where(eq(actionOrgaos.id, id));
+}
+
+export async function removeActionOrgao(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(actionOrgaos).where(eq(actionOrgaos.id, id));
 }

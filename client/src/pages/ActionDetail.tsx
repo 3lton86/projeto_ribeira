@@ -26,6 +26,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,6 +132,7 @@ export default function ActionDetail() {
     { actionId: id },
     { enabled: canEdit } // only fetch for admins
   );
+  const { data: actionOrgaos } = trpc.orgaos.list.useQuery({ actionId: id });
 
   // For setorial users: check if they can interact with this action's orgão
   const actionOrgao = (action as any)?.orgao ?? null;
@@ -155,6 +157,9 @@ export default function ActionDetail() {
   const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents" | "auditoria">("comments");
   const [showAddDoc, setShowAddDoc] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
+  const [showAddOrgao, setShowAddOrgao] = useState(false);
+  const [deleteOrgaoId, setDeleteOrgaoId] = useState<number | null>(null);
+  const [newOrgao, setNewOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
 
   const updateMutation = trpc.actions.update.useMutation({
     onSuccess: () => {
@@ -178,6 +183,25 @@ export default function ActionDetail() {
   const updateDocStatusMutation = trpc.documents.updateStatus.useMutation({
     onSuccess: () => utils.documents.list.invalidate({ actionId: id }),
     onError: () => toast.error("Erro ao atualizar status do documento."),
+  });
+
+  const addOrgaoMutation = trpc.orgaos.add.useMutation({
+    onSuccess: () => {
+      toast.success("Orgão adicionado!");
+      utils.orgaos.list.invalidate({ actionId: id });
+      setShowAddOrgao(false);
+      setNewOrgao({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const removeOrgaoMutation = trpc.orgaos.remove.useMutation({
+    onSuccess: () => {
+      toast.success("Orgão removido.");
+      utils.orgaos.list.invalidate({ actionId: id });
+      setDeleteOrgaoId(null);
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const deleteDocMutation = trpc.documents.delete.useMutation({
@@ -368,64 +392,44 @@ export default function ActionDetail() {
                 />
               </div>
 
-              {/* Órgão e Contato do Responsável */}
+              {/* Órgãos Responsáveis pela Entrega (múltiplos) */}
               <div className="pt-2 border-t border-border/30">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Órgão Responsável pela Entrega</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Órgão</label>
-                    <select
-                      value={form.orgao}
-                      onChange={(e) => setForm({ ...form, orgao: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
-                    >
-                      <option value="">— Selecionar órgão —</option>
-                      {["GAPRE","GAVIPRE","SMG","SEPAE","SECOM","PGM","CGM","SEMPLA","SEMAD","SEFIN","SME","SMS","SEMTAS","SECULT","SEMSUR","SEMUL","STTU","SEMDES","SETUR","SEL","SEINFRA","SEMIDH","SEHARPE","SEMURB","OGM","PROCON","NATALPREV","ARSBAN","FUNCARTE","URBANA","SAG"].map((o) => (
-                        <option key={o} value={o}>{o}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Nome do Responsável</label>
-                    <input
-                      type="text"
-                      value={form.responsavelNome}
-                      onChange={(e) => setForm({ ...form, responsavelNome: e.target.value })}
-                      placeholder="Nome completo"
-                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Cargo</label>
-                    <input
-                      type="text"
-                      value={form.responsavelCargo}
-                      onChange={(e) => setForm({ ...form, responsavelCargo: e.target.value })}
-                      placeholder="Cargo ou função"
-                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Telefone</label>
-                    <input
-                      type="tel"
-                      value={form.responsavelTel}
-                      onChange={(e) => setForm({ ...form, responsavelTel: e.target.value })}
-                      placeholder="(84) 9 0000-0000"
-                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">E-mail</label>
-                    <input
-                      type="email"
-                      value={form.responsavelEmail}
-                      onChange={(e) => setForm({ ...form, responsavelEmail: e.target.value })}
-                      placeholder="email@orgao.natal.rn.gov.br"
-                      className="w-full px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Órgãos Responsáveis pela Entrega</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddOrgao(true)}
+                    className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Adicionar órgão
+                  </button>
                 </div>
+                {actionOrgaos && actionOrgaos.length > 0 ? (
+                  <div className="space-y-3">
+                    {actionOrgaos.map((o) => (
+                      <div key={o.id} className="p-3 rounded-lg border border-border/40 bg-secondary/20 relative group">
+                        <button
+                          type="button"
+                          onClick={() => setDeleteOrgaoId(o.id)}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                          title="Remover órgão"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="font-semibold text-sm text-foreground mb-1">{o.orgao}</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                          {o.responsavelNome && <span>{o.responsavelNome}</span>}
+                          {o.responsavelCargo && <span>{o.responsavelCargo}</span>}
+                          {o.responsavelTel && <span>{o.responsavelTel}</span>}
+                          {o.responsavelEmail && <span>{o.responsavelEmail}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Nenhum órgão adicionado.</p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -467,54 +471,60 @@ export default function ActionDetail() {
                 ))}
               </div>
 
-              {/* Órgão e Contato */}
-              {((action as any).orgao || (action as any).responsavelNome || (action as any).responsavelEmail) && (
-                <div className="pt-3 border-t border-border/30">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Órgão Responsável pela Entrega</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(action as any).orgao && (
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Órgão</div>
-                        <div className="text-sm font-semibold text-foreground">{(action as any).orgao}</div>
+              {/* Órgãos Responsáveis pela Entrega (múltiplos) */}
+              <div className="pt-3 border-t border-border/30">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Órgãos Responsáveis pela Entrega</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => setShowAddOrgao(true)}
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Adicionar órgão
+                    </button>
+                  )}
+                </div>
+                {actionOrgaos && actionOrgaos.length > 0 ? (
+                  <div className="space-y-3">
+                    {actionOrgaos.map((o) => (
+                      <div key={o.id} className="p-3 rounded-lg border border-border/40 bg-secondary/20 relative group">
+                        {canEdit && (
+                          <button
+                            onClick={() => setDeleteOrgaoId(o.id)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                            title="Remover órgão"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <div className="font-semibold text-sm text-foreground mb-1 flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-primary" />
+                          {o.orgao}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                          {o.responsavelNome && (
+                            <div><span className="font-medium text-foreground/70">Nome: </span>{o.responsavelNome}</div>
+                          )}
+                          {o.responsavelCargo && (
+                            <div><span className="font-medium text-foreground/70">Cargo: </span>{o.responsavelCargo}</div>
+                          )}
+                          {o.responsavelTel && (
+                            <div><span className="font-medium text-foreground/70">Tel: </span>{o.responsavelTel}</div>
+                          )}
+                          {o.responsavelEmail && (
+                            <div><span className="font-medium text-foreground/70">E-mail: </span>
+                              <a href={`mailto:${o.responsavelEmail}`} className="text-primary hover:underline">{o.responsavelEmail}</a>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {(action as any).responsavelNome && (
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Nome</div>
-                        <div className="text-sm text-foreground">{(action as any).responsavelNome}</div>
-                      </div>
-                    )}
-                    {(action as any).responsavelCargo && (
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Cargo</div>
-                        <div className="text-sm text-foreground">{(action as any).responsavelCargo}</div>
-                      </div>
-                    )}
-                    {(action as any).responsavelTel && (
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Telefone</div>
-                        <div className="text-sm text-foreground">{(action as any).responsavelTel}</div>
-                      </div>
-                    )}
-                    {(action as any).responsavelEmail && (
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">E-mail</div>
-                        <a href={`mailto:${(action as any).responsavelEmail}`} className="text-sm text-primary hover:underline">{(action as any).responsavelEmail}</a>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-              )}
-
-              {/* Prompt to fill if empty and can edit */}
-              {canEdit && !(action as any).orgao && !(action as any).responsavelNome && (
-                <div className="pt-3 border-t border-border/30">
-                  <button onClick={startEdit} className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5">
-                    <Plus className="w-3.5 h-3.5" />
-                    Adicionar órgão e contato do responsável
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Nenhum órgão cadastrado.</p>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -832,6 +842,110 @@ export default function ActionDetail() {
             <AlertDialogAction
               onClick={() => deleteDocId !== null && deleteDocMutation.mutate({ id: deleteDocId })}
               className="bg-destructive hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog: Adicionar Órgão */}
+      <Dialog open={showAddOrgao} onOpenChange={setShowAddOrgao}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Adicionar Órgão Responsável
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs uppercase tracking-wider">Órgão *</Label>
+              <select
+                value={newOrgao.orgao}
+                onChange={(e) => setNewOrgao({ ...newOrgao, orgao: e.target.value })}
+                className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+              >
+                <option value="">— Selecionar órgão —</option>
+                {ORGAOS_MUNICIPAIS.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider">Nome do Responsável</Label>
+              <Input
+                value={newOrgao.responsavelNome}
+                onChange={(e) => setNewOrgao({ ...newOrgao, responsavelNome: e.target.value })}
+                placeholder="Nome completo"
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Cargo</Label>
+                <Input
+                  value={newOrgao.responsavelCargo}
+                  onChange={(e) => setNewOrgao({ ...newOrgao, responsavelCargo: e.target.value })}
+                  placeholder="Cargo ou função"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Telefone</Label>
+                <Input
+                  value={newOrgao.responsavelTel}
+                  onChange={(e) => setNewOrgao({ ...newOrgao, responsavelTel: e.target.value })}
+                  placeholder="(84) 9 0000-0000"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider">E-mail</Label>
+              <Input
+                type="email"
+                value={newOrgao.responsavelEmail}
+                onChange={(e) => setNewOrgao({ ...newOrgao, responsavelEmail: e.target.value })}
+                placeholder="email@orgao.natal.rn.gov.br"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddOrgao(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (!newOrgao.orgao) { toast.error("Selecione um órgão."); return; }
+                addOrgaoMutation.mutate({
+                  actionId: id,
+                  orgao: newOrgao.orgao as any,
+                  responsavelNome: newOrgao.responsavelNome || undefined,
+                  responsavelCargo: newOrgao.responsavelCargo || undefined,
+                  responsavelTel: newOrgao.responsavelTel || undefined,
+                  responsavelEmail: newOrgao.responsavelEmail || undefined,
+                });
+              }}
+              disabled={addOrgaoMutation.isPending}
+            >
+              {addOrgaoMutation.isPending ? "Salvando..." : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm: Remover Órgão */}
+      <AlertDialog open={deleteOrgaoId !== null} onOpenChange={() => setDeleteOrgaoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover órgão?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. O órgão e seus dados de contato serão removidos permanentemente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteOrgaoId !== null && removeOrgaoMutation.mutate({ id: deleteOrgaoId })}
             >
               Remover
             </AlertDialogAction>

@@ -107,6 +107,18 @@ vi.mock("./db", () => ({
   createNotificationsForAdmins: vi.fn().mockResolvedValue(undefined),
   getAdminAndSuperAdminIds: vi.fn().mockResolvedValue([1, 2]),
   getSetorialUserIdsForOrgao: vi.fn().mockResolvedValue([10]),
+  getActionsForSetorial: vi.fn().mockResolvedValue([]),
+  getActionIdsWithDocFilter: vi.fn().mockResolvedValue([]),
+  getActionOrgaos: vi.fn().mockResolvedValue([
+    { id: 1, actionId: 2, orgao: "SEMURB", responsavelNome: "João Silva", responsavelCargo: "Diretor", responsavelTel: "(84) 9 9999-0001", responsavelEmail: "joao@semurb.natal.rn.gov.br", sortOrder: 1, createdAt: new Date() },
+  ]),
+  addActionOrgao: vi.fn().mockResolvedValue(10),
+  updateActionOrgao: vi.fn().mockResolvedValue(undefined),
+  removeActionOrgao: vi.fn().mockResolvedValue(undefined),
+  getDocumentById: vi.fn().mockResolvedValue(null),
+  updateDocumentStatus: vi.fn().mockResolvedValue(undefined),
+  approveUser: vi.fn().mockResolvedValue(undefined),
+  rejectUser: vi.fn().mockResolvedValue(undefined),
 }));
 
 function makePublicCtx(): TrpcContext {

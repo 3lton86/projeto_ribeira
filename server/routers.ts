@@ -30,6 +30,10 @@ import {
   getUserOrgaos,
   getActionsForSetorial,
   getActionIdsWithDocFilter,
+  getActionOrgaos,
+  addActionOrgao,
+  updateActionOrgao,
+  removeActionOrgao,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -636,6 +640,55 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  // ---- ORGAOS (múltiplos órgãos responsáveis por item) ----
+  orgaos: router({
+    list: localAuthProcedure
+      .input(z.object({ actionId: z.number() }))
+      .query(async ({ input }) => {
+        return getActionOrgaos(input.actionId);
+      }),
+    add: localOrOauthAdminProcedure
+      .input(z.object({
+        actionId: z.number(),
+        orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).refine(v => v !== "", { message: "Selecione um órgão" }),
+        responsavelNome: z.string().optional(),
+        responsavelCargo: z.string().optional(),
+        responsavelTel: z.string().optional(),
+        responsavelEmail: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await addActionOrgao({
+          actionId: input.actionId,
+          orgao: input.orgao,
+          responsavelNome: input.responsavelNome,
+          responsavelCargo: input.responsavelCargo,
+          responsavelTel: input.responsavelTel,
+          responsavelEmail: input.responsavelEmail,
+        });
+        return { success: true, id };
+      }),
+    update: localOrOauthAdminProcedure
+      .input(z.object({
+        id: z.number(),
+        orgao: z.string().optional(),
+        responsavelNome: z.string().nullable().optional(),
+        responsavelCargo: z.string().nullable().optional(),
+        responsavelTel: z.string().nullable().optional(),
+        responsavelEmail: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateActionOrgao(id, data);
+        return { success: true };
+      }),
+    remove: localOrOauthAdminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await removeActionOrgao(input.id);
+        return { success: true };
+      }),
+  }),
+
   // ---- EXPORT ----
   export: router({
     data: publicProcedure

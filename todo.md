@@ -219,3 +219,13 @@
 - [x] Backend: incluir observacoes em updateAction (db.ts) e router actions.update (routers.ts)
 - [x] Frontend ActionDetail: exibir campo Observações abaixo de Documento Base (leitura e edição)
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 23 — Múltiplos Órgãos Responsáveis por Item
+
+- [x] Schema: criar tabela action_orgaos (id, actionId, orgao, responsavelNome, responsavelCargo, responsavelTel, responsavelEmail, sortOrder, createdAt)
+- [x] Migração do banco (pnpm db:push)
+- [x] Backend db.ts: funções getActionOrgaos, addActionOrgao, updateActionOrgao, removeActionOrgao
+- [x] Backend routers.ts: procedures orgaos.list, orgaos.add, orgaos.update, orgaos.remove
+- [x] Frontend ActionDetail: lista dinâmica com botão "Adicionar Órgão" (dialog) e remoção por item (confirmação)
+- [x] Manter compatibilidade: campos legados orgao/responsavelNome/etc. na tabela actions permanecem
+- [x] 67 testes passando, zero erros TypeScript

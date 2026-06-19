@@ -126,6 +126,21 @@ export const actionDocuments = mysqlTable("action_documents", {
 export type ActionDocument = typeof actionDocuments.$inferSelect;
 export type InsertActionDocument = typeof actionDocuments.$inferInsert;
 
+// Múltiplos órgãos responsáveis pela entrega de um item de ação
+export const actionOrgaos = mysqlTable("action_orgaos", {
+  id: int("id").autoincrement().primaryKey(),
+  actionId: int("actionId").notNull(),
+  orgao: varchar("orgao", { length: 100 }).notNull(),
+  responsavelNome: varchar("responsavelNome", { length: 200 }),
+  responsavelCargo: varchar("responsavelCargo", { length: 200 }),
+  responsavelTel: varchar("responsavelTel", { length: 50 }),
+  responsavelEmail: varchar("responsavelEmail", { length: 320 }),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ActionOrgao = typeof actionOrgaos.$inferSelect;
+export type InsertActionOrgao = typeof actionOrgaos.$inferInsert;
+
 // Órgãos permitidos para usuários setoriais
 // Se não houver nenhuma linha para um usuário setorial, ele não acessa nada.
 // O valor especial "TODOS" indica acesso irrestrito a todos os órgãos.
