@@ -10,7 +10,7 @@ import {
   getDocumentById,
   getDocumentsByActionId,
   getSetorialUserIdsForOrgao,
-  setorialUserHasOrgaoAccess,
+  setorialUserHasAccessToAction,
   updateDocumentStatus,
 } from "../db";
 import { localAdminProcedure, localAuthProcedure } from "./localAuth";
@@ -36,11 +36,11 @@ export const documentsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const localUser = (ctx as any).localUser;
 
-      // Setorial users: check orgão access
+      // Setorial users: check orgão access (legacy field + co-responsible orgãos)
       if (localUser.role === "setorial") {
         const action = await getActionById(input.actionId);
         if (!action) throw new TRPCError({ code: "NOT_FOUND", message: "Ação não encontrada." });
-        const hasAccess = await setorialUserHasOrgaoAccess(localUser.id, action.orgao);
+        const hasAccess = await setorialUserHasAccessToAction(localUser.id, input.actionId, action.orgao);
         if (!hasAccess) {
           throw new TRPCError({
             code: "FORBIDDEN",

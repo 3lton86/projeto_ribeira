@@ -229,3 +229,12 @@
 - [x] Frontend ActionDetail: lista dinâmica com botão "Adicionar Órgão" (dialog) e remoção por item (confirmação)
 - [x] Manter compatibilidade: campos legados orgao/responsavelNome/etc. na tabela actions permanecem
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 24 — Permissão Setorial por Órgão Co-Responsável
+
+- [x] Backend: nova função setorialUserHasAccessToAction em db.ts (verifica campo legado + action_orgaos)
+- [x] Backend: procedure comments.create usa setorialUserHasAccessToAction
+- [x] Backend: procedure documents.create usa setorialUserHasAccessToAction
+- [x] Frontend LocalAuthContext: novo helper canInteractWithAnyOrgao(orgaos: string[])
+- [x] Frontend ActionDetail: canInteract usa canInteractWithAnyOrgao com lista unificada (legado + co-responsáveis)
+- [x] 67 testes passando, zero erros TypeScript

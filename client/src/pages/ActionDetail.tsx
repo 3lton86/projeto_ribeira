@@ -103,7 +103,7 @@ function formatDate(d: Date | string | null | undefined): string {
 export default function ActionDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
-  const { canEdit, isSetorial, canInteractWithOrgao } = useLocalAuth();
+  const { canEdit, isSetorial, canInteractWithOrgao, canInteractWithAnyOrgao } = useLocalAuth();
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
@@ -134,9 +134,12 @@ export default function ActionDetail() {
   );
   const { data: actionOrgaos } = trpc.orgaos.list.useQuery({ actionId: id });
 
-  // For setorial users: check if they can interact with this action's orgão
+  // For setorial users: check if they can interact with this action.
+  // Considers BOTH the legacy scalar orgao field AND all co-responsible orgãos (action_orgaos).
   const actionOrgao = (action as any)?.orgao ?? null;
-  const canInteract = canEdit || (isSetorial && canInteractWithOrgao(actionOrgao));
+  const coOrgaoNames = (actionOrgaos ?? []).map(o => o.orgao);
+  const allOrgaos = actionOrgao ? [actionOrgao, ...coOrgaoNames] : coOrgaoNames;
+  const canInteract = canEdit || (isSetorial && canInteractWithAnyOrgao(allOrgaos));
 
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<{

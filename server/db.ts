@@ -539,6 +539,27 @@ export async function setorialUserHasOrgaoAccess(userId: number, orgao: string |
   return allowed.includes(orgao);
 }
 
+/**
+ * Check if a setorial user has access to a given action,
+ * considering BOTH the legacy scalar orgao field AND all co-responsible
+ * orgãos registered in action_orgaos table.
+ * Returns true if the user has "TODOS", or if any of the action's orgãos
+ * (legacy + co-responsible list) matches the user's allowed orgãos.
+ */
+export async function setorialUserHasAccessToAction(
+  userId: number,
+  actionId: number,
+  legacyOrgao: string | null | undefined
+): Promise<boolean> {
+  const allowed = await getUserOrgaos(userId);
+  if (allowed.includes("TODOS")) return true;
+  // Check legacy scalar field
+  if (legacyOrgao && allowed.includes(legacyOrgao)) return true;
+  // Check co-responsible orgãos
+  const coOrgaos = await getActionOrgaos(actionId);
+  return coOrgaos.some(o => allowed.includes(o.orgao));
+}
+
 // ---- ACTION DOCUMENTS ----
 
 export async function getDocumentsByActionId(actionId: number) {

@@ -46,6 +46,8 @@ type LocalAuthContextType = {
   canEdit: boolean;
   /** For setorial users: check if they can interact with a given orgão */
   canInteractWithOrgao: (orgao: string | null | undefined) => boolean;
+  /** For setorial users: check if they can interact with an action that has multiple co-responsible orgãos */
+  canInteractWithAnyOrgao: (orgaos: string[]) => boolean;
 };
 
 const LocalAuthContext = createContext<LocalAuthContextType>({
@@ -58,6 +60,7 @@ const LocalAuthContext = createContext<LocalAuthContextType>({
   isSetorial: false,
   canEdit: false,
   canInteractWithOrgao: () => false,
+  canInteractWithAnyOrgao: () => false,
 });
 
 export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
@@ -102,6 +105,20 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
     return allowed.includes(orgao);
   };
 
+  /**
+   * For setorial users: returns true if the user has access to ANY of the given orgãos.
+   * Used when an action has multiple co-responsible orgãos (action_orgaos table).
+   * Admins always return true. Viewers and unauthenticated always return false.
+   */
+  const canInteractWithAnyOrgao = (orgaos: string[]): boolean => {
+    if (isAdmin) return true;
+    if (!isSetorial || !localUser?.allowedOrgaos) return false;
+    const allowed = localUser.allowedOrgaos;
+    if (allowed.includes("TODOS")) return true;
+    if (orgaos.length === 0) return false;
+    return orgaos.some(o => allowed.includes(o));
+  };
+
   const loading = isLoading && !initialCheckDone && !localUser;
 
   return (
@@ -116,6 +133,7 @@ export function LocalAuthProvider({ children }: { children: React.ReactNode }) {
         isSetorial,
         canEdit,
         canInteractWithOrgao,
+        canInteractWithAnyOrgao,
       }}
     >
       {children}
