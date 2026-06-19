@@ -22,6 +22,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Building2,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -152,6 +153,11 @@ export default function ActionDetail() {
       setNewComment("");
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const updateDocStatusMutation = trpc.documents.updateStatus.useMutation({
+    onSuccess: () => utils.documents.list.invalidate({ actionId: id }),
+    onError: () => toast.error("Erro ao atualizar status do documento."),
   });
 
   const deleteDocMutation = trpc.documents.delete.useMutation({
@@ -685,13 +691,50 @@ export default function ActionDetail() {
                         <Link2 className="w-4 h-4" style={{ color: "oklch(0.72 0.18 185)" }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground truncate">{doc.label}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">{doc.label}</span>
+                          {doc.docStatus === "accepted" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200 flex-shrink-0">
+                              <CheckCircle className="w-3 h-3" />
+                              DOC ACEITO
+                            </span>
+                          )}
+                          {doc.docStatus === "pending" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200 flex-shrink-0">
+                              <AlertTriangle className="w-3 h-3" />
+                              DOC COM PENDÊNCIA
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground truncate">{doc.url}</div>
                         <div className="text-xs text-muted-foreground opacity-60 mt-0.5">
                           {doc.uploaderName ?? "Sistema"} · {formatDateTime(doc.createdAt)}
+                          {doc.docStatus && doc.statusUpdatedBy && (
+                            <span className="ml-1">· Status por {doc.statusUpdatedBy}</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        {canEdit && (
+                          <div className="relative">
+                            <select
+                              value={doc.docStatus ?? ""}
+                              onChange={(e) =>
+                                updateDocStatusMutation.mutate({
+                                  id: doc.id,
+                                  docStatus: (e.target.value as "accepted" | "pending") || null,
+                                })
+                              }
+                              className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground cursor-pointer hover:border-primary/50 transition-colors appearance-none pr-6"
+                              title="Alterar status do documento"
+                            >
+                              <option value="">— Status —</option>
+                              <option value="accepted">DOC ACEITO</option>
+                              <option value="pending">DOC COM PENDÊNCIA</option>
+                            </select>
+                            <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+                          </div>
+                        )}
                         <a
                           href={doc.url}
                           target="_blank"

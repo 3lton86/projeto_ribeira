@@ -559,7 +559,17 @@ export async function deleteActionDocument(id: number) {
   if (!db) return;
   await db.delete(actionDocuments).where(eq(actionDocuments.id, id));
 }
-
+export async function updateDocumentStatus(id: number, docStatus: string | null, updaterName: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(actionDocuments)
+    .set({
+      docStatus: docStatus as any,
+      statusUpdatedAt: new Date(),
+      statusUpdatedBy: updaterName,
+    })
+    .where(eq(actionDocuments.id, id));
+}
 // ---- EXPORT DATA ----
 
 export async function getExportData(filters?: {

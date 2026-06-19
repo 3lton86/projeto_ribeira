@@ -176,3 +176,12 @@
 - [x] Frontend: link 'Solicitar cadastro' na página de login
 - [x] Frontend: seção 'Cadastros Pendentes de Aprovação' na página de Usuários
 - [x] Guia do Usuário: atualizado com instruções de troca de senha e aprovação de cadastros
+
+## Sprint 19 — Status de Documento (DOC ACEITO / DOC COM PENDÊNCIA)
+- [x] Schema: campo docStatus, statusUpdatedAt, statusUpdatedBy adicionados à tabela action_documents
+- [x] Backend: migration aplicada (pnpm db:push)
+- [x] Backend: função updateDocumentStatus no db.ts
+- [x] Backend: mutation documents.updateStatus (localAdminProcedure)
+- [x] Frontend: badge verde 'DOC ACEITO' e badge âmbar 'DOC COM PENDÊNCIA' em cada documento
+- [x] Frontend: dropdown para admin alterar o status do documento
+- [x] Frontend: exibe 'Status por {nome}' abaixo do documento quando status definido

@@ -10,6 +10,7 @@ import {
   getDocumentsByActionId,
   getSetorialUserIdsForOrgao,
   setorialUserHasOrgaoAccess,
+  updateDocumentStatus,
 } from "../db";
 import { localAdminProcedure, localAuthProcedure } from "./localAuth";
 import { publicProcedure, router } from "../_core/trpc";
@@ -96,6 +97,20 @@ export const documentsRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await deleteActionDocument(input.id);
+      return { success: true };
+    }),
+
+  // Only admin or super_admin can update document status
+  updateStatus: localAdminProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        docStatus: z.enum(["accepted", "pending"]).nullable(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const localUser = (ctx as any).localUser;
+      await updateDocumentStatus(input.id, input.docStatus, localUser.name);
       return { success: true };
     }),
 });

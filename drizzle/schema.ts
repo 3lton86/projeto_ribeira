@@ -117,9 +117,11 @@ export const actionDocuments = mysqlTable("action_documents", {
   url: text("url").notNull(), // link para o arquivo
   uploadedBy: int("uploadedBy").notNull(), // localUsers.id
   uploaderName: varchar("uploaderName", { length: 200 }), // snapshot do nome
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  docStatus: varchar("docStatus", { length: 30 }), // 'accepted' | 'pending' | null
+  statusUpdatedAt: timestamp("statusUpdatedAt"),
+  statusUpdatedBy: varchar("statusUpdatedBy", { length: 200 }), // snapshot do nome do admin
 });
-
 export type ActionDocument = typeof actionDocuments.$inferSelect;
 export type InsertActionDocument = typeof actionDocuments.$inferInsert;
 
