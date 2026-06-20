@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
@@ -26,6 +26,8 @@ import {
   ShieldCheck,
   Building2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   PhoneCall,
   Pencil,
 } from "lucide-react";
@@ -107,7 +109,26 @@ function formatDate(d: Date | string | null | undefined): string {
 export default function ActionDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
+  const [, navigate] = useLocation();
   const { canEdit, isSetorial, canInteractWithOrgao, canInteractWithAnyOrgao, localUser } = useLocalAuth();
+
+  // Navigation list (Anterior / Próximo)
+  const navList = useMemo<number[]>(() => {
+    try {
+      const raw = sessionStorage.getItem("actions-nav-list");
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }, []);
+  const navIndex = navList.indexOf(id);
+  const prevId = navIndex > 0 ? navList[navIndex - 1] : null;
+  const nextId = navIndex >= 0 && navIndex < navList.length - 1 ? navList[navIndex + 1] : null;
+  const navPosition = navList.length > 0 && navIndex >= 0 ? `${navIndex + 1} / ${navList.length}` : null;
+
+  const navigateTo = (targetId: number) => {
+    // Update the scroll-id so that on return the list highlights the last visited item
+    sessionStorage.setItem("actions-scroll-y-id", String(targetId));
+    navigate(`/acoes/${targetId}`);
+  };
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
@@ -377,11 +398,43 @@ export default function ActionDetail() {
 
   return (
     <div className="p-6 space-y-5 max-w-4xl mx-auto">
-      {/* Back */}
-      <Link href="/acoes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="w-4 h-4" />
-        Voltar para Ações
-      </Link>
+      {/* Navigation bar: Voltar + Anterior/Próximo */}
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/acoes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Voltar para Ações
+        </Link>
+
+        {navList.length > 0 && navIndex >= 0 && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => prevId !== null && navigateTo(prevId)}
+              disabled={prevId === null}
+              title={prevId !== null ? `Item anterior (${navIndex} de ${navList.length})` : "Primeiro item da lista"}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: "oklch(0.20 0.02 240)", border: "1px solid oklch(0.30 0.02 240)" }}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Anterior</span>
+            </button>
+
+            <span className="text-xs text-muted-foreground px-2 tabular-nums">
+              {navPosition}
+            </span>
+
+            <button
+              onClick={() => nextId !== null && navigateTo(nextId)}
+              disabled={nextId === null}
+              title={nextId !== null ? `Próximo item (${navIndex + 2} de ${navList.length})` : "Último item da lista"}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: "oklch(0.20 0.02 240)", border: "1px solid oklch(0.30 0.02 240)" }}
+            >
+              <span className="hidden sm:inline">Próximo</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Main card */}
       <div className="glass-card rounded-xl overflow-hidden animate-fade-in-up">

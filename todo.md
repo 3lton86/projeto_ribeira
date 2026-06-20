@@ -435,3 +435,12 @@
 - [x] Classe row-flash aplicada condicionalmente no container raiz do SortableActionRow
 - [x] Prop passado nos dois pontos de renderização (DnD e modo normal)
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 49 — Navegação Anterior/Próximo na Ficha do Item
+
+- [x] Salvar lista ordenada de IDs visíveis no sessionStorage ao navegar para ActionDetail
+- [x] Ler lista de IDs no ActionDetail e calcular índice do item atual
+- [x] Implementar botões Anterior/Próximo no cabeçalho do ActionDetail
+- [x] Atualizar o scroll-id ao navegar entre itens (destaque ao retornar)
+- [x] Contador de posição (ex: 12 / 244) exibido entre os botões
+- [x] 69 testes passando, zero erros TypeScript

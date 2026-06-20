@@ -128,6 +128,7 @@ function formatLastContact(sentAt: Date | string | null | undefined): string {
 
 // ---- Sortable Action Row ----
 const SCROLL_KEY = "actions-scroll-y";
+const NAVLIST_KEY = "actions-nav-list";
 
 interface SortableActionRowProps {
   action: any;
@@ -726,6 +727,7 @@ export default function Actions() {
   const deadlineFilterRef = useRef(deadlineFilter);
   const contactFilterRef = useRef(contactFilter);
   const expandedGroupsRef = useRef(expandedGroups);
+  const filteredRef = useRef<typeof filtered>([]);
   useEffect(() => { areaPagesRef.current = areaPages; }, [areaPages]);
   useEffect(() => { selectedAreasRef.current = selectedAreas; }, [selectedAreas]);
   useEffect(() => { selectedStatusesRef.current = selectedStatuses; }, [selectedStatuses]);
@@ -783,6 +785,11 @@ export default function Actions() {
     // Persist scroll position
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
     sessionStorage.setItem(SCROLL_KEY + "-id", String(id));
+    // Persist ordered list of all visible item IDs (isGroup=0) for Anterior/Próximo navigation
+    const navList = (filteredRef.current ?? [])
+      .filter((a: any) => a.isGroup === 0)
+      .map((a: any) => a.id);
+    sessionStorage.setItem(NAVLIST_KEY, JSON.stringify(navList));
     // Persist full navigation state (pagination + filters) via refs
     const navState = {
       areaPages: areaPagesRef.current,
@@ -887,6 +894,9 @@ export default function Actions() {
 
   // Lista de nomes de responsáveis únicos para o filtro (da tabela action_orgaos via backend)
   const responsaveisDisponiveis = useMemo(() => responsaveisFromDb ?? [], [responsaveisFromDb]);
+
+  // Keep filteredRef in sync so handleNavigateToAction can read the current list
+  useEffect(() => { filteredRef.current = filtered; }, [filtered]);
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof filtered> = {};
