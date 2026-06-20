@@ -610,6 +610,16 @@ export default function Actions() {
   );
   const orgaoFilteredSet = useMemo(() => new Set(orgaoFilteredIds ?? []), [orgaoFilteredIds]);
 
+  // Query para IDs de ações filtradas por responsável (tabela action_orgaos)
+  const { data: responsavelFilteredIds } = trpc.orgaos.listActionIdsByResponsaveis.useQuery(
+    { nomes: selectedResponsaveis },
+    { enabled: selectedResponsaveis.length > 0 }
+  );
+  const responsavelFilteredSet = useMemo(() => new Set(responsavelFilteredIds ?? []), [responsavelFilteredIds]);
+
+  // Lista de nomes de responsáveis disponíveis (da tabela action_orgaos)
+  const { data: responsaveisFromDb } = trpc.orgaos.responsaveisDisponiveis.useQuery();
+
   // Query para o último contato de cada ação (mapa actionId -> registro)
   const { data: lastContactList } = trpc.contactHistory.lastPerAction.useQuery();
   const lastContactMap = useMemo(() => {
@@ -681,7 +691,7 @@ export default function Actions() {
       if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) continue;
       if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) continue;
       if (selectedOrgaos.length > 0 && !orgaoFilteredSet.has(a.id)) continue;
-      if (selectedResponsaveis.length > 0 && !selectedResponsaveis.includes((a as any).responsavelNome ?? "")) continue;
+      if (selectedResponsaveis.length > 0 && !responsavelFilteredSet.has(a.id)) continue;
       if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) continue;
       if (deadlineFilter === "overdue" && !isOverdue((a as any).dueDate, a.status)) continue;
       if (deadlineFilter === "this_week" && !isDueThisWeek((a as any).dueDate, a.status)) continue;
@@ -708,14 +718,10 @@ export default function Actions() {
       (a.isGroup === 0 && visibleItemIds.has(a.id)) ||
       (a.isGroup === 1 && visibleGroupIds.has(a.id))
     );
-  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, orgaoFilteredSet, selectedResponsaveis, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
+  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, orgaoFilteredSet, selectedResponsaveis, responsavelFilteredSet, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
 
-  // Lista de nomes de responsáveis únicos para o filtro
-  const responsaveisDisponiveis = useMemo(() => {
-    return Array.from(new Set(
-      (allActions ?? []).filter(a => a.isGroup === 0 && (a as any).responsavelNome).map(a => (a as any).responsavelNome as string)
-    )).sort();
-  }, [allActions]);
+  // Lista de nomes de responsáveis únicos para o filtro (da tabela action_orgaos via backend)
+  const responsaveisDisponiveis = useMemo(() => responsaveisFromDb ?? [], [responsaveisFromDb]);
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof filtered> = {};

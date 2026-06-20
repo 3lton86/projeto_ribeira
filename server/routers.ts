@@ -45,6 +45,8 @@ import {
   getActionIdsWithContact,
   getLastContactPerAction,
   getActionIdsByOrgaos,
+  getActionIdsByResponsaveis,
+  getResponsaveisDisponiveis,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -708,6 +710,17 @@ export const appRouter = router({
       .input(z.object({ orgaos: z.array(z.string()).min(1) }))
       .query(async ({ input }) => {
         return getActionIdsByOrgaos(input.orgaos);
+      }),
+    // Retorna actionIds cujo responsavelNome (em action_orgaos) está na lista fornecida
+    listActionIdsByResponsaveis: publicProcedure
+      .input(z.object({ nomes: z.array(z.string()).min(1) }))
+      .query(async ({ input }) => {
+        return getActionIdsByResponsaveis(input.nomes);
+      }),
+    // Retorna lista de nomes únicos de responsáveis cadastrados em action_orgaos
+    responsaveisDisponiveis: publicProcedure
+      .query(async () => {
+        return getResponsaveisDisponiveis();
       }),
   }),
 

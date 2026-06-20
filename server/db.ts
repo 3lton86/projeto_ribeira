@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, not, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { actions, actionDocuments, actionOrgaos, auditLog, comments, contactHistory, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, orgaoResponsaveis, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -1135,4 +1135,27 @@ export async function getActionIdsByOrgaos(orgaos: string[]): Promise<number[]> 
     .from(actionOrgaos)
     .where(inArray(actionOrgaos.orgao, orgaos));
   return rows.map(r => r.actionId);
+}
+
+/** Retorna os actionIds cujo responsável (tabela action_orgaos) está na lista fornecida */
+export async function getActionIdsByResponsaveis(nomes: string[]): Promise<number[]> {
+  if (!nomes.length) return [];
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ actionId: actionOrgaos.actionId })
+    .from(actionOrgaos)
+    .where(inArray(actionOrgaos.responsavelNome, nomes));
+  return rows.map(r => r.actionId);
+}
+
+/** Retorna lista de nomes únicos de responsáveis de action_orgaos (para popular o filtro) */
+export async function getResponsaveisDisponiveis(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ nome: actionOrgaos.responsavelNome })
+    .from(actionOrgaos)
+    .where(and(not(isNull(actionOrgaos.responsavelNome)), sql`${actionOrgaos.responsavelNome} != ''`));
+  return rows.map(r => r.nome as string).sort();
 }
