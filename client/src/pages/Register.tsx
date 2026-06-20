@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle2, User, Lock, Briefcase, Building2, Phone, Mail } from "lucide-react";
 import { Link } from "wouter";
+import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS } from "../../../shared/orgaos";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -200,15 +201,25 @@ export default function Register() {
                   Secretaria / Órgão
                 </Label>
                 <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                  <select
                     id="organization"
-                    type="text"
-                    placeholder="Ex.: SEMPLA"
                     value={form.organization}
                     onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
-                    className="pl-9"
-                  />
+                    className="w-full pl-9 pr-3 py-2 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+                  >
+                    <option value="">Selecione seu órgão...</option>
+                    <optgroup label="Órgãos Municipais">
+                      {ORGAOS_MUNICIPAIS.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Empresas Parceiras (PMI Ribeira Sustentável)">
+                      {EMPRESAS_PARCEIRAS.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
               </div>
 
