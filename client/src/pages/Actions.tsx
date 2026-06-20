@@ -864,7 +864,11 @@ export default function Actions() {
                         statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
                         priorities: selectedPriorities.length > 0 ? selectedPriorities : undefined,
                         orgaos: selectedOrgaos.length > 0 ? selectedOrgaos : undefined,
+                        responsaveis: selectedResponsaveis.length > 0 ? selectedResponsaveis : undefined,
                         searchText: searchText.length > 0 ? searchText : undefined,
+                        deadlineFilter: deadlineFilter !== "all" ? deadlineFilter : undefined,
+                        docFilter: docFilter !== "all" ? docFilter : undefined,
+                        contactFilter: contactFilter !== "all" ? contactFilter : undefined,
                       });
                       toast.success("Exportação PDF iniciada");
                       setShowExportMenu(false);

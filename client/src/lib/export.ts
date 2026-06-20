@@ -46,7 +46,11 @@ export type ExportFilters = {
   statuses?: string[];
   priorities?: string[];
   orgaos?: string[];
+  responsaveis?: string[];
   searchText?: string;
+  deadlineFilter?: string;
+  docFilter?: string;
+  contactFilter?: string;
 };
 
 // ---- Helpers ----
@@ -429,25 +433,37 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
   }
 
   doc.setFontSize(13); doc.setTextColor(...C.white); doc.setFont("helvetica", "bold");
-  doc.text("PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs", margin, 12);
-  doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.tealLight);
-  doc.text("Relatório de Ações e Entregas — Controle de entrega de documentos pelos órgãos municipais", margin, 20);
-  doc.setFontSize(7); doc.setTextColor(...C.lightGray);
+  doc.text("PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs", margin, 11);
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.tealLight);
+  doc.text("PMI Ribeira Sustentável", margin, 19);
+  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.lightGray);
   doc.text(`Gerado em ${formatDateTime(now)}  ·  ${data.filter(a => a.isGroup === 0).length} item(ns)`, margin, 27);
 
   // ---- Filter summary ----
+  const DEADLINE_LABELS: Record<string, string> = { overdue: "Atrasados", this_week: "Vence esta semana" };
+  const DOC_FILTER_LABELS: Record<string, string> = { any: "Com documento", pending: "Doc com pendência", accepted: "Doc aceito" };
+  const CONTACT_LABELS: Record<string, string> = { with_contact: "Com contato", no_contact: "Sem contato" };
+
   const hasFilters =
     (filters?.areas?.length ?? 0) > 0 ||
     (filters?.statuses?.length ?? 0) > 0 ||
     (filters?.priorities?.length ?? 0) > 0 ||
     (filters?.orgaos?.length ?? 0) > 0 ||
-    (filters?.searchText ?? "").length > 0;
+    (filters?.responsaveis?.length ?? 0) > 0 ||
+    (filters?.searchText ?? "").length > 0 ||
+    (filters?.deadlineFilter && filters.deadlineFilter !== "all") ||
+    (filters?.docFilter && filters.docFilter !== "all") ||
+    (filters?.contactFilter && filters.contactFilter !== "all");
 
   const filterParts: string[] = [];
   if (filters?.areas?.length) filterParts.push(`Área: ${filters.areas.join(", ")}`);
   if (filters?.statuses?.length) filterParts.push(`Status: ${filters.statuses.join(", ")}`);
   if (filters?.priorities?.length) filterParts.push(`Prioridade: ${filters.priorities.join(", ")}`);
   if (filters?.orgaos?.length) filterParts.push(`Órgão: ${filters.orgaos.join(", ")}`);
+  if (filters?.responsaveis?.length) filterParts.push(`Responsável: ${filters.responsaveis.join(", ")}`);
+  if (filters?.deadlineFilter && filters.deadlineFilter !== "all") filterParts.push(`Prazo: ${DEADLINE_LABELS[filters.deadlineFilter] ?? filters.deadlineFilter}`);
+  if (filters?.docFilter && filters.docFilter !== "all") filterParts.push(`Documento: ${DOC_FILTER_LABELS[filters.docFilter] ?? filters.docFilter}`);
+  if (filters?.contactFilter && filters.contactFilter !== "all") filterParts.push(`Contato: ${CONTACT_LABELS[filters.contactFilter] ?? filters.contactFilter}`);
   if (filters?.searchText) filterParts.push(`Busca: "${filters.searchText}"`);
 
   let startY = 38;
@@ -601,7 +617,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       const pg = data.pageNumber;
       doc.setFontSize(6.5); doc.setTextColor(...C.gray);
       doc.text(
-        `PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs — Relatório de Ações e Entregas — ${formatDateTime(now)} — Pág. ${pg}`,
+        `PMI Ribeira Sustentável — Relatório de Ações e Entregas — ${formatDateTime(now)} — Pág. ${pg}`,
         margin, pageH - 6
       );
       doc.setDrawColor(...C.lightGray);
