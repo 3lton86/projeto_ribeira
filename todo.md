@@ -409,3 +409,10 @@
 - [x] Actions.tsx: botão de navegação convertido de Link para button com onClick={onNavigate}
 - [x] Actions.tsx: onNavigate={handleNavigateToAction} passado nas duas chamadas de SortableActionRow
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 42 — Correção da Restauração de Scroll
+
+- [x] Diagnóstico: wouter não desmonta/remonta Actions ao navegar de /acoes/:id → /acoes, portanto useEffect([], []) não disparava no retorno
+- [x] Correção: useEffect agora depende de `location` (useLocation do wouter) e verifica `location === "/acoes"` antes de restaurar o scroll
+- [x] handleNavigateToAction continua salvando window.scrollY no sessionStorage antes de navegar
+- [x] 69 testes passando, zero erros TypeScript

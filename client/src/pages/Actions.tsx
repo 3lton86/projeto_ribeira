@@ -642,22 +642,24 @@ export default function Actions() {
     const { user } = useAuth();
   const { localUser } = useLocalAuth();
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
-  // Restore scroll position when returning from ActionDetail
+  // Restore scroll position when returning from ActionDetail.
+  // We depend on `location` so this fires every time the route becomes /acoes,
+  // even when the component is NOT unmounted/remounted by the router.
   useEffect(() => {
+    if (location !== "/acoes") return;
     const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved !== null) {
-      const y = parseInt(saved, 10);
-      sessionStorage.removeItem(SCROLL_KEY);
-      // Wait for the list to render before scrolling
+    if (saved === null) return;
+    const y = parseInt(saved, 10);
+    sessionStorage.removeItem(SCROLL_KEY);
+    // Double rAF ensures the list has fully rendered before we scroll.
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.scrollTo({ top: y, behavior: "instant" });
-        });
+        window.scrollTo({ top: y, behavior: "instant" });
       });
-    }
-  }, []);
+    });
+  }, [location]);
 
   const handleNavigateToAction = useCallback((id: number) => {
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
