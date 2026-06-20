@@ -211,13 +211,40 @@ export default function ActionDetail() {
   const [showAddOrgao, setShowAddOrgao] = useState(false);
   const [deleteOrgaoId, setDeleteOrgaoId] = useState<number | null>(null);
   const [newOrgao, setNewOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
-  // Contact send dialog state
+  // Contact send dialog state — suporta múltiplos destinatários
+  type ContactRecipient = {
+    id: number;
+    orgao: string;
+    name: string;
+    contact: string;
+    selected: boolean;
+  };
   const [contactSendDialog, setContactSendDialog] = useState<{
     channel: "email" | "whatsapp";
-    recipientName: string;
-    recipientContact: string;
+    recipients: ContactRecipient[];
     message: string;
   } | null>(null);
+
+  // Helper para abrir o dialog de contato com suporte a múltiplos destinatários
+  const openContactDialog = (
+    channel: "email" | "whatsapp",
+    primaryOrgao: { id: number; orgao: string; responsavelNome?: string | null; responsavelTel?: string | null; responsavelEmail?: string | null },
+    commentText?: string
+  ) => {
+    const msg = buildContactMessage(primaryOrgao.orgao, primaryOrgao.responsavelNome ?? "", channel, commentText);
+    // Coletar todos os órgãos com o contato relevante
+    const allWithContact = (actionOrgaos ?? []).filter(o =>
+      channel === "whatsapp" ? !!o.responsavelTel : !!o.responsavelEmail
+    );
+    const recipients: ContactRecipient[] = allWithContact.map(o => ({
+      id: o.id,
+      orgao: o.orgao,
+      name: o.responsavelNome ?? o.orgao,
+      contact: channel === "whatsapp" ? (o.responsavelTel ?? "") : (o.responsavelEmail ?? ""),
+      selected: o.id === primaryOrgao.id,
+    }));
+    setContactSendDialog({ channel, recipients, message: msg });
+  };
 
   const updateMutation = trpc.actions.update.useMutation({
     onSuccess: () => {
@@ -581,10 +608,7 @@ export default function ActionDetail() {
                                         ? "bg-orange-500/20 text-orange-600 hover:bg-orange-500/35 ring-1 ring-orange-400/60"
                                         : "bg-blue-500/15 text-blue-500 hover:bg-blue-500/30"
                                     }`}
-                                    onClick={() => {
-                                      const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "email");
-                                      setContactSendDialog({ channel: "email", recipientName: o.responsavelNome ?? "", recipientContact: o.responsavelEmail ?? "", message: msg });
-                                    }}
+                                    onClick={() => openContactDialog("email", o)}
                                   >
                                     <Mail className="w-3 h-3" />
                                   </button>
@@ -597,10 +621,7 @@ export default function ActionDetail() {
                                         ? "bg-orange-500/20 text-orange-600 hover:bg-orange-500/35 ring-1 ring-orange-400/60"
                                         : "bg-green-500/15 text-green-600 hover:bg-green-500/30"
                                     }`}
-                                    onClick={() => {
-                                      const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "whatsapp");
-                                      setContactSendDialog({ channel: "whatsapp", recipientName: o.responsavelNome ?? "", recipientContact: o.responsavelTel ?? "", message: msg });
-                                    }}
+                                    onClick={() => openContactDialog("whatsapp", o)}
                                   >
                                     <Phone className="w-3 h-3" />
                                   </button>
@@ -692,8 +713,7 @@ export default function ActionDetail() {
                           }`}
                           onClick={() => {
                             if (!newComment.trim()) return;
-                            const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "whatsapp", newComment.trim());
-                            setContactSendDialog({ channel: "whatsapp", recipientName: o.responsavelNome ?? o.orgao, recipientContact: o.responsavelTel ?? "", message: msg });
+                            openContactDialog("whatsapp", o, newComment.trim());
                           }}
                         >
                           <Phone className="w-3 h-3" />
@@ -712,8 +732,7 @@ export default function ActionDetail() {
                           }`}
                           onClick={() => {
                             if (!newComment.trim()) return;
-                            const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "email", newComment.trim());
-                            setContactSendDialog({ channel: "email", recipientName: o.responsavelNome ?? o.orgao, recipientContact: o.responsavelEmail ?? "", message: msg });
+                            openContactDialog("email", o, newComment.trim());
                           }}
                         >
                           <Mail className="w-3 h-3" />
@@ -1200,9 +1219,9 @@ export default function ActionDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog: Confirmar e Enviar Contato */}
+      {/* Dialog: Confirmar e Enviar Contato (suporta múltiplos destinatários) */}
       <Dialog open={contactSendDialog !== null} onOpenChange={(open) => !open && setContactSendDialog(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {contactSendDialog?.channel === "whatsapp" ? (
@@ -1212,9 +1231,6 @@ export default function ActionDetail() {
               )}
               Enviar via {contactSendDialog?.channel === "whatsapp" ? "WhatsApp" : "E-mail"}
             </DialogTitle>
-            <p className="text-xs text-muted-foreground">
-              Para: <strong>{contactSendDialog?.recipientName}</strong> ({contactSendDialog?.recipientContact})
-            </p>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {contactAlert && (
@@ -1223,6 +1239,43 @@ export default function ActionDetail() {
                 {isOverdue ? "Este item está com prazo vencido." : "Este item possui documentos com pendência."}
               </div>
             )}
+
+            {/* Seleção de destinatários */}
+            {contactSendDialog && contactSendDialog.recipients.length > 1 && (
+              <div>
+                <Label className="text-xs uppercase tracking-wider mb-1.5 block">Destinatários</Label>
+                <div className="space-y-1.5">
+                  {contactSendDialog.recipients.map((r) => (
+                    <label
+                      key={r.id}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border/40 bg-secondary/20 cursor-pointer hover:bg-secondary/40 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={r.selected}
+                        onChange={(e) => setContactSendDialog(prev => prev ? {
+                          ...prev,
+                          recipients: prev.recipients.map(x =>
+                            x.id === r.id ? { ...x, selected: e.target.checked } : x
+                          ),
+                        } : null)}
+                        className="w-3.5 h-3.5 accent-primary"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium text-foreground">{r.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{r.orgao} • {r.contact}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {contactSendDialog && contactSendDialog.recipients.length === 1 && (
+              <p className="text-xs text-muted-foreground">
+                Para: <strong>{contactSendDialog.recipients[0].name}</strong> ({contactSendDialog.recipients[0].contact})
+              </p>
+            )}
+
             <div>
               <Label className="text-xs uppercase tracking-wider">Mensagem</Label>
               <textarea
@@ -1237,28 +1290,39 @@ export default function ActionDetail() {
             <Button variant="outline" onClick={() => setContactSendDialog(null)}>Cancelar</Button>
             <Button
               className={contactSendDialog?.channel === "whatsapp" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
+              disabled={!contactSendDialog?.recipients.some(r => r.selected)}
               onClick={() => {
                 if (!contactSendDialog) return;
-                const { channel, recipientName, recipientContact, message } = contactSendDialog;
-                if (channel === "whatsapp") {
-                  const phone = recipientContact.replace(/\D/g, "");
-                  const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-                  window.open(url, "_blank");
-                } else {
-                  const subject = encodeURIComponent(`Demanda Ribeira - ${action?.description ?? "Item"}`);
-                  const body = encodeURIComponent(message);
-                  window.open(`mailto:${recipientContact}?subject=${subject}&body=${body}`, "_blank");
-                }
-                // Register in contact history
-                addContactHistoryMutation.mutate({
-                  actionId: id,
-                  channel,
-                  recipientName,
-                  recipientContact,
-                  message: message.slice(0, 500),
-                  sentBy: localUser?.name ?? localUser?.username ?? "Admin",
+                const { channel, recipients, message } = contactSendDialog;
+                const selected = recipients.filter(r => r.selected);
+                const subject = encodeURIComponent(`Demanda Ribeira - ${action?.description ?? "Item"}`);
+                const body = encodeURIComponent(message);
+
+                // Abrir janela para cada destinatário selecionado
+                selected.forEach((r, idx) => {
+                  setTimeout(() => {
+                    if (channel === "whatsapp") {
+                      const phone = r.contact.replace(/\D/g, "");
+                      window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, "_blank");
+                    } else {
+                      window.open(`mailto:${r.contact}?subject=${subject}&body=${body}`, "_blank");
+                    }
+                  }, idx * 300); // pequeno delay para não bloquear popups
                 });
-                toast.success(`Contato registrado no histórico.`);
+
+                // Registrar no histórico para cada destinatário
+                selected.forEach((r) => {
+                  addContactHistoryMutation.mutate({
+                    actionId: id,
+                    channel,
+                    recipientName: r.name,
+                    recipientContact: r.contact,
+                    message: message.slice(0, 500),
+                    sentBy: localUser?.name ?? localUser?.username ?? "Admin",
+                  });
+                });
+
+                toast.success(`Contato registrado no histórico para ${selected.length} destinatário${selected.length > 1 ? "s" : ""}.`);
                 setContactSendDialog(null);
               }}
             >

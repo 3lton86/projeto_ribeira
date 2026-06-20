@@ -102,6 +102,8 @@ export const localUsers = mysqlTable("local_users", {
   role: mysqlEnum("role", ["super_admin", "admin", "setorial", "viewer"]).default("viewer").notNull(),
   position: varchar("position", { length: 200 }), // cargo
   organization: varchar("organization", { length: 200 }), // órgão
+  telefone: varchar("telefone", { length: 50 }), // telefone/WhatsApp
+  email: varchar("email", { length: 320 }), // email de contato
     active: int("active").default(1).notNull(), // 1 = ativo, 0 = desativado
   pendingApproval: int("pendingApproval").default(0).notNull(), // 1 = aguardando aprovação do admin
   createdAt: timestamp("createdAt").defaultNow().notNull(),

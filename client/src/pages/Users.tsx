@@ -43,6 +43,8 @@ type UserRow = {
   role: "super_admin" | "admin" | "setorial" | "viewer";
   position: string | null;
   organization: string | null;
+  telefone: string | null;
+  email: string | null;
   active: number;
   createdAt: Date;
   allowedOrgaos: string[];
@@ -373,6 +375,8 @@ type FormData = {
   role: "admin" | "setorial" | "viewer";
   position: string;
   organization: string;
+  telefone: string;
+  email: string;
   allowedOrgaos: string[];
   active?: number;
 };
@@ -403,6 +407,8 @@ function UserFormDialog({
     role: (initial?.role === "super_admin" ? "admin" : initial?.role) ?? "viewer",
     position: initial?.position ?? "",
     organization: initial?.organization ?? "",
+    telefone: initial?.telefone ?? "",
+    email: initial?.email ?? "",
     allowedOrgaos: initial?.allowedOrgaos ?? [],
   });
   const [active, setActive] = useState(initial?.active ?? 1);
@@ -430,6 +436,8 @@ function UserFormDialog({
       role: form.role,
       position: form.position || undefined,
       organization: form.organization || undefined,
+      telefone: form.telefone || undefined,
+      email: form.email || undefined,
       allowedOrgaos: form.role === "setorial" ? form.allowedOrgaos : [],
     };
     if (form.password) data.password = form.password;
@@ -489,6 +497,25 @@ function UserFormDialog({
                 value={form.organization}
                 onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
                 placeholder="Ex: SEMURB"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Telefone / WhatsApp</Label>
+              <Input
+                value={form.telefone}
+                onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                placeholder="Ex: (84) 99999-9999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail de contato</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="Ex: nome@natal.rn.gov.br"
               />
             </div>
           </div>

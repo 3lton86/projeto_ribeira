@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Building2, Plus, Pencil, Trash2, User, ChevronDown, ChevronRight, Search, UserPlus } from "lucide-react";
@@ -29,6 +29,8 @@ type LocalUser = {
   role: string;
   position: string | null;
   organization: string | null;
+  telefone: string | null;
+  email: string | null;
   active: number;
   allowedOrgaos: string[];
 };
@@ -99,6 +101,21 @@ export default function OrgaosResponsaveis() {
       (grouped.get(o) ?? []).some(r => r.nome.toLowerCase().includes(q))
     );
   }, [search, grouped]);
+
+  // Auto-fill form when a local user is selected
+  useEffect(() => {
+    if (form.localUserId === null) return;
+    const user = localUsers.find(u => u.id === form.localUserId);
+    if (!user) return;
+    setForm(f => ({
+      ...f,
+      nome: f.nome || user.name,
+      cargo: f.cargo || (user.position ?? ""),
+      telefone: f.telefone || (user.telefone ?? ""),
+      email: f.email || (user.email ?? ""),
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.localUserId]);
 
   // Users filtered by orgao (for linking)
   const usersForOrgao = useMemo(() => {
@@ -347,7 +364,20 @@ export default function OrgaosResponsaveis() {
               <label className="text-xs font-medium text-muted-foreground">Vincular a usuário cadastrado</label>
               <Select
                 value={form.localUserId !== null ? String(form.localUserId) : "__none__"}
-                onValueChange={v => setForm(f => ({ ...f, localUserId: v === "__none__" ? null : Number(v), createUser: false }))}
+                onValueChange={v => {
+                  const newId = v === "__none__" ? null : Number(v);
+                  const user = newId !== null ? localUsers.find(u => u.id === newId) : null;
+                  setForm(f => ({
+                    ...f,
+                    localUserId: newId,
+                    createUser: false,
+                    // Auto-fill fields from the selected user (only if currently empty)
+                    nome: f.nome || (user?.name ?? f.nome),
+                    cargo: f.cargo || (user?.position ?? f.cargo),
+                    telefone: f.telefone || (user?.telefone ?? f.telefone),
+                    email: f.email || (user?.email ?? f.email),
+                  }));
+                }}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Nenhum (sem vínculo)" />

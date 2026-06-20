@@ -195,6 +195,8 @@ export const localAuthRouter = router({
           role: z.enum(["admin", "setorial", "viewer"]),
           position: z.string().max(200).optional(),
           organization: z.string().max(200).optional(),
+          telefone: z.string().max(50).optional(),
+          email: z.string().email().max(320).optional(),
           allowedOrgaos: z.array(z.string()).optional(), // for setorial users
         })
       )
@@ -214,6 +216,8 @@ export const localAuthRouter = router({
           role: input.role,
           position: input.position ?? null,
           organization: input.organization ?? null,
+          telefone: input.telefone ?? null,
+          email: input.email ?? null,
           active: 1,
         });
         // Save orgãos for setorial users
@@ -234,6 +238,8 @@ export const localAuthRouter = router({
           role: z.enum(["admin", "setorial", "viewer"]).optional(),
           position: z.string().max(200).optional(),
           organization: z.string().max(200).optional(),
+          telefone: z.string().max(50).optional().nullable(),
+          email: z.string().email().max(320).optional().nullable(),
           active: z.number().min(0).max(1).optional(),
           allowedOrgaos: z.array(z.string()).optional(), // for setorial users
         })
@@ -326,6 +332,8 @@ export const localAuthRouter = router({
         password: z.string().min(6).max(100),
         position: z.string().max(200).optional(),
         organization: z.string().max(200).optional(),
+        telefone: z.string().max(50).optional(),
+        email: z.string().email().max(320).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -339,6 +347,8 @@ export const localAuthRouter = router({
         role: "viewer",
         position: input.position ?? null,
         organization: input.organization ?? null,
+        telefone: input.telefone ?? null,
+        email: input.email ?? null,
         active: 0,
         pendingApproval: 1,
       });

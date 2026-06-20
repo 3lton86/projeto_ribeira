@@ -61,6 +61,7 @@ type Status = "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
 type Priority = "Alta" | "Média" | "Baixa";
 type DeadlineFilter = "all" | "overdue" | "this_week";
 type DocFilter = "all" | "any" | "pending" | "accepted";
+type ContactFilter = "all" | "with_contact" | "no_contact";
 
 const AREAS: Area[] = ["Governança", "Técnico", "Jurídico", "Eco-Fin"];
 const STATUSES: Status[] = ["Pendente", "Em Andamento", "Concluído", "Cancelado"];
@@ -521,6 +522,7 @@ export default function Actions() {
   const [searchText, setSearchText] = useState("");
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>("all");
   const [docFilter, setDocFilter] = useState<DocFilter>("all");
+  const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set()); // items with sub-items expanded by default
   const [showFilters, setShowFilters] = useState(false);
@@ -556,6 +558,10 @@ export default function Actions() {
   // Export scope: "all" | area name
   const [exportScope, setExportScope] = useState<"all" | Area>("all");
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Query para IDs de ações com histórico de contato
+  const { data: actionIdsWithContact } = trpc.contactHistory.listActionIds.useQuery();
+  const contactActionIdSet = useMemo(() => new Set(actionIdsWithContact ?? []), [actionIdsWithContact]);
 
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
     docFilter !== "all" ? { docFilter: docFilter as "any" | "pending" | "accepted" } : {}
@@ -621,10 +627,13 @@ export default function Actions() {
         // Deadline quick filter
         if (deadlineFilter === "overdue" && !isOverdue((a as any).dueDate, a.status)) return false;
         if (deadlineFilter === "this_week" && !isDueThisWeek((a as any).dueDate, a.status)) return false;
+        // Contact filter
+        if (contactFilter === "with_contact" && !contactActionIdSet.has(a.id)) return false;
+        if (contactFilter === "no_contact" && contactActionIdSet.has(a.id)) return false;
       }
       return true;
     });
-  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, searchText, deadlineFilter]);
+  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof filtered> = {};
@@ -692,10 +701,10 @@ export default function Actions() {
   const clearFilters = () => {
     setSelectedAreas([]); setSelectedStatuses([]); setSelectedPriorities([]);
     setSelectedOrgaos([]); setOrgaoSearch(""); setSearchText("");
-    setDeadlineFilter("all"); setDocFilter("all"); setAreaPages({});
+    setDeadlineFilter("all"); setDocFilter("all"); setContactFilter("all"); setAreaPages({});
   };
 
-  const hasFilters = selectedAreas.length > 0 || selectedStatuses.length > 0 || selectedPriorities.length > 0 || selectedOrgaos.length > 0 || searchText.length > 0 || deadlineFilter !== "all" || docFilter !== "all";
+  const hasFilters = selectedAreas.length > 0 || selectedStatuses.length > 0 || selectedPriorities.length > 0 || selectedOrgaos.length > 0 || searchText.length > 0 || deadlineFilter !== "all" || docFilter !== "all" || contactFilter !== "all";
   const totalItems = filtered.filter(a => a.isGroup === 0).length;
 
   const getAreaPage = (area: string) => areaPages[area] ?? 1;
@@ -816,7 +825,7 @@ export default function Actions() {
             <Filter className="w-3.5 h-3.5" /> Filtros
             {hasFilters && (
               <span className="ml-1 bg-black/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
-                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + (searchText ? 1 : 0) + (deadlineFilter !== "all" ? 1 : 0) + (docFilter !== "all" ? 1 : 0)}
+                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + (searchText ? 1 : 0) + (deadlineFilter !== "all" ? 1 : 0) + (docFilter !== "all" ? 1 : 0) + (contactFilter !== "all" ? 1 : 0)}
               </span>
             )}
           </button>
@@ -879,6 +888,32 @@ export default function Actions() {
         >
           <FileCheck2 className="w-3.5 h-3.5" />
           Doc aceito
+        </button>
+
+        {/* Separador visual */}
+        <span className="text-border/50 text-xs hidden sm:inline">|</span>
+
+        {/* Filtros de contato */}
+        <button
+          onClick={() => { setContactFilter("all"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${contactFilter === "all" ? "bg-primary/20 text-primary border border-primary/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          Todos os contatos
+        </button>
+        <button
+          onClick={() => { setContactFilter("with_contact"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${contactFilter === "with_contact" ? "bg-teal-500/20 text-teal-400 border border-teal-500/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          Com contato
+        </button>
+        <button
+          onClick={() => { setContactFilter("no_contact"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${contactFilter === "no_contact" ? "bg-orange-500/20 text-orange-400 border border-orange-500/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          Sem contato
         </button>
       </div>
 

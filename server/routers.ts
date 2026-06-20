@@ -42,6 +42,7 @@ import {
   removeOrgaoResponsavel,
   getContactHistory,
   addContactHistory,
+  getActionIdsWithContact,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -760,6 +761,11 @@ export const appRouter = router({
       .input(z.object({ actionId: z.number() }))
       .query(async ({ input }) => {
         return getContactHistory(input.actionId);
+      }),
+
+    listActionIds: publicProcedure
+      .query(async () => {
+        return getActionIdsWithContact();
       }),
 
     add: localAuthProcedure

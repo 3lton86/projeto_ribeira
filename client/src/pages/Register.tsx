@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, User, Lock, Briefcase, Building2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, User, Lock, Briefcase, Building2, Phone, Mail } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Register() {
@@ -14,6 +14,8 @@ export default function Register() {
     confirmPassword: "",
     position: "",
     organization: "",
+    telefone: "",
+    email: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -44,6 +46,8 @@ export default function Register() {
       password: form.password,
       position: form.position.trim() || undefined,
       organization: form.organization.trim() || undefined,
+      telefone: form.telefone.trim() || undefined,
+      email: form.email.trim() || undefined,
     });
   };
 
@@ -203,6 +207,42 @@ export default function Register() {
                     placeholder="Ex.: SEMPLA"
                     value={form.organization}
                     onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              {/* Telefone */}
+              <div className="space-y-1.5">
+                <Label htmlFor="telefone" className="text-sm font-medium text-foreground/80">
+                  Telefone / WhatsApp
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="telefone"
+                    type="text"
+                    placeholder="Ex.: (84) 99999-9999"
+                    value={form.telefone}
+                    onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              {/* E-mail de contato */}
+              <div className="space-y-1.5">
+                <Label htmlFor="reg-email" className="text-sm font-medium text-foreground/80">
+                  E-mail de contato
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="reg-email"
+                    type="email"
+                    placeholder="Ex.: nome@natal.rn.gov.br"
+                    value={form.email}
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     className="pl-9"
                   />
                 </div>

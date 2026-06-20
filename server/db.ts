@@ -466,6 +466,8 @@ export async function getLocalUsers() {
     role: localUsers.role,
     position: localUsers.position,
     organization: localUsers.organization,
+    telefone: localUsers.telefone,
+    email: localUsers.email,
     active: localUsers.active,
     createdAt: localUsers.createdAt,
   }).from(localUsers).orderBy(localUsers.name);
@@ -493,7 +495,7 @@ export async function createLocalUser(data: InsertLocalUser) {
 
 export async function updateLocalUser(
   id: number,
-  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; active: number }>
+  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; telefone: string | null; email: string | null; active: number }>
 ) {
   const db = await getDb();
   if (!db) return;
@@ -1074,4 +1076,14 @@ export async function addContactHistory(data: {
     sentBy: data.sentBy ?? null,
   });
   return (result as any).insertId ?? 0;
+}
+
+/** Retorna IDs de ações que possuem pelo menos um registro no histórico de contatos */
+export async function getActionIdsWithContact(): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ actionId: contactHistory.actionId })
+    .from(contactHistory);
+  return rows.map(r => r.actionId);
 }

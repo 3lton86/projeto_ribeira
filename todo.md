@@ -258,11 +258,11 @@
 
 ## Sprint 27 — Paginação, Exportação Hierárquica e Expansão de Itens
 
-- [ ] Paginação por grupo completo: grupos não são quebrados entre páginas
-- [ ] Exportação Excel: incluir sub-itens com indentação de células por nível hierárquico
-- [ ] Exportação PDF: incluir sub-itens com recuo visual por nível hierárquico
-- [ ] Expansão/recolhimento de itens principais (ocultar/exibir sub-itens)
-- [ ] 67 testes passando, zero erros TypeScript
+- [x] Paginação por grupo completo: grupos não são quebrados entre páginas
+- [x] Exportação Excel: incluir sub-itens com indentação de células por nível hierárquico
+- [x] Exportação PDF: incluir sub-itens com recuo visual por nível hierárquico
+- [x] Expansão/recolhimento de itens principais (ocultar/exibir sub-itens)
+- [x] 67 testes passando, zero erros TypeScript
 
 ## Sprint 27 — Paginação, Expansão e Exportação Hierárquica
 
@@ -307,4 +307,17 @@
 - [x] Frontend ActionDetail: botões WhatsApp e e-mail ao lado do campo de comentário
 - [x] Registro automático no Histórico de Contatos ao usar os botões de envio
 - [x] Dialog de confirmação com prévia editável da mensagem antes de abrir WhatsApp/e-mail
+- [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 31 — Telefone no Cadastro, Auto-preenchimento, Filtro de Contatos e Multi-destinatário
+
+- [x] Schema: campo telefone (varchar 20, nullable) adicionado à tabela local_users
+- [x] Migração do banco (pnpm db:push)
+- [x] Backend: telefone incluído em createLocalUser, updateLocalUser, getLocalUsers
+- [x] Frontend: campo telefone no modal de cadastro/edição de usuário (AdminUsers.tsx)
+- [x] Frontend: campo telefone no formulário de auto-cadastro (/registro — Register.tsx)
+- [x] Frontend: página Órgãos & Responsáveis — ao selecionar usuário vinculado, preenche nome/cargo/telefone/email automaticamente
+- [x] Backend: getActionIdsWithContact no db.ts; procedure contactHistory.listActionIds
+- [x] Frontend: filtros rápidos na listagem de ações — "Com contato" / "Sem contato" (filtro client-side)
+- [x] Frontend: dialog de envio de mensagem — checkboxes para selecionar destinatários quando há múltiplos responsáveis
 - [x] 67 testes passando, zero erros TypeScript
