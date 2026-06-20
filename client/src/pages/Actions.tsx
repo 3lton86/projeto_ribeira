@@ -645,21 +645,76 @@ export default function Actions() {
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
   const [location, navigate] = useLocation();
 
-  // ── Scroll restoration ──────────────────────────────────────────────────
-  // Strategy: save both the Y position AND the action id before navigating.
-  // On return we wait until isLoading is false (data is rendered), then
-  // try to scroll to the saved element first (most precise); if not found,
-  // fall back to the raw Y value.
+  // ── State restoration from sessionStorage on first render ───────────────
+  // When the component mounts after returning from ActionDetail, restore
+  // the full navigation state: pagination pages, filters, and scroll.
+  const STATE_KEY = "actions-nav-state";
+  const restoredRef = useRef(false);
+
+  // Restore pagination + filters immediately (before first render paints)
+  if (!restoredRef.current) {
+    restoredRef.current = true;
+    try {
+      const raw = sessionStorage.getItem(STATE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as {
+          areaPages: Record<string, number>;
+          selectedAreas: Area[];
+          selectedStatuses: Status[];
+          selectedPriorities: Priority[];
+          selectedOrgaos: string[];
+          selectedResponsaveis: string[];
+          searchText: string;
+          deadlineFilter: DeadlineFilter;
+          contactFilter: ContactFilter;
+          expandedGroups: string[];
+        };
+        // Apply state synchronously before React commits the first paint
+        if (saved.areaPages) setAreaPages(saved.areaPages);
+        if (saved.selectedAreas?.length) setSelectedAreas(saved.selectedAreas);
+        if (saved.selectedStatuses?.length) setSelectedStatuses(saved.selectedStatuses);
+        if (saved.selectedPriorities?.length) setSelectedPriorities(saved.selectedPriorities);
+        if (saved.selectedOrgaos?.length) setSelectedOrgaos(saved.selectedOrgaos);
+        if (saved.selectedResponsaveis?.length) setSelectedResponsaveis(saved.selectedResponsaveis);
+        if (saved.searchText) setSearchText(saved.searchText);
+        if (saved.deadlineFilter && saved.deadlineFilter !== "all") setDeadlineFilter(saved.deadlineFilter);
+        if (saved.contactFilter && saved.contactFilter !== "all") setContactFilter(saved.contactFilter);
+        if (saved.expandedGroups?.length) setExpandedGroups(new Set(saved.expandedGroups));
+      }
+    } catch { /* ignore malformed data */ }
+  }
+
+  // Refs to always hold the latest state values for serialization before navigation
+  const areaPagesRef = useRef(areaPages);
+  const selectedAreasRef = useRef(selectedAreas);
+  const selectedStatusesRef = useRef(selectedStatuses);
+  const selectedPrioritiesRef = useRef(selectedPriorities);
+  const selectedOrgaosRef = useRef(selectedOrgaos);
+  const selectedResponsaveisRef = useRef(selectedResponsaveis);
+  const searchTextRef = useRef(searchText);
+  const deadlineFilterRef = useRef(deadlineFilter);
+  const contactFilterRef = useRef(contactFilter);
+  const expandedGroupsRef = useRef(expandedGroups);
+  useEffect(() => { areaPagesRef.current = areaPages; }, [areaPages]);
+  useEffect(() => { selectedAreasRef.current = selectedAreas; }, [selectedAreas]);
+  useEffect(() => { selectedStatusesRef.current = selectedStatuses; }, [selectedStatuses]);
+  useEffect(() => { selectedPrioritiesRef.current = selectedPriorities; }, [selectedPriorities]);
+  useEffect(() => { selectedOrgaosRef.current = selectedOrgaos; }, [selectedOrgaos]);
+  useEffect(() => { selectedResponsaveisRef.current = selectedResponsaveis; }, [selectedResponsaveis]);
+  useEffect(() => { searchTextRef.current = searchText; }, [searchText]);
+  useEffect(() => { deadlineFilterRef.current = deadlineFilter; }, [deadlineFilter]);
+  useEffect(() => { contactFilterRef.current = contactFilter; }, [contactFilter]);
+  useEffect(() => { expandedGroupsRef.current = expandedGroups; }, [expandedGroups]);
+
+  // Pending scroll ref: armed when returning from ActionDetail
   const pendingScrollRef = useRef<{ y: number; id: string | null } | null>(null);
 
-  // Step 1: when location changes TO /acoes, read sessionStorage and arm the ref.
+  // Step 1: when location changes TO /acoes, read sessionStorage and arm scroll ref.
   useEffect(() => {
     if (location !== "/acoes") return;
     const savedY = sessionStorage.getItem(SCROLL_KEY);
     const savedId = sessionStorage.getItem(SCROLL_KEY + "-id");
     if (savedY === null) return;
-    sessionStorage.removeItem(SCROLL_KEY);
-    sessionStorage.removeItem(SCROLL_KEY + "-id");
     pendingScrollRef.current = { y: parseInt(savedY, 10), id: savedId };
   }, [location]);
 
@@ -669,9 +724,12 @@ export default function Actions() {
     const pending = pendingScrollRef.current;
     if (!pending) return;
     pendingScrollRef.current = null;
+    // Clear sessionStorage only after data is ready
+    sessionStorage.removeItem(SCROLL_KEY);
+    sessionStorage.removeItem(SCROLL_KEY + "-id");
+    sessionStorage.removeItem(STATE_KEY);
 
     const doScroll = () => {
-      // Try element-based scroll first (most precise)
       if (pending.id) {
         const el = document.querySelector(`[data-action-id="${pending.id}"]`);
         if (el) {
@@ -679,17 +737,29 @@ export default function Actions() {
           return;
         }
       }
-      // Fallback to raw Y position
       window.scrollTo({ top: pending.y, behavior: "instant" });
     };
-
-    // rAF x2 ensures DOM has painted after React commit
     requestAnimationFrame(() => requestAnimationFrame(doScroll));
   }, [isLoading]);
 
   const handleNavigateToAction = useCallback((id: number) => {
+    // Persist scroll position
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
     sessionStorage.setItem(SCROLL_KEY + "-id", String(id));
+    // Persist full navigation state (pagination + filters) via refs
+    const navState = {
+      areaPages: areaPagesRef.current,
+      selectedAreas: selectedAreasRef.current,
+      selectedStatuses: selectedStatusesRef.current,
+      selectedPriorities: selectedPrioritiesRef.current,
+      selectedOrgaos: selectedOrgaosRef.current,
+      selectedResponsaveis: selectedResponsaveisRef.current,
+      searchText: searchTextRef.current,
+      deadlineFilter: deadlineFilterRef.current,
+      contactFilter: contactFilterRef.current,
+      expandedGroups: Array.from(expandedGroupsRef.current),
+    };
+    sessionStorage.setItem(STATE_KEY, JSON.stringify(navState));
     navigate(`/acoes/${id}`);
   }, [navigate]);
 
