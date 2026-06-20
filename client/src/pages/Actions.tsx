@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS, isEmpresaParceira } from "../../../shared/orgaos";
 import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
 import { useAuth } from "@/_core/hooks/useAuth";
-import React, { useState, useMemo, useCallback, Fragment } from "react";
+import React, { useState, useMemo, useCallback, Fragment, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import {
   ChevronDown,
@@ -127,6 +127,8 @@ function formatLastContact(sentAt: Date | string | null | undefined): string {
 }
 
 // ---- Sortable Action Row ----
+const SCROLL_KEY = "actions-scroll-y";
+
 interface SortableActionRowProps {
   action: any;
   isAdmin: boolean;
@@ -134,6 +136,7 @@ interface SortableActionRowProps {
   onEdit: (action: any) => void;
   onDelete: (action: any) => void;
   onAddSubItem: (action: any) => void;
+  onNavigate: (id: number) => void;
   idx: number;
   hierNum?: string;
   depth?: number; // 0 = item direto do grupo, 1 = sub-item, 2 = sub-sub-item
@@ -143,7 +146,7 @@ interface SortableActionRowProps {
   lastContact?: { channel: "email" | "whatsapp"; sentAt: Date | string; recipientName: string | null } | null;
 }
 
-function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand, lastContact }: SortableActionRowProps) {
+function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, onNavigate, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand, lastContact }: SortableActionRowProps) {
   const {
     attributes,
     listeners,
@@ -276,9 +279,14 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
             </button>
           </>
         )}
-        <Link href={`/acoes/${action.id}`} className="p-1.5 rounded-lg hover:bg-secondary transition-colors" title="Ver ficha completa">
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigate(action.id); }}
+          className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+          title="Ver ficha completa"
+          aria-label="Ver ficha completa"
+        >
           {isAdmin ? <Edit3 className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5 text-muted-foreground" />}
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -631,9 +639,30 @@ export default function Actions() {
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
     docFilter !== "all" ? { docFilter: docFilter as "any" | "pending" | "accepted" } : {}
   );
-  const { user } = useAuth();
+    const { user } = useAuth();
   const { localUser } = useLocalAuth();
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
+  const [, navigate] = useLocation();
+
+  // Restore scroll position when returning from ActionDetail
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved !== null) {
+      const y = parseInt(saved, 10);
+      sessionStorage.removeItem(SCROLL_KEY);
+      // Wait for the list to render before scrolling
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: y, behavior: "instant" });
+        });
+      });
+    }
+  }, []);
+
+  const handleNavigateToAction = useCallback((id: number) => {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    navigate(`/acoes/${id}`);
+  }, [navigate]);
 
   const reorderMutation = trpc.actions.reorder.useMutation({
     onError: (err) => { toast.error(err.message || "Erro ao salvar ordem."); refetch(); },
@@ -1307,6 +1336,7 @@ export default function Actions() {
                                           onEdit={setEditingAction}
                                           onDelete={setDeletingAction}
                                           onAddSubItem={setAddingSubItemTo}
+                                          onNavigate={handleNavigateToAction}
                                           idx={idx}
                                           hierNum={hierNums.get(action.id)}
                                           depth={(action.itemCode?.split('.').length ?? 1) - 1}
@@ -1343,6 +1373,7 @@ export default function Actions() {
                                     onEdit={setEditingAction}
                                     onDelete={setDeletingAction}
                                     onAddSubItem={setAddingSubItemTo}
+                                    onNavigate={handleNavigateToAction}
                                     idx={idx}
                                     hierNum={hierNums.get(action.id)}
                                     depth={depth}

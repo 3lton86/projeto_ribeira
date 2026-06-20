@@ -377,3 +377,18 @@
 - [x] Users.tsx: seletor de allowedOrgaos inclui seção "Empresas Parceiras" com checkboxes em cor âmbar
 - [x] export.ts: empresas parceiras destacadas com fundo âmbar-50 e texto amber-700 na coluna Órgão Responsável do PDF
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 40 — Empresas Parceiras no Auto-Cadastro
+
+- [x] Register.tsx: campo "Secretaria / Órgão" convertido de texto livre para select com dois grupos: Órgãos Municipais e Empresas Parceiras (PMI Ribeira Sustentável)
+- [x] 69 testes passando, zero erros TypeScript
+
+## Sprint Scroll — Restauração de Posição de Scroll
+
+- [x] Actions.tsx: constante SCROLL_KEY = "actions-scroll-y" definida antes do componente
+- [x] Actions.tsx: useEffect de restauração lê sessionStorage, remove a chave e restaura scroll com duplo requestAnimationFrame
+- [x] Actions.tsx: handleNavigateToAction (useCallback) salva window.scrollY no sessionStorage e navega programaticamente
+- [x] Actions.tsx: prop onNavigate: (id: number) => void adicionada à interface SortableActionRowProps
+- [x] Actions.tsx: botão de navegação convertido de Link para button com onClick={onNavigate}
+- [x] Actions.tsx: onNavigate={handleNavigateToAction} passado nas duas chamadas de SortableActionRow
+- [x] 69 testes passando, zero erros TypeScript
