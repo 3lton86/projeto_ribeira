@@ -383,6 +383,23 @@
 - [x] Register.tsx: campo "Secretaria / Órgão" convertido de texto livre para select com dois grupos: Órgãos Municipais e Empresas Parceiras (PMI Ribeira Sustentável)
 - [x] 69 testes passando, zero erros TypeScript
 
+## Sprint 41 — Guia do Usuário atualizado (Sprints 33–40)
+
+- [x] UserGuide.tsx reescrito com todas as funcionalidades dos Sprints 33–40
+- [x] Admin: seção 3 atualizada com indicador de último contato, botão Limpar Filtros e restauração de scroll
+- [x] Admin: seção 4 atualizada com campo "Vincular a Usuário Cadastrado" no dialog de edição de órgão e empresas parceiras
+- [x] Admin: seção 5 (Órgãos & Responsáveis) atualizada com dois tipos de entidades (municipais e parceiras)
+- [x] Admin: seção 6 (Usuários) atualizada com campo órgão como select e empresas parceiras nos órgãos permitidos
+- [x] Admin: seção 9 (Exportar) atualizada com colunas de documentos no Excel e PDF landscape A4 com filtros no cabeçalho
+- [x] Admin: nova seção 10 "Empresas Parceiras do PMI" com lista das 4 empresas e onde aparecem na plataforma
+- [x] Setorial: seção 1 atualizada com auto-cadastro via select de órgão
+- [x] Setorial: seção 2 atualizada com indicador de último contato
+- [x] Viewer: seção 3 atualizada com badge de último contato e botão Limpar Filtros
+- [x] Viewer: seção 4 atualizada com restauração de scroll e empresas parceiras
+- [x] Viewer: seção 5 atualizada com indicador de último contato
+- [x] Subtítulo do Guia atualizado para "PMI Ribeira Sustentável · SEMPLA"
+- [x] 69 testes passando, zero erros TypeScript
+
 ## Sprint Scroll — Restauração de Posição de Scroll
 
 - [x] Actions.tsx: constante SCROLL_KEY = "actions-scroll-y" definida antes do componente

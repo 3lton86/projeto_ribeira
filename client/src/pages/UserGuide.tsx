@@ -30,6 +30,9 @@ import {
   Mail,
   Users,
   Filter,
+  Briefcase,
+  ArrowUpDown,
+  X,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 
@@ -144,7 +147,7 @@ const ADMIN_SECTIONS: Section[] = [
     icon: LayoutDashboard,
     content: (
       <div className="space-y-3">
-        <p>O Dashboard apresenta os indicadores consolidados de todos os contratos e ações da plataforma:</p>
+        <p>O Dashboard apresenta os indicadores consolidados de todos os contratos e ações da plataforma, identificado pelo subtítulo <strong>PMI Ribeira Sustentável</strong>:</p>
         <ul className="space-y-1.5 pl-4">
           <li className="list-disc text-sm"><strong>KPIs no topo:</strong> total de itens, percentual de conclusão, itens atrasados e sem prazo.</li>
           <li className="list-disc text-sm"><strong>Gráfico por status:</strong> distribuição entre Pendente, Em Andamento, Concluído e Cancelado.</li>
@@ -162,16 +165,30 @@ const ADMIN_SECTIONS: Section[] = [
     icon: ListChecks,
     content: (
       <div className="space-y-3">
-        <p>A página <strong>Ações</strong> é o centro da plataforma. Nela você visualiza, filtra, edita e organiza todos os itens cadastrados, com numeração hierárquica automática (ex.: 1, 1.1, 1.1.1).</p>
+        <p>A página <strong>Ações &amp; Entregas</strong> é o centro da plataforma. Nela você visualiza, filtra, edita e organiza todos os itens cadastrados, com numeração hierárquica automática (ex.: 1, 1.1, 1.1.1).</p>
+
         <p className="font-semibold text-foreground">Filtros disponíveis:</p>
         <ul className="space-y-1 pl-4">
-          <li className="list-disc text-sm">Área temática, status, prioridade e órgão responsável.</li>
+          <li className="list-disc text-sm">Área temática, status, prioridade, <strong>órgão responsável</strong> e <strong>responsável</strong> (nome).</li>
           <li className="list-disc text-sm"><strong>Atrasados</strong> e <strong>Vence esta semana</strong> — filtros rápidos de prazo com contadores.</li>
           <li className="list-disc text-sm">Campo de busca por texto livre.</li>
-          <li className="list-disc text-sm"><strong>Filtros de documento:</strong> <em>Com documentos</em> (itens com ao menos um link vinculado), <em>Com pendência</em> (itens com documento marcado como DOC COM PENDÊNCIA) e <em>Doc aceito</em> (itens com ao menos um documento marcado como DOC ACEITO).</li>
-          <li className="list-disc text-sm"><strong>Filtros de contato:</strong> <em>Com contato</em> (itens que possuem ao menos um registro no histórico de contatos) e <em>Sem contato</em> (itens sem nenhum contato registrado). Útil para identificar órgãos que ainda não foram acionados.</li>
+          <li className="list-disc text-sm"><strong>Filtros de documento:</strong> <em>Com documentos</em>, <em>Com pendência</em> e <em>Doc aceito</em>.</li>
+          <li className="list-disc text-sm"><strong>Filtros de contato:</strong> <em>Com contato</em> (itens com ao menos um registro no histórico de contatos) e <em>Sem contato</em> (itens sem nenhum contato registrado). Útil para identificar órgãos que ainda não foram acionados.</li>
         </ul>
-        <InfoBox type="info">O contador de filtros ativos aparece no botão "Filtros" e inclui todos os filtros combinados (documento, contato, prazo, etc.).</InfoBox>
+
+        <InfoBox type="tip">
+          Quando há filtros ativos, o botão <strong>"Limpar Filtros"</strong> (ícone X, em vermelho suave) aparece ao lado do botão Filtros. Clique nele para remover todos os critérios de uma vez.
+        </InfoBox>
+
+        <p className="font-semibold text-foreground">Indicador de último contato:</p>
+        <p className="text-sm">Cada item da listagem exibe um <strong>badge colorido</strong> com a data do último contato registrado:</p>
+        <ul className="space-y-1 pl-4">
+          <li className="list-disc text-sm"><Phone className="w-3 h-3 inline mr-1 text-green-600" /><strong>Verde (WhatsApp):</strong> último contato foi via WhatsApp.</li>
+          <li className="list-disc text-sm"><Mail className="w-3 h-3 inline mr-1 text-blue-500" /><strong>Azul (E-mail):</strong> último contato foi via e-mail.</li>
+          <li className="list-disc text-sm"><strong>Cinza (sem contato):</strong> nenhum contato registrado para o item.</li>
+        </ul>
+        <p className="text-sm">Passe o mouse sobre o badge para ver o tooltip com canal, destinatário e data/hora completa do último contato.</p>
+
         <p className="font-semibold text-foreground">Ações disponíveis para o Administrador:</p>
         <div className="space-y-2">
           <div className="flex items-start gap-2 text-sm"><Plus className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary" /><span><strong>Nova Ação:</strong> botão no topo da listagem para cadastrar um novo item com código automático.</span></div>
@@ -181,6 +198,10 @@ const ADMIN_SECTIONS: Section[] = [
           <div className="flex items-start gap-2 text-sm"><Trash2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-destructive" /><span><strong>Excluir:</strong> ícone de lixeira com confirmação obrigatória antes da exclusão permanente.</span></div>
           <div className="flex items-start gap-2 text-sm"><GripVertical className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary" /><span><strong>Reordenar:</strong> ative o modo "Reordenar" no topo para arrastar e soltar itens dentro de cada área.</span></div>
         </div>
+
+        <InfoBox type="info">
+          Ao clicar em "Ver ficha" de um item, a posição de rolagem da listagem é salva automaticamente. Ao retornar (botão Voltar na ficha), a lista reabre exatamente no mesmo ponto, sem precisar rolar novamente.
+        </InfoBox>
         <InfoBox type="warning">A exclusão de um item é permanente e remove todos os comentários, documentos e histórico vinculados.</InfoBox>
       </div>
     ),
@@ -192,15 +213,19 @@ const ADMIN_SECTIONS: Section[] = [
     content: (
       <div className="space-y-3">
         <p>Clique em qualquer item da listagem para abrir sua ficha completa. Nela você pode editar todos os campos e gerenciar os órgãos responsáveis, documentos, comentários e histórico.</p>
+
         <p className="font-semibold text-foreground">Órgãos Responsáveis pela Entrega:</p>
-        <p className="text-sm">Cada item pode ter múltiplos órgãos responsáveis cadastrados. Para cada órgão é possível registrar nome do responsável, cargo, telefone e e-mail.</p>
+        <p className="text-sm">Cada item pode ter múltiplos órgãos responsáveis cadastrados — tanto <strong>órgãos municipais</strong> (visual azul) quanto <strong>empresas parceiras</strong> do PMI (visual âmbar: CONSÓRCIO RIBEIRA, EY, AEPA, BP). Para cada órgão é possível registrar nome do responsável, cargo, telefone e e-mail.</p>
         <div className="space-y-2">
           <Step n={1} text="Na ficha do item, localize a seção 'Órgãos Responsáveis pela Entrega'." />
           <Step n={2} text="Clique em 'Adicionar órgão' para incluir um novo órgão responsável. Ao selecionar o órgão, os dados do responsável cadastrado em 'Órgãos & Responsáveis' são preenchidos automaticamente." />
           <Step n={3} text="Para editar um órgão já cadastrado, passe o mouse sobre o card do órgão e clique no ícone de lápis (✏). O formulário será aberto pré-preenchido com os dados atuais." />
           <Step n={4} text="Para remover um órgão, clique no ícone de lixeira (🗑) que aparece ao passar o mouse sobre o card." />
         </div>
-        <InfoBox type="tip">No formulário de adição ou edição de órgão, se o órgão selecionado tiver responsáveis cadastrados na aba 'Órgãos & Responsáveis', um seletor aparece para escolher o responsável e preencher os campos automaticamente.</InfoBox>
+        <InfoBox type="tip">
+          No formulário de edição de órgão, o campo <strong>"Vincular a Usuário Cadastrado"</strong> exibe apenas os usuários que têm aquele órgão em seus órgãos permitidos. Ao selecionar um usuário, os campos nome, cargo, telefone e e-mail são preenchidos automaticamente com os dados do cadastro.
+        </InfoBox>
+
         <p className="font-semibold text-foreground">Contato rápido com responsáveis:</p>
         <p className="text-sm">Ao lado do nome de cada responsável aparecem botões de contato rápido:</p>
         <div className="space-y-2">
@@ -209,6 +234,7 @@ const ADMIN_SECTIONS: Section[] = [
         </div>
         <p className="text-sm">Quando o item possui <strong>múltiplos responsáveis</strong>, o dialog de contato exibe checkboxes para selecionar quais destinatários receberão a mensagem. Cada envio é registrado individualmente no histórico de contatos do item.</p>
         <InfoBox type="info">Itens com alertas ativos (prazo vencido ou próximo) exibem os botões de contato com destaque laranja para chamar atenção.</InfoBox>
+
         <p className="font-semibold text-foreground">Aba Documentos — Status de conformidade:</p>
         <div className="space-y-2">
           <Step n={1} text="Abra a ficha do item e clique na aba 'Documentos'." />
@@ -221,6 +247,7 @@ const ADMIN_SECTIONS: Section[] = [
           <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" /><span><strong>DOC COM PENDÊNCIA</strong> — o documento precisa ser revisado ou reenviado pelo órgão.</span></div>
         </div>
         <InfoBox type="info">O status de documento é visível para todos os usuários com acesso ao item, mas <strong>somente administradores podem alterar o status</strong>. Quando um documento recebe status 'DOC COM PENDÊNCIA', o usuário setorial do órgão é notificado automaticamente.</InfoBox>
+
         <p className="font-semibold text-foreground">Aba Auditoria (exclusiva para admins):</p>
         <p>Registra todas as interações de usuários setoriais no item: comentários adicionados e documentos vinculados, com identificação do órgão e horário exato.</p>
         <InfoBox type="info">O Histórico registra automaticamente cada alteração de campo realizada por qualquer administrador, com data, hora e valores anterior/posterior.</InfoBox>
@@ -233,16 +260,28 @@ const ADMIN_SECTIONS: Section[] = [
     icon: Building2,
     content: (
       <div className="space-y-3">
-        <p>A página <strong>Órgãos & Responsáveis</strong> (acessível pelo sidebar) é o cadastro central de contatos por secretaria/órgão municipal. Os dados cadastrados aqui são usados para preencher automaticamente os responsáveis na ficha de cada item.</p>
+        <p>A página <strong>Órgãos &amp; Responsáveis</strong> (acessível pelo sidebar) é o cadastro central de contatos por secretaria/órgão municipal e por empresa parceira. Os dados cadastrados aqui são usados para preencher automaticamente os responsáveis na ficha de cada item.</p>
+
+        <p className="font-semibold text-foreground">Dois tipos de entidades:</p>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm">
+            <strong className="text-blue-700">Órgãos Municipais</strong> — secretarias e autarquias da Prefeitura de Natal. Exibidos com visual azul/teal na listagem e na ficha dos itens.
+          </div>
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+            <strong className="text-amber-700">Empresas Parceiras (PMI Ribeira Sustentável)</strong> — CONSÓRCIO RIBEIRA, EY, AEPA e BP (Bureau Pad). Exibidos em seção separada com visual âmbar/laranja, incluindo badge identificador.
+          </div>
+        </div>
+
         <p className="font-semibold text-foreground">Para cadastrar um responsável:</p>
         <div className="space-y-2">
           <Step n={1} text="Acesse 'Órgãos & Responsáveis' no menu lateral." />
           <Step n={2} text="Clique em 'Adicionar Responsável'." />
-          <Step n={3} text="Selecione o órgão/secretaria." />
+          <Step n={3} text="Selecione o órgão/secretaria ou empresa parceira no campo de seleção (os dois grupos aparecem separados)." />
           <Step n={4} text="Preencha nome, cargo, telefone/WhatsApp e e-mail do responsável." />
-          <Step n={5} text="Opcionalmente, vincule o responsável a um usuário cadastrado na plataforma usando o campo 'Usuário vinculado'. Ao vincular, os campos nome, cargo, telefone e e-mail são preenchidos automaticamente com os dados do usuário selecionado." />
+          <Step n={5} text="Opcionalmente, vincule o responsável a um usuário cadastrado na plataforma usando o campo 'Usuário vinculado'. Ao vincular, os campos nome, cargo, telefone e e-mail são preenchidos automaticamente com os dados do cadastro do usuário." />
           <Step n={6} text="Clique em 'Salvar'." />
         </div>
+
         <p className="font-semibold text-foreground">Para editar um responsável:</p>
         <div className="space-y-2">
           <Step n={1} text="Localize o responsável na listagem do órgão." />
@@ -271,10 +310,10 @@ const ADMIN_SECTIONS: Section[] = [
         <ul className="space-y-1 pl-4">
           <li className="list-disc text-sm"><strong>Nome completo</strong> e <strong>usuário/login</strong> (único na plataforma).</li>
           <li className="list-disc text-sm"><strong>Senha</strong> (definida pelo admin; o próprio usuário pode alterá-la depois).</li>
-          <li className="list-disc text-sm"><strong>Cargo</strong> e <strong>Órgão de lotação</strong>.</li>
+          <li className="list-disc text-sm"><strong>Cargo</strong> e <strong>Órgão de lotação</strong> — o campo de órgão é um seletor com dois grupos: <em>Órgãos Municipais</em> e <em>Empresas Parceiras</em>.</li>
           <li className="list-disc text-sm"><strong>Telefone/WhatsApp</strong> — usado para preencher automaticamente os dados de contato quando o usuário é vinculado como responsável de um órgão.</li>
           <li className="list-disc text-sm"><strong>E-mail de contato</strong> — idem ao telefone.</li>
-          <li className="list-disc text-sm"><strong>Órgãos permitidos</strong> (apenas para perfil Setorial) — selecione os órgãos que o usuário poderá acessar, ou marque 'TODOS' para acesso irrestrito.</li>
+          <li className="list-disc text-sm"><strong>Órgãos permitidos</strong> (apenas para perfil Setorial) — selecione os órgãos que o usuário poderá acessar, incluindo empresas parceiras, ou marque 'TODOS' para acesso irrestrito.</li>
         </ul>
         <p className="font-semibold text-foreground">Aprovar solicitações de cadastro:</p>
         <div className="space-y-2">
@@ -352,12 +391,50 @@ const ADMIN_SECTIONS: Section[] = [
           <Step n={3} text="Selecione o formato desejado (Excel ou PDF)." />
           <Step n={4} text="O arquivo será baixado automaticamente com os dados selecionados." />
         </div>
-        <p className="font-semibold text-foreground">Estrutura hierárquica na exportação:</p>
+
+        <p className="font-semibold text-foreground">Exportação Excel — o que inclui:</p>
         <ul className="space-y-1 pl-4">
-          <li className="list-disc text-sm"><strong>Excel:</strong> grupos em negrito e cor diferenciada; sub-itens com recuo por nível hierárquico.</li>
-          <li className="list-disc text-sm"><strong>PDF:</strong> grupos como cabeçalhos de seção; sub-itens com indentação e barra lateral colorida por nível. O campo Observações é incluído em cada item.</li>
+          <li className="list-disc text-sm">Grupos em negrito e cor diferenciada; sub-itens com recuo por nível hierárquico.</li>
+          <li className="list-disc text-sm">Colunas <strong>Nome do Documento</strong>, <strong>URL do Arquivo</strong> (com hyperlink clicável) e <strong>Status do Documento</strong> (DOC ACEITO / DOC COM PENDÊNCIA).</li>
+          <li className="list-disc text-sm">Itens com múltiplos documentos geram <strong>linhas de continuação</strong> (└) para cada documento adicional.</li>
+          <li className="list-disc text-sm">Coluna <strong>Qtd. Documentos</strong> com o total de links vinculados ao item.</li>
         </ul>
+
+        <p className="font-semibold text-foreground">Exportação PDF — o que inclui:</p>
+        <ul className="space-y-1 pl-4">
+          <li className="list-disc text-sm">Formato <strong>landscape A4</strong> com 11 colunas fixas, sem sobreposições.</li>
+          <li className="list-disc text-sm">Cabeçalho com título <strong>PMI Ribeira Sustentável</strong>, data/hora de geração e todos os filtros ativos (Área, Status, Prioridade, Órgão, Responsável, Prazo, Documento, Contato, Busca).</li>
+          <li className="list-disc text-sm">Colunas: Nº, Código, Descrição, Órgão Responsável, Responsável, Cargo, Telefone, Prazo, Status, Prioridade, Observações.</li>
+          <li className="list-disc text-sm">Empresas parceiras destacadas com <strong>fundo âmbar</strong> na coluna Órgão Responsável.</li>
+          <li className="list-disc text-sm">Rodapé com número de página em cada folha.</li>
+        </ul>
+
         <InfoBox type="info">A exportação respeita os filtros ativos na listagem. Para exportar tudo, certifique-se de que nenhum filtro está aplicado.</InfoBox>
+      </div>
+    ),
+  },
+  {
+    id: "empresas-parceiras",
+    title: "10. Empresas Parceiras do PMI",
+    icon: Briefcase,
+    content: (
+      <div className="space-y-3">
+        <p>As <strong>empresas parceiras do PMI Ribeira Sustentável</strong> são tratadas como uma categoria distinta na plataforma, com visual âmbar/laranja para diferenciá-las dos órgãos municipais. As empresas cadastradas são:</p>
+        <div className="grid grid-cols-2 gap-2">
+          {["CONSÓRCIO RIBEIRA", "EY", "AEPA", "BP (Bureau Pad)"].map((e) => (
+            <div key={e} className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm font-medium text-amber-800">{e}</div>
+          ))}
+        </div>
+        <p className="font-semibold text-foreground">Onde as empresas parceiras aparecem:</p>
+        <ul className="space-y-1 pl-4">
+          <li className="list-disc text-sm"><strong>Órgãos &amp; Responsáveis:</strong> seção separada com badge "PMI Ribeira Sustentável" e borda âmbar.</li>
+          <li className="list-disc text-sm"><strong>Ficha do item:</strong> seletor de órgão nos dialogs de adição e edição inclui as empresas em grupo separado.</li>
+          <li className="list-disc text-sm"><strong>Filtro por órgão</strong> na listagem de ações: botões de filtro com borda laranja para as empresas parceiras.</li>
+          <li className="list-disc text-sm"><strong>Cadastro de usuários:</strong> campo "Órgão de lotação" e seletor de órgãos permitidos incluem as empresas parceiras em grupo separado.</li>
+          <li className="list-disc text-sm"><strong>Auto-cadastro (/registro):</strong> o campo "Secretaria / Órgão" é um seletor com dois grupos: Órgãos Municipais e Empresas Parceiras.</li>
+          <li className="list-disc text-sm"><strong>Exportação PDF:</strong> células da coluna Órgão Responsável com fundo âmbar quando o órgão é uma empresa parceira.</li>
+        </ul>
+        <InfoBox type="info">O visual âmbar é apenas uma diferenciação visual. As empresas parceiras funcionam exatamente como órgãos municipais para fins de atribuição de responsabilidades, filtros e exportações.</InfoBox>
       </div>
     ),
   },
@@ -379,8 +456,9 @@ const SETORIAL_SECTIONS: Section[] = [
         <p className="font-semibold text-foreground">Solicitar acesso (auto-cadastro):</p>
         <div className="space-y-2">
           <Step n={1} text="Na tela de login, clique em 'Solicitar cadastro'." />
-          <Step n={2} text="Preencha nome, usuário, senha, cargo, órgão de lotação, telefone e e-mail." />
-          <Step n={3} text="Clique em 'Solicitar Acesso'. Sua solicitação ficará pendente até aprovação pelo administrador." />
+          <Step n={2} text="Preencha nome, usuário, senha, cargo, telefone e e-mail." />
+          <Step n={3} text="No campo 'Secretaria / Órgão', selecione sua secretaria ou empresa parceira (CONSÓRCIO RIBEIRA, EY, AEPA ou BP) no seletor — os dois grupos aparecem separados." />
+          <Step n={4} text="Clique em 'Solicitar Acesso'. Sua solicitação ficará pendente até aprovação pelo administrador." />
         </div>
         <InfoBox type="warning">Caso não consiga acessar, entre em contato com o administrador para verificar seu cadastro e os órgãos autorizados.</InfoBox>
         <InfoBox type="tip">Para alterar sua senha, clique no ícone de <strong>chave</strong> ao lado do botão Sair no sidebar.</InfoBox>
@@ -399,6 +477,8 @@ const SETORIAL_SECTIONS: Section[] = [
           <li className="list-disc text-sm">Use a busca por texto para localizar itens pelo nome ou descrição.</li>
           <li className="list-disc text-sm">Clique em qualquer item para abrir sua ficha completa com todos os detalhes.</li>
         </ul>
+        <p className="font-semibold text-foreground">Indicador de último contato:</p>
+        <p className="text-sm">Cada item da listagem exibe um badge colorido com a data do último contato registrado (WhatsApp em verde, e-mail em azul). Passe o mouse sobre o badge para ver os detalhes completos. Itens sem contato exibem o badge em cinza.</p>
         <InfoBox type="info">Você visualiza e pode interagir (comentar e incluir documentos) apenas nos itens dos órgãos autorizados para o seu perfil. Itens de outros órgãos não aparecem na listagem.</InfoBox>
       </div>
     ),
@@ -456,7 +536,7 @@ const SETORIAL_SECTIONS: Section[] = [
           <Step n={2} text="Clique na aba 'Histórico'." />
           <Step n={3} text="Visualize a lista de alterações com campo modificado, valor anterior, novo valor, responsável e data/hora." />
         </div>
-        <InfoBox type="info">O histórico é somente leitura para usuários setoriais. Apenas administradores podem editar campos e gerar novos registros.</InfoBox>
+        <InfoBox type="info">O histórico é somente leitura para usuários setoriais. Apenas administradores podem editar campos do item.</InfoBox>
       </div>
     ),
   },
@@ -507,13 +587,13 @@ const VIEWER_SECTIONS: Section[] = [
     icon: LayoutDashboard,
     content: (
       <div className="space-y-3">
-        <p>O Dashboard apresenta uma visão consolidada do andamento de todos os contratos e ações gerenciados pela plataforma:</p>
+        <p>O Dashboard apresenta uma visão consolidada do andamento de todos os contratos e ações gerenciados pela plataforma, identificado pelo subtítulo <strong>PMI Ribeira Sustentável</strong>:</p>
         <ul className="space-y-1 pl-4">
           <li className="list-disc text-sm"><strong>Total de itens</strong> e percentual de conclusão geral.</li>
           <li className="list-disc text-sm"><strong>Itens atrasados</strong> — quantidade de ações com prazo vencido.</li>
           <li className="list-disc text-sm"><strong>Gráficos</strong> de distribuição por status e por área temática.</li>
           <li className="list-disc text-sm"><strong>Situação de prazos</strong> — no prazo, atrasados e sem prazo.</li>
-          <li className="list-disc text-sm"><strong>Painel por Órgão</strong> — comparativo de itens e documentos por secretaria/órgão responsável.</li>
+          <li className="list-disc text-sm"><strong>Painel por Órgão</strong> — comparativo de itens e documentos por secretaria/órgão responsável, incluindo empresas parceiras do PMI.</li>
         </ul>
       </div>
     ),
@@ -524,13 +604,17 @@ const VIEWER_SECTIONS: Section[] = [
     icon: Search,
     content: (
       <div className="space-y-3">
-        <p>Na página <strong>Ações</strong>, você pode consultar todos os itens cadastrados usando os filtros disponíveis:</p>
+        <p>Na página <strong>Ações &amp; Entregas</strong>, você pode consultar todos os itens cadastrados usando os filtros disponíveis:</p>
         <ul className="space-y-1 pl-4">
-          <li className="list-disc text-sm">Filtre por <strong>área</strong>, <strong>status</strong>, <strong>prioridade</strong> ou <strong>órgão</strong>.</li>
+          <li className="list-disc text-sm">Filtre por <strong>área</strong>, <strong>status</strong>, <strong>prioridade</strong>, <strong>órgão</strong> ou <strong>responsável</strong>.</li>
           <li className="list-disc text-sm">Use os botões <strong>"Atrasados"</strong> e <strong>"Vence esta semana"</strong> para visualizar itens críticos.</li>
           <li className="list-disc text-sm">Use a <strong>busca por texto</strong> para localizar itens pelo nome.</li>
           <li className="list-disc text-sm">Os itens são exibidos em <strong>hierarquia numerada</strong> (1, 1.1, 1.1.1) e podem ser expandidos ou recolhidos clicando no chevron ao lado do item pai.</li>
+          <li className="list-disc text-sm">Cada item exibe um <strong>badge de último contato</strong> (verde para WhatsApp, azul para e-mail, cinza para sem contato).</li>
         </ul>
+        <InfoBox type="tip">
+          Quando há filtros ativos, o botão <strong>"Limpar Filtros"</strong> (ícone X) aparece ao lado do botão Filtros. Clique nele para remover todos os critérios de uma vez.
+        </InfoBox>
         <InfoBox type="info">Como visualizador, você tem acesso de leitura a todos os itens, mas não pode editar, comentar ou incluir documentos.</InfoBox>
       </div>
     ),
@@ -541,10 +625,11 @@ const VIEWER_SECTIONS: Section[] = [
     icon: FileText,
     content: (
       <div className="space-y-3">
-        <p>Clique em qualquer item da listagem para abrir sua ficha completa. Você pode consultar:</p>
+        <p>Clique em qualquer item da listagem para abrir sua ficha completa. Ao retornar à listagem (botão Voltar), a página reabre exatamente no ponto onde você estava, sem precisar rolar novamente.</p>
+        <p className="text-sm">Na ficha você pode consultar:</p>
         <ul className="space-y-1 pl-4">
           <li className="list-disc text-sm">Descrição completa, status, prioridade, prazo e observações.</li>
-          <li className="list-disc text-sm">Órgãos responsáveis pela entrega com dados de contato (nome, cargo, telefone e e-mail) de cada responsável.</li>
+          <li className="list-disc text-sm">Órgãos responsáveis pela entrega — tanto órgãos municipais (visual azul) quanto empresas parceiras do PMI (visual âmbar) — com dados de contato de cada responsável.</li>
           <li className="list-disc text-sm">Comentários registrados por outros usuários.</li>
           <li className="list-disc text-sm">Histórico de alterações do item.</li>
           <li className="list-disc text-sm">Links de documentos vinculados com status de conformidade (DOC ACEITO / DOC COM PENDÊNCIA).</li>
@@ -570,6 +655,12 @@ const VIEWER_SECTIONS: Section[] = [
           <div className="flex items-center gap-2 text-sm"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.55 0.20 15)" }} /><strong>Vermelho:</strong> prazo vencido (item atrasado).</div>
           <div className="flex items-center gap-2 text-sm"><Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.65 0.20 50)" }} /><strong>Amarelo:</strong> vence nos próximos 7 dias.</div>
           <div className="flex items-center gap-2 text-sm"><CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.45 0.18 145)" }} /><strong>Verde:</strong> prazo dentro do previsto.</div>
+        </div>
+        <p className="font-semibold text-foreground">Indicador de último contato:</p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm"><Phone className="w-3.5 h-3.5 flex-shrink-0 text-green-600" /><strong>Verde:</strong> último contato via WhatsApp.</div>
+          <div className="flex items-center gap-2 text-sm"><Mail className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" /><strong>Azul:</strong> último contato via e-mail.</div>
+          <div className="flex items-center gap-2 text-sm"><span className="w-3.5 h-3.5 rounded-full bg-muted-foreground/30 flex-shrink-0 inline-block" /><strong>Cinza:</strong> nenhum contato registrado.</div>
         </div>
       </div>
     ),
@@ -602,7 +693,7 @@ export default function UserGuide() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">Guia do Usuário</h1>
-          <p className="text-sm text-muted-foreground">Plataforma de Gestão Documental de PPPs — SEMPLA</p>
+          <p className="text-sm text-muted-foreground">Plataforma de Gestão Documental de PPPs — PMI Ribeira Sustentável · SEMPLA</p>
         </div>
       </div>
 
