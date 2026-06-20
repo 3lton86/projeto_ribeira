@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
@@ -129,6 +129,26 @@ export default function ActionDetail() {
     sessionStorage.setItem("actions-scroll-y-id", String(targetId));
     navigate(`/acoes/${targetId}`);
   };
+
+  // Keyboard shortcuts: ← Anterior, → Próximo — disabled when focus is inside a text input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      const isEditable = tag === "input" || tag === "textarea" || tag === "select" ||
+        (e.target as HTMLElement)?.isContentEditable;
+      if (isEditable) return;
+      if (e.key === "ArrowLeft" && prevId !== null) {
+        e.preventDefault();
+        navigateTo(prevId);
+      } else if (e.key === "ArrowRight" && nextId !== null) {
+        e.preventDefault();
+        navigateTo(nextId);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [prevId, nextId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
@@ -410,7 +430,7 @@ export default function ActionDetail() {
             <button
               onClick={() => prevId !== null && navigateTo(prevId)}
               disabled={prevId === null}
-              title={prevId !== null ? `Item anterior (${navIndex} de ${navList.length})` : "Primeiro item da lista"}
+              title={prevId !== null ? `Item anterior (${navIndex} de ${navList.length}) — Tecla ←` : "Primeiro item da lista"}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ background: "oklch(0.20 0.02 240)", border: "1px solid oklch(0.30 0.02 240)" }}
             >
@@ -425,7 +445,7 @@ export default function ActionDetail() {
             <button
               onClick={() => nextId !== null && navigateTo(nextId)}
               disabled={nextId === null}
-              title={nextId !== null ? `Próximo item (${navIndex + 2} de ${navList.length})` : "Último item da lista"}
+              title={nextId !== null ? `Próximo item (${navIndex + 2} de ${navList.length}) — Tecla →` : "Último item da lista"}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ background: "oklch(0.20 0.02 240)", border: "1px solid oklch(0.30 0.02 240)" }}
             >
