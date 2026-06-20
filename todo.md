@@ -321,3 +321,11 @@
 - [x] Frontend: filtros rápidos na listagem de ações — "Com contato" / "Sem contato" (filtro client-side)
 - [x] Frontend: dialog de envio de mensagem — checkboxes para selecionar destinatários quando há múltiplos responsáveis
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 32 — Edição de Órgãos Responsáveis e Atualização do Guia
+
+- [x] Frontend: botão de lápis em cada órgão responsável (ActionDetail.tsx) abre dialog de edição pré-preenchido
+- [x] Frontend: dialog de edição com seletor de responsável cadastrado e todos os campos (orgão, nome, cargo, tel, email)
+- [x] Backend: procedure orgaos.update conectada via updateOrgaoMutation
+- [x] Frontend: Guia do Usuário completamente reescrito cobrindo Sprints 19–32 (dashboard por órgão, filtros de contato/doc, multi-responsável, telefone no cadastro, auto-preenchimento, edição de órgãos, exportação hierárquica)
+- [x] 67 testes passando, zero erros TypeScript

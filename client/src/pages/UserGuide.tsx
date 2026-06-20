@@ -26,6 +26,10 @@ import {
   Info,
   Bell,
   ClipboardList,
+  Phone,
+  Mail,
+  Users,
+  Filter,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 
@@ -83,7 +87,7 @@ function Step({ n, text }: { n: number; text: string }) {
       >
         {n}
       </span>
-      <span className="text-sm text-foreground leading-relaxed">{text}</span>
+      <span className="text-sm leading-relaxed pt-0.5">{text}</span>
     </div>
   );
 }
@@ -91,11 +95,11 @@ function Step({ n, text }: { n: number; text: string }) {
 // ---- Info Box ----
 function InfoBox({ type, children }: { type: "tip" | "warning" | "info"; children: React.ReactNode }) {
   const styles = {
-    tip: { bg: "oklch(0.45 0.18 145 / 0.08)", border: "oklch(0.45 0.18 145 / 0.30)", icon: CheckCircle, color: "oklch(0.30 0.18 145)" },
-    warning: { bg: "oklch(0.65 0.20 50 / 0.08)", border: "oklch(0.65 0.20 50 / 0.30)", icon: AlertTriangle, color: "oklch(0.50 0.20 50)" },
-    info: { bg: "oklch(0.38 0.16 240 / 0.08)", border: "oklch(0.38 0.16 240 / 0.30)", icon: Info, color: "oklch(0.38 0.16 240)" },
+    tip: { bg: "oklch(0.97 0.03 145)", border: "oklch(0.75 0.15 145)", color: "oklch(0.38 0.16 145)", Icon: CheckCircle },
+    warning: { bg: "oklch(0.97 0.04 50)", border: "oklch(0.80 0.18 50)", color: "oklch(0.55 0.20 50)", Icon: AlertTriangle },
+    info: { bg: "oklch(0.97 0.02 240)", border: "oklch(0.80 0.10 240)", color: "oklch(0.45 0.15 240)", Icon: Info },
   }[type];
-  const Icon = styles.icon;
+  const { Icon } = styles;
   return (
     <div
       className="flex gap-2.5 p-3 rounded-lg text-sm"
@@ -124,10 +128,10 @@ const ADMIN_SECTIONS: Section[] = [
     icon: LogIn,
     content: (
       <div className="space-y-3">
-        <p>O administrador acessa a plataforma pela tela de login com <strong>usuário</strong> (e-mail) e <strong>senha</strong> cadastrados pelo super-admin.</p>
+        <p>O administrador acessa a plataforma pela tela de login com <strong>usuário</strong> (nome de usuário ou e-mail) e <strong>senha</strong> cadastrados pelo super-admin.</p>
         <div className="space-y-2">
           <Step n={1} text="Acesse o endereço da plataforma no navegador." />
-          <Step n={2} text="Informe seu e-mail e senha nos campos indicados." />
+          <Step n={2} text="Informe seu usuário e senha nos campos indicados." />
           <Step n={3} text="Clique em 'Entrar'. Você será redirecionado ao Dashboard." />
         </div>
         <InfoBox type="tip">Para alterar sua própria senha, clique no ícone de <strong>chave</strong> (cadeado) ao lado do botão Sair no sidebar. Informe a senha atual e a nova senha desejada.</InfoBox>
@@ -144,8 +148,9 @@ const ADMIN_SECTIONS: Section[] = [
         <ul className="space-y-1.5 pl-4">
           <li className="list-disc text-sm"><strong>KPIs no topo:</strong> total de itens, percentual de conclusão, itens atrasados e sem prazo.</li>
           <li className="list-disc text-sm"><strong>Gráfico por status:</strong> distribuição entre Pendente, Em Andamento, Concluído e Cancelado.</li>
-          <li className="list-disc text-sm"><strong>Gráfico por área:</strong> comparativo entre as frentes temáticas.</li>
+          <li className="list-disc text-sm"><strong>Gráfico por área:</strong> comparativo entre as frentes temáticas (Governança, Técnico, Jurídico, Eco-Fin).</li>
           <li className="list-disc text-sm"><strong>Situação de prazos:</strong> no prazo, atrasados e sem prazo definido.</li>
+          <li className="list-disc text-sm"><strong>Painel por Órgão Responsável:</strong> gráfico de barras agrupadas com total de itens, documentos vinculados, documentos aceitos e com pendência por órgão. Possui filtro por frente temática.</li>
         </ul>
         <InfoBox type="info">O Dashboard é atualizado em tempo real conforme os itens são editados na listagem de ações.</InfoBox>
       </div>
@@ -157,14 +162,16 @@ const ADMIN_SECTIONS: Section[] = [
     icon: ListChecks,
     content: (
       <div className="space-y-3">
-        <p>A página <strong>Ações</strong> é o centro da plataforma. Nela você visualiza, filtra, edita e organiza todos os itens cadastrados.</p>
+        <p>A página <strong>Ações</strong> é o centro da plataforma. Nela você visualiza, filtra, edita e organiza todos os itens cadastrados, com numeração hierárquica automática (ex.: 1, 1.1, 1.1.1).</p>
         <p className="font-semibold text-foreground">Filtros disponíveis:</p>
         <ul className="space-y-1 pl-4">
           <li className="list-disc text-sm">Área temática, status, prioridade e órgão responsável.</li>
           <li className="list-disc text-sm"><strong>Atrasados</strong> e <strong>Vence esta semana</strong> — filtros rápidos de prazo com contadores.</li>
           <li className="list-disc text-sm">Campo de busca por texto livre.</li>
-          <li className="list-disc text-sm"><strong>Filtros de documento:</strong> <em>Com documentos</em> (itens que possuem ao menos um link vinculado), <em>Com pendência</em> (itens com pelo menos um documento marcado como DOC COM PENDÊNCIA) e <em>Doc aceito</em> (itens com ao menos um documento marcado como DOC ACEITO). Os filtros são aplicados no servidor e combinam com os demais filtros ativos.</li>
+          <li className="list-disc text-sm"><strong>Filtros de documento:</strong> <em>Com documentos</em> (itens com ao menos um link vinculado), <em>Com pendência</em> (itens com documento marcado como DOC COM PENDÊNCIA) e <em>Doc aceito</em> (itens com ao menos um documento marcado como DOC ACEITO).</li>
+          <li className="list-disc text-sm"><strong>Filtros de contato:</strong> <em>Com contato</em> (itens que possuem ao menos um registro no histórico de contatos) e <em>Sem contato</em> (itens sem nenhum contato registrado). Útil para identificar órgãos que ainda não foram acionados.</li>
         </ul>
+        <InfoBox type="info">O contador de filtros ativos aparece no botão "Filtros" e inclui todos os filtros combinados (documento, contato, prazo, etc.).</InfoBox>
         <p className="font-semibold text-foreground">Ações disponíveis para o Administrador:</p>
         <div className="space-y-2">
           <div className="flex items-start gap-2 text-sm"><Plus className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary" /><span><strong>Nova Ação:</strong> botão no topo da listagem para cadastrar um novo item com código automático.</span></div>
@@ -184,25 +191,36 @@ const ADMIN_SECTIONS: Section[] = [
     icon: FileText,
     content: (
       <div className="space-y-3">
-        <p>Clique em qualquer item da listagem para abrir sua ficha completa. Nela você pode:</p>
+        <p>Clique em qualquer item da listagem para abrir sua ficha completa. Nela você pode editar todos os campos e gerenciar os órgãos responsáveis, documentos, comentários e histórico.</p>
+        <p className="font-semibold text-foreground">Órgãos Responsáveis pela Entrega:</p>
+        <p className="text-sm">Cada item pode ter múltiplos órgãos responsáveis cadastrados. Para cada órgão é possível registrar nome do responsável, cargo, telefone e e-mail.</p>
         <div className="space-y-2">
-          <Step n={1} text="Clicar em 'Editar' para alterar status, prioridade, prazo, órgão responsável e dados de contato." />
-          <Step n={2} text="Salvar as alterações — o histórico de mudanças é registrado automaticamente." />
-          <Step n={3} text="Acessar as abas: Comentários, Histórico, Documentos e Auditoria (admin)." />
+          <Step n={1} text="Na ficha do item, localize a seção 'Órgãos Responsáveis pela Entrega'." />
+          <Step n={2} text="Clique em 'Adicionar órgão' para incluir um novo órgão responsável. Ao selecionar o órgão, os dados do responsável cadastrado em 'Órgãos & Responsáveis' são preenchidos automaticamente." />
+          <Step n={3} text="Para editar um órgão já cadastrado, passe o mouse sobre o card do órgão e clique no ícone de lápis (✏). O formulário será aberto pré-preenchido com os dados atuais." />
+          <Step n={4} text="Para remover um órgão, clique no ícone de lixeira (🗑) que aparece ao passar o mouse sobre o card." />
         </div>
-        <p className="font-semibold text-foreground">Aba Documentos — Status de conformidade (exclusivo para admins):</p>
-        <p>Cada documento (link) vinculado a um item pode receber um <strong>status de conformidade</strong> definido pelo administrador, para comunicar ao órgão se o documento está conforme ou precisa ser revisado.</p>
+        <InfoBox type="tip">No formulário de adição ou edição de órgão, se o órgão selecionado tiver responsáveis cadastrados na aba 'Órgãos & Responsáveis', um seletor aparece para escolher o responsável e preencher os campos automaticamente.</InfoBox>
+        <p className="font-semibold text-foreground">Contato rápido com responsáveis:</p>
+        <p className="text-sm">Ao lado do nome de cada responsável aparecem botões de contato rápido:</p>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2 text-sm"><Mail className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500" /><span><strong>E-mail:</strong> abre um dialog com mensagem pré-redigida. Você pode editar o texto antes de abrir o cliente de e-mail.</span></div>
+          <div className="flex items-start gap-2 text-sm"><Phone className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-600" /><span><strong>WhatsApp:</strong> abre um dialog com mensagem pré-redigida. Você pode editar o texto antes de abrir o WhatsApp Web.</span></div>
+        </div>
+        <p className="text-sm">Quando o item possui <strong>múltiplos responsáveis</strong>, o dialog de contato exibe checkboxes para selecionar quais destinatários receberão a mensagem. Cada envio é registrado individualmente no histórico de contatos do item.</p>
+        <InfoBox type="info">Itens com alertas ativos (prazo vencido ou próximo) exibem os botões de contato com destaque laranja para chamar atenção.</InfoBox>
+        <p className="font-semibold text-foreground">Aba Documentos — Status de conformidade:</p>
         <div className="space-y-2">
           <Step n={1} text="Abra a ficha do item e clique na aba 'Documentos'." />
           <Step n={2} text="Localize o documento desejado. À direita de cada linha, clique no dropdown '— Status —'." />
-          <Step n={3} text="Selecione 'DOC ACEITO' se o documento está conforme (badge verde com ✓), ou 'DOC COM PENDÊNCIA' se precisa ser revisado ou reenviado (badge âmbar com ⚠)." />
-          <Step n={4} text="O status é salvo imediatamente. Abaixo do documento aparece o nome do administrador que fez a avaliação." />
+          <Step n={3} text="Selecione 'DOC ACEITO' (badge verde) se o documento está conforme, ou 'DOC COM PENDÊNCIA' (badge âmbar) se precisa ser revisado." />
+          <Step n={4} text="O status é salvo imediatamente. O nome do administrador que fez a avaliação aparece abaixo do documento." />
         </div>
         <div className="space-y-2">
-          <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" /><span><strong>DOC ACEITO</strong> — o documento foi analisado e está em conformidade com o solicitado.</span></div>
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" /><span><strong>DOC COM PENDÊNCIA</strong> — o documento não está conforme e precisa ser revisado ou reenviado pelo órgão.</span></div>
+          <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" /><span><strong>DOC ACEITO</strong> — o documento foi analisado e está em conformidade.</span></div>
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" /><span><strong>DOC COM PENDÊNCIA</strong> — o documento precisa ser revisado ou reenviado pelo órgão.</span></div>
         </div>
-        <InfoBox type="info">O status de documento é visível para todos os usuários com acesso ao item (incluindo setoriais), mas <strong>somente administradores podem alterar o status</strong>.</InfoBox>
+        <InfoBox type="info">O status de documento é visível para todos os usuários com acesso ao item, mas <strong>somente administradores podem alterar o status</strong>. Quando um documento recebe status 'DOC COM PENDÊNCIA', o usuário setorial do órgão é notificado automaticamente.</InfoBox>
         <p className="font-semibold text-foreground">Aba Auditoria (exclusiva para admins):</p>
         <p>Registra todas as interações de usuários setoriais no item: comentários adicionados e documentos vinculados, com identificação do órgão e horário exato.</p>
         <InfoBox type="info">O Histórico registra automaticamente cada alteração de campo realizada por qualquer administrador, com data, hora e valores anterior/posterior.</InfoBox>
@@ -210,30 +228,57 @@ const ADMIN_SECTIONS: Section[] = [
     ),
   },
   {
+    id: "orgaos-responsaveis",
+    title: "5. Órgãos & Responsáveis",
+    icon: Building2,
+    content: (
+      <div className="space-y-3">
+        <p>A página <strong>Órgãos & Responsáveis</strong> (acessível pelo sidebar) é o cadastro central de contatos por secretaria/órgão municipal. Os dados cadastrados aqui são usados para preencher automaticamente os responsáveis na ficha de cada item.</p>
+        <p className="font-semibold text-foreground">Para cadastrar um responsável:</p>
+        <div className="space-y-2">
+          <Step n={1} text="Acesse 'Órgãos & Responsáveis' no menu lateral." />
+          <Step n={2} text="Clique em 'Adicionar Responsável'." />
+          <Step n={3} text="Selecione o órgão/secretaria." />
+          <Step n={4} text="Preencha nome, cargo, telefone/WhatsApp e e-mail do responsável." />
+          <Step n={5} text="Opcionalmente, vincule o responsável a um usuário cadastrado na plataforma usando o campo 'Usuário vinculado'. Ao vincular, os campos nome, cargo, telefone e e-mail são preenchidos automaticamente com os dados do usuário selecionado." />
+          <Step n={6} text="Clique em 'Salvar'." />
+        </div>
+        <p className="font-semibold text-foreground">Para editar um responsável:</p>
+        <div className="space-y-2">
+          <Step n={1} text="Localize o responsável na listagem do órgão." />
+          <Step n={2} text="Clique no ícone de lápis (✏) ao lado do nome." />
+          <Step n={3} text="Edite os campos desejados e clique em 'Salvar'." />
+        </div>
+        <InfoBox type="tip">Manter o cadastro de responsáveis atualizado nesta página garante que, ao adicionar um órgão na ficha de um item, os dados de contato sejam preenchidos automaticamente, evitando retrabalho.</InfoBox>
+      </div>
+    ),
+  },
+  {
     id: "users",
-    title: "5. Gerenciar usuários",
+    title: "6. Gerenciar usuários",
     icon: UserCog,
     content: (
       <div className="space-y-3">
         <p>Acesse <strong>Usuários</strong> no sidebar para cadastrar e gerenciar todos os perfis de acesso.</p>
         <p className="font-semibold text-foreground">Perfis disponíveis:</p>
         <div className="space-y-2">
-          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Super-Admin:</strong> acesso total, incluindo criação de outros admins e super-admins. Apenas o super-admin pode criar este perfil.</div>
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Super-Admin:</strong> acesso total, incluindo criação de outros admins e super-admins.</div>
           <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Administrador:</strong> pode editar, criar e excluir ações, gerenciar usuários setoriais e visualizadores.</div>
           <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Usuário Setorial:</strong> pode comentar e incluir documentos apenas nos itens dos órgãos autorizados.</div>
           <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Visualizador:</strong> acesso somente leitura a toda a plataforma.</div>
         </div>
-        <p className="font-semibold text-foreground">Para criar um Usuário Setorial:</p>
-        <div className="space-y-2">
-          <Step n={1} text="Clique em 'Novo Usuário' e preencha nome, e-mail/usuário e senha." />
-          <Step n={2} text="Selecione o perfil 'Setorial'." />
-          <Step n={3} text="No campo 'Órgãos permitidos', selecione os órgãos que o usuário poderá acessar — ou marque 'TODOS' para acesso irrestrito." />
-          <Step n={4} text="Clique em 'Salvar'. O usuário poderá fazer login imediatamente." />
-        </div>
-        <InfoBox type="tip">Você pode editar os órgãos permitidos de um usuário setorial a qualquer momento clicando no ícone de lápis na listagem de usuários.</InfoBox>
+        <p className="font-semibold text-foreground">Campos do cadastro de usuário:</p>
+        <ul className="space-y-1 pl-4">
+          <li className="list-disc text-sm"><strong>Nome completo</strong> e <strong>usuário/login</strong> (único na plataforma).</li>
+          <li className="list-disc text-sm"><strong>Senha</strong> (definida pelo admin; o próprio usuário pode alterá-la depois).</li>
+          <li className="list-disc text-sm"><strong>Cargo</strong> e <strong>Órgão de lotação</strong>.</li>
+          <li className="list-disc text-sm"><strong>Telefone/WhatsApp</strong> — usado para preencher automaticamente os dados de contato quando o usuário é vinculado como responsável de um órgão.</li>
+          <li className="list-disc text-sm"><strong>E-mail de contato</strong> — idem ao telefone.</li>
+          <li className="list-disc text-sm"><strong>Órgãos permitidos</strong> (apenas para perfil Setorial) — selecione os órgãos que o usuário poderá acessar, ou marque 'TODOS' para acesso irrestrito.</li>
+        </ul>
         <p className="font-semibold text-foreground">Aprovar solicitações de cadastro:</p>
         <div className="space-y-2">
-          <p className="text-sm">Quando um novo usuário se cadastra pela página de <strong>Solicitar Acesso</strong> (link na tela de login), sua conta fica pendente até aprovação. Uma notificação é enviada automaticamente ao administrador.</p>
+          <p className="text-sm">Quando um usuário se cadastra pela página <strong>Solicitar Acesso</strong> (link na tela de login), sua conta fica pendente até aprovação. Uma notificação é enviada automaticamente ao administrador.</p>
           <Step n={1} text="Acesse a página 'Usuários' no menu lateral." />
           <Step n={2} text="A seção 'Cadastros Pendentes de Aprovação' aparece no topo quando há solicitações aguardando." />
           <Step n={3} text="Clique em 'Aprovar' para liberar o acesso ou 'Rejeitar' para recusar e remover a solicitação." />
@@ -244,7 +289,7 @@ const ADMIN_SECTIONS: Section[] = [
   },
   {
     id: "alerts",
-    title: "6. Sistema de Alertas (Sininho)",
+    title: "7. Sistema de Alertas (Sininho)",
     icon: Bell,
     content: (
       <div className="space-y-3">
@@ -253,6 +298,7 @@ const ADMIN_SECTIONS: Section[] = [
         <div className="space-y-2">
           <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm"><strong>Alterações de item</strong> — disparado quando qualquer item ou sub-item é criado, editado ou excluído. Visível apenas para administradores e super-admins.</div>
           <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm"><strong>Comentários &amp; Documentos</strong> — disparado quando um usuário setorial adiciona um comentário ou um link de documento. Visível para administradores e para usuários setoriais dos órgãos envolvidos.</div>
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm"><strong>DOC COM PENDÊNCIA</strong> — disparado quando um administrador marca um documento como pendente. O usuário setorial do órgão é notificado para tomar providências.</div>
         </div>
         <p className="font-semibold text-foreground">Como usar:</p>
         <div className="space-y-2">
@@ -267,7 +313,7 @@ const ADMIN_SECTIONS: Section[] = [
   },
   {
     id: "audit-global",
-    title: "7. Log de Auditoria Global",
+    title: "8. Log de Auditoria Global",
     icon: ClipboardList,
     content: (
       <div className="space-y-3">
@@ -287,7 +333,7 @@ const ADMIN_SECTIONS: Section[] = [
         <p className="font-semibold text-foreground">Exportar o log:</p>
         <div className="space-y-2">
           <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Exportar CSV:</strong> clique no botão 'Exportar CSV' para baixar o log filtrado em formato planilha para análise externa.</div>
-          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Exportar PDF:</strong> clique no botão 'Exportar PDF' para gerar um relatório em PDF com cabeçalho institucional (logo SEMPLA), tabela completa com data/hora, usuário, perfil, órgão, evento, item e detalhe, e rodapé com número de página. Ideal para prestação de contas e registros formais.</div>
+          <div className="p-3 rounded-lg bg-secondary/20 text-sm"><strong>Exportar PDF:</strong> clique no botão 'Exportar PDF' para gerar um relatório em PDF com cabeçalho institucional (logo SEMPLA), tabela completa com data/hora, usuário, perfil, órgão, evento, item e detalhe, e rodapé com número de página.</div>
         </div>
         <InfoBox type="info">Ambas as exportações respeitam os filtros ativos na listagem. Para exportar tudo, certifique-se de que nenhum filtro está aplicado.</InfoBox>
       </div>
@@ -295,17 +341,22 @@ const ADMIN_SECTIONS: Section[] = [
   },
   {
     id: "export",
-    title: "8. Exportar dados",
+    title: "9. Exportar dados",
     icon: Download,
     content: (
       <div className="space-y-3">
-        <p>A plataforma oferece exportação em <strong>Excel (.xlsx)</strong> e <strong>PDF</strong> diretamente da página de Ações.</p>
+        <p>A plataforma oferece exportação em <strong>Excel (.xlsx)</strong> e <strong>PDF</strong> diretamente da página de Ações, com suporte completo à hierarquia de itens e sub-itens.</p>
         <div className="space-y-2">
           <Step n={1} text="Na página Ações, localize o botão 'Exportar' no canto superior direito." />
           <Step n={2} text="Clique na seta ao lado para abrir o menu de escopo: 'Todos os itens', 'Área atual' ou 'Itens filtrados'." />
           <Step n={3} text="Selecione o formato desejado (Excel ou PDF)." />
           <Step n={4} text="O arquivo será baixado automaticamente com os dados selecionados." />
         </div>
+        <p className="font-semibold text-foreground">Estrutura hierárquica na exportação:</p>
+        <ul className="space-y-1 pl-4">
+          <li className="list-disc text-sm"><strong>Excel:</strong> grupos em negrito e cor diferenciada; sub-itens com recuo por nível hierárquico.</li>
+          <li className="list-disc text-sm"><strong>PDF:</strong> grupos como cabeçalhos de seção; sub-itens com indentação e barra lateral colorida por nível. O campo Observações é incluído em cada item.</li>
+        </ul>
         <InfoBox type="info">A exportação respeita os filtros ativos na listagem. Para exportar tudo, certifique-se de que nenhum filtro está aplicado.</InfoBox>
       </div>
     ),
@@ -319,13 +370,20 @@ const SETORIAL_SECTIONS: Section[] = [
     icon: LogIn,
     content: (
       <div className="space-y-3">
-        <p>Seu acesso é feito com <strong>usuário</strong> (e-mail ou nome de usuário) e <strong>senha</strong> fornecidos pelo administrador da plataforma.</p>
+        <p>Seu acesso é feito com <strong>usuário</strong> (e-mail ou nome de usuário) e <strong>senha</strong> fornecidos pelo administrador da plataforma. Você também pode solicitar acesso diretamente pela tela de login.</p>
         <div className="space-y-2">
           <Step n={1} text="Acesse o endereço da plataforma no navegador." />
           <Step n={2} text="Informe seu usuário e senha nos campos da tela de login." />
-          <Step n={3} text="Clique em 'Entrar'. Você verá a listagem de ações disponíveis." />
+          <Step n={3} text="Clique em 'Entrar'. Você verá a listagem de ações disponíveis para os seus órgãos." />
+        </div>
+        <p className="font-semibold text-foreground">Solicitar acesso (auto-cadastro):</p>
+        <div className="space-y-2">
+          <Step n={1} text="Na tela de login, clique em 'Solicitar cadastro'." />
+          <Step n={2} text="Preencha nome, usuário, senha, cargo, órgão de lotação, telefone e e-mail." />
+          <Step n={3} text="Clique em 'Solicitar Acesso'. Sua solicitação ficará pendente até aprovação pelo administrador." />
         </div>
         <InfoBox type="warning">Caso não consiga acessar, entre em contato com o administrador para verificar seu cadastro e os órgãos autorizados.</InfoBox>
+        <InfoBox type="tip">Para alterar sua senha, clique no ícone de <strong>chave</strong> ao lado do botão Sair no sidebar.</InfoBox>
       </div>
     ),
   },
@@ -335,7 +393,7 @@ const SETORIAL_SECTIONS: Section[] = [
     icon: Eye,
     content: (
       <div className="space-y-3">
-        <p>A plataforma exibe <strong>apenas os itens dos órgãos para os quais você tem permissão</strong>, mantendo a interface focada e sem informações irrelevantes. Use os filtros para navegar rapidamente:</p>
+        <p>A plataforma exibe <strong>apenas os itens dos órgãos para os quais você tem permissão</strong>, mantendo a interface focada. Use os filtros para navegar rapidamente:</p>
         <ul className="space-y-1 pl-4">
           <li className="list-disc text-sm">Filtre por área, status ou prioridade para refinar a listagem.</li>
           <li className="list-disc text-sm">Use a busca por texto para localizar itens pelo nome ou descrição.</li>
@@ -376,7 +434,13 @@ const SETORIAL_SECTIONS: Section[] = [
           <Step n={4} text="Informe um rótulo descritivo (ex.: 'Contrato assinado - jan/2025') e a URL completa do documento." />
           <Step n={5} text="Clique em 'Salvar'. O link ficará disponível para todos os usuários da plataforma." />
         </div>
-        <InfoBox type="tip">Certifique-se de que o link do documento está acessível publicamente ou que todos os usuários da plataforma têm permissão para visualizá-lo.</InfoBox>
+        <p className="font-semibold text-foreground">Status de conformidade dos documentos:</p>
+        <p className="text-sm">Após você incluir um documento, o administrador pode atribuir um status de conformidade:</p>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" /><span><strong>DOC ACEITO</strong> — o documento está em conformidade com o solicitado.</span></div>
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" /><span><strong>DOC COM PENDÊNCIA</strong> — o documento precisa ser revisado ou reenviado. Você receberá uma notificação quando isso ocorrer.</span></div>
+        </div>
+        <InfoBox type="tip">Certifique-se de que o link do documento está acessível para todos os usuários da plataforma.</InfoBox>
       </div>
     ),
   },
@@ -406,6 +470,7 @@ const SETORIAL_SECTIONS: Section[] = [
         <p className="font-semibold text-foreground">Quais alertas você recebe:</p>
         <div className="space-y-2">
           <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm"><strong>Comentários &amp; Documentos</strong> — você será notificado quando outro usuário setorial do mesmo órgão adicionar um comentário ou documento em um item do seu órgão.</div>
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm"><strong>DOC COM PENDÊNCIA</strong> — você será notificado quando o administrador marcar um documento do seu órgão como pendente, indicando que é necessária uma ação da sua parte.</div>
         </div>
         <p className="font-semibold text-foreground">Como usar:</p>
         <div className="space-y-2">
@@ -426,12 +491,13 @@ const VIEWER_SECTIONS: Section[] = [
     icon: LogIn,
     content: (
       <div className="space-y-3">
-        <p>Seu acesso é feito com <strong>usuário</strong> e <strong>senha</strong> fornecidos pelo administrador.</p>
+        <p>Seu acesso é feito com <strong>usuário</strong> e <strong>senha</strong> fornecidos pelo administrador. Você também pode solicitar acesso pela tela de login.</p>
         <div className="space-y-2">
           <Step n={1} text="Acesse o endereço da plataforma no navegador." />
           <Step n={2} text="Informe seu usuário e senha." />
           <Step n={3} text="Clique em 'Entrar' para visualizar o Dashboard e a listagem de ações." />
         </div>
+        <InfoBox type="tip">Para alterar sua senha, clique no ícone de <strong>chave</strong> ao lado do botão Sair no sidebar.</InfoBox>
       </div>
     ),
   },
@@ -447,6 +513,7 @@ const VIEWER_SECTIONS: Section[] = [
           <li className="list-disc text-sm"><strong>Itens atrasados</strong> — quantidade de ações com prazo vencido.</li>
           <li className="list-disc text-sm"><strong>Gráficos</strong> de distribuição por status e por área temática.</li>
           <li className="list-disc text-sm"><strong>Situação de prazos</strong> — no prazo, atrasados e sem prazo.</li>
+          <li className="list-disc text-sm"><strong>Painel por Órgão</strong> — comparativo de itens e documentos por secretaria/órgão responsável.</li>
         </ul>
       </div>
     ),
@@ -462,6 +529,7 @@ const VIEWER_SECTIONS: Section[] = [
           <li className="list-disc text-sm">Filtre por <strong>área</strong>, <strong>status</strong>, <strong>prioridade</strong> ou <strong>órgão</strong>.</li>
           <li className="list-disc text-sm">Use os botões <strong>"Atrasados"</strong> e <strong>"Vence esta semana"</strong> para visualizar itens críticos.</li>
           <li className="list-disc text-sm">Use a <strong>busca por texto</strong> para localizar itens pelo nome.</li>
+          <li className="list-disc text-sm">Os itens são exibidos em <strong>hierarquia numerada</strong> (1, 1.1, 1.1.1) e podem ser expandidos ou recolhidos clicando no chevron ao lado do item pai.</li>
         </ul>
         <InfoBox type="info">Como visualizador, você tem acesso de leitura a todos os itens, mas não pode editar, comentar ou incluir documentos.</InfoBox>
       </div>
@@ -475,11 +543,11 @@ const VIEWER_SECTIONS: Section[] = [
       <div className="space-y-3">
         <p>Clique em qualquer item da listagem para abrir sua ficha completa. Você pode consultar:</p>
         <ul className="space-y-1 pl-4">
-          <li className="list-disc text-sm">Descrição completa, status, prioridade, prazo e órgão responsável.</li>
-          <li className="list-disc text-sm">Dados de contato do responsável.</li>
+          <li className="list-disc text-sm">Descrição completa, status, prioridade, prazo e observações.</li>
+          <li className="list-disc text-sm">Órgãos responsáveis pela entrega com dados de contato (nome, cargo, telefone e e-mail) de cada responsável.</li>
           <li className="list-disc text-sm">Comentários registrados por outros usuários.</li>
           <li className="list-disc text-sm">Histórico de alterações do item.</li>
-          <li className="list-disc text-sm">Links de documentos vinculados.</li>
+          <li className="list-disc text-sm">Links de documentos vinculados com status de conformidade (DOC ACEITO / DOC COM PENDÊNCIA).</li>
         </ul>
       </div>
     ),
@@ -538,66 +606,36 @@ export default function UserGuide() {
         </div>
       </div>
 
-      {/* Profile selector */}
-      <div
-        className="p-4 rounded-xl space-y-3"
-        style={{ background: "oklch(0.38 0.16 240 / 0.05)", border: "1px solid oklch(0.38 0.16 240 / 0.15)" }}
-      >
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Selecione seu perfil para ver o guia correspondente</p>
-        <div className="flex flex-wrap gap-2">
-          {PROFILES.map(({ key, label, icon: Icon, color }) => (
+      {/* Profile Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {PROFILES.map((p) => {
+          const Icon = p.icon;
+          const active = activeProfile === p.key;
+          return (
             <button
-              key={key}
-              onClick={() => setActiveProfile(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeProfile === key ? "text-white shadow-sm" : "bg-secondary/40 text-muted-foreground hover:text-foreground"
-              }`}
-              style={activeProfile === key ? { background: color } : {}}
+              key={p.key}
+              onClick={() => setActiveProfile(p.key)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={
+                active
+                  ? { background: p.color, color: "#fff" }
+                  : { background: "oklch(0.96 0.005 240)", color: "oklch(0.45 0.05 240)" }
+              }
             >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
+              <Icon className="w-4 h-4" />
+              {p.label}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
-
-      {/* Profile intro */}
-      {activeProfile === "admin" && (
-        <div className="p-4 rounded-xl text-sm" style={{ background: "oklch(0.38 0.16 240 / 0.06)", border: "1px solid oklch(0.38 0.16 240 / 0.20)" }}>
-          <p className="font-semibold text-foreground mb-1">Perfil: Administrador / Super-Admin</p>
-          <p className="text-muted-foreground">Você tem acesso completo à plataforma: pode criar, editar e excluir ações, gerenciar usuários, visualizar auditoria e exportar dados. O Super-Admin também pode criar outros administradores.</p>
-        </div>
-      )}
-      {activeProfile === "setorial" && (
-        <div className="p-4 rounded-xl text-sm" style={{ background: "oklch(0.45 0.18 145 / 0.06)", border: "1px solid oklch(0.45 0.18 145 / 0.20)" }}>
-          <p className="font-semibold text-foreground mb-1">Perfil: Usuário Setorial</p>
-          <p className="text-muted-foreground">Você pode visualizar todos os itens e interagir (comentar e incluir documentos) apenas nos itens cujo órgão responsável foi autorizado pelo administrador para o seu perfil.</p>
-        </div>
-      )}
-      {activeProfile === "viewer" && (
-        <div className="p-4 rounded-xl text-sm" style={{ background: "oklch(0.55 0.12 260 / 0.06)", border: "1px solid oklch(0.55 0.12 260 / 0.20)" }}>
-          <p className="font-semibold text-foreground mb-1">Perfil: Visualizador</p>
-          <p className="text-muted-foreground">Você tem acesso de leitura a toda a plataforma: Dashboard, listagem de ações, fichas de itens, comentários, histórico e documentos. Não é possível editar, comentar ou incluir documentos.</p>
-        </div>
-      )}
 
       {/* Sections */}
       <div>
-        {sections.map((section, idx) => (
-          <AccordionItem
-            key={section.id}
-            title={section.title}
-            icon={section.icon}
-            defaultOpen={idx === 0}
-          >
-            {section.content}
+        {sections.map((s, i) => (
+          <AccordionItem key={s.id} title={s.title} icon={s.icon} defaultOpen={i === 0}>
+            {s.content}
           </AccordionItem>
         ))}
-      </div>
-
-      {/* Footer */}
-      <div className="text-center text-xs text-muted-foreground pt-4 border-t border-border/30">
-        Plataforma de Gestão Documental de PPPs · SEMPLA — Secretaria Municipal de Planejamento · Prefeitura de Natal/RN
       </div>
     </div>
   );

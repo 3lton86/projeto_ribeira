@@ -27,6 +27,7 @@ import {
   Building2,
   ChevronDown,
   PhoneCall,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
@@ -211,6 +212,9 @@ export default function ActionDetail() {
   const [showAddOrgao, setShowAddOrgao] = useState(false);
   const [deleteOrgaoId, setDeleteOrgaoId] = useState<number | null>(null);
   const [newOrgao, setNewOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
+  // Estado para edição de órgão existente
+  const [editOrgaoId, setEditOrgaoId] = useState<number | null>(null);
+  const [editOrgao, setEditOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
   // Contact send dialog state — suporta múltiplos destinatários
   type ContactRecipient = {
     id: number;
@@ -285,6 +289,15 @@ export default function ActionDetail() {
       toast.success("Orgão removido.");
       utils.orgaos.list.invalidate({ actionId: id });
       setDeleteOrgaoId(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateOrgaoMutation = trpc.orgaos.update.useMutation({
+    onSuccess: () => {
+      toast.success("Orgão atualizado!");
+      utils.orgaos.list.invalidate({ actionId: id });
+      setEditOrgaoId(null);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -581,13 +594,31 @@ export default function ActionDetail() {
                     {actionOrgaos.map((o) => (
                       <div key={o.id} className="p-3 rounded-lg border border-border/40 bg-secondary/20 relative group">
                         {canEdit && (
-                          <button
-                            onClick={() => setDeleteOrgaoId(o.id)}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
-                            title="Remover órgão"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setEditOrgaoId(o.id);
+                                setEditOrgao({
+                                  orgao: o.orgao,
+                                  responsavelNome: o.responsavelNome ?? "",
+                                  responsavelCargo: o.responsavelCargo ?? "",
+                                  responsavelTel: o.responsavelTel ?? "",
+                                  responsavelEmail: o.responsavelEmail ?? "",
+                                });
+                              }}
+                              className="inline-flex items-center justify-center w-5 h-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                              title="Editar órgão"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteOrgaoId(o.id)}
+                              className="inline-flex items-center justify-center w-5 h-5 rounded text-destructive hover:bg-destructive/10 transition-colors"
+                              title="Remover órgão"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         )}
                         <div className="font-semibold text-sm text-foreground mb-1 flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-primary" />
@@ -1195,6 +1226,123 @@ export default function ActionDetail() {
               disabled={addOrgaoMutation.isPending}
             >
               {addOrgaoMutation.isPending ? "Salvando..." : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Editar Órgão */}
+      <Dialog open={editOrgaoId !== null} onOpenChange={(open) => !open && setEditOrgaoId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-4 h-4" />
+              Editar Órgão Responsável
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs uppercase tracking-wider">Órgão *</Label>
+              <select
+                value={editOrgao.orgao}
+                onChange={(e) => setEditOrgao({ ...editOrgao, orgao: e.target.value })}
+                className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+              >
+                <option value="">— Selecionar órgão —</option>
+                {ORGAOS_MUNICIPAIS.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Seletor de responsável cadastrado */}
+            {editOrgao.orgao && (orgaoResponsaveisAll ?? []).filter(r => r.orgao === editOrgao.orgao).length > 0 && (
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Selecionar Responsável Cadastrado</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+                  value={(orgaoResponsaveisAll ?? []).find(r =>
+                    r.orgao === editOrgao.orgao && r.nome === editOrgao.responsavelNome
+                  )?.id ?? ""}
+                  onChange={(e) => {
+                    const resp = (orgaoResponsaveisAll ?? []).find(r => r.id === Number(e.target.value));
+                    if (resp) {
+                      setEditOrgao(prev => ({
+                        ...prev,
+                        responsavelNome: resp.nome,
+                        responsavelCargo: resp.cargo ?? "",
+                        responsavelTel: resp.telefone ?? "",
+                        responsavelEmail: resp.email ?? "",
+                      }));
+                    }
+                  }}
+                >
+                  <option value="">— Selecionar responsável —</option>
+                  {(orgaoResponsaveisAll ?? []).filter(r => r.orgao === editOrgao.orgao).map(r => (
+                    <option key={r.id} value={r.id}>{r.nome}{r.cargo ? ` — ${r.cargo}` : ""}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Ou edite manualmente os campos abaixo.</p>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-xs uppercase tracking-wider">Nome do Responsável</Label>
+              <Input
+                value={editOrgao.responsavelNome}
+                onChange={(e) => setEditOrgao({ ...editOrgao, responsavelNome: e.target.value })}
+                placeholder="Nome completo"
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Cargo</Label>
+                <Input
+                  value={editOrgao.responsavelCargo}
+                  onChange={(e) => setEditOrgao({ ...editOrgao, responsavelCargo: e.target.value })}
+                  placeholder="Cargo ou função"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Telefone</Label>
+                <Input
+                  value={editOrgao.responsavelTel}
+                  onChange={(e) => setEditOrgao({ ...editOrgao, responsavelTel: e.target.value })}
+                  placeholder="(84) 9 0000-0000"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider">E-mail</Label>
+              <Input
+                type="email"
+                value={editOrgao.responsavelEmail}
+                onChange={(e) => setEditOrgao({ ...editOrgao, responsavelEmail: e.target.value })}
+                placeholder="email@orgao.natal.rn.gov.br"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOrgaoId(null)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (!editOrgaoId || !editOrgao.orgao) { toast.error("Selecione um órgão."); return; }
+                updateOrgaoMutation.mutate({
+                  id: editOrgaoId,
+                  orgao: editOrgao.orgao as any,
+                  responsavelNome: editOrgao.responsavelNome || undefined,
+                  responsavelCargo: editOrgao.responsavelCargo || undefined,
+                  responsavelTel: editOrgao.responsavelTel || undefined,
+                  responsavelEmail: editOrgao.responsavelEmail || undefined,
+                });
+              }}
+              disabled={updateOrgaoMutation.isPending}
+            >
+              {updateOrgaoMutation.isPending ? "Salvando..." : "Salvar alterações"}
             </Button>
           </DialogFooter>
         </DialogContent>
