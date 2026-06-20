@@ -111,6 +111,21 @@ function AreaBadge({ area }: { area: Area }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls[area]}`}>{area}</span>;
 }
 
+// ---- Last Contact Helper ----
+function formatLastContact(sentAt: Date | string | null | undefined): string {
+  if (!sentAt) return "";
+  const d = new Date(sentAt);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "hoje";
+  if (diffDays === 1) return "ontem";
+  if (diffDays < 7) return `há ${diffDays} dias`;
+  if (diffDays < 30) return `há ${Math.floor(diffDays / 7)} sem.`;
+  if (diffDays < 365) return `há ${Math.floor(diffDays / 30)} mes.`;
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
 // ---- Sortable Action Row ----
 interface SortableActionRowProps {
   action: any;
@@ -125,9 +140,10 @@ interface SortableActionRowProps {
   hasSubItems?: boolean;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  lastContact?: { channel: "email" | "whatsapp"; sentAt: Date | string; recipientName: string | null } | null;
 }
 
-function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand }: SortableActionRowProps) {
+function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand, lastContact }: SortableActionRowProps) {
   const {
     attributes,
     listeners,
@@ -202,6 +218,28 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
             }`}>
               {overdue ? <><AlertTriangle className="w-3 h-3" /> Atrasado</> : dueThisWeek ? <><Clock className="w-3 h-3" /> Vence em breve</> : "✅ No prazo"}
               {" — "}{dueDate.toLocaleDateString("pt-BR")}
+            </span>
+          )}
+          {lastContact ? (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+              style={{
+                background: lastContact.channel === "whatsapp" ? "oklch(0.45 0.18 145 / 0.15)" : "oklch(0.38 0.16 240 / 0.15)",
+                color: lastContact.channel === "whatsapp" ? "oklch(0.55 0.18 145)" : "oklch(0.55 0.15 240)",
+                border: `1px solid ${lastContact.channel === "whatsapp" ? "oklch(0.55 0.18 145 / 0.35)" : "oklch(0.55 0.15 240 / 0.35)"}`
+              }}
+              title={`Último contato via ${lastContact.channel === "whatsapp" ? "WhatsApp" : "e-mail"}${lastContact.recipientName ? ` com ${lastContact.recipientName}` : ""} — ${new Date(lastContact.sentAt).toLocaleString("pt-BR")}`}
+            >
+              {lastContact.channel === "whatsapp" ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+              {formatLastContact(lastContact.sentAt)}
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium opacity-40"
+              style={{ background: "oklch(0.5 0 0 / 0.08)", color: "oklch(0.55 0 0)", border: "1px solid oklch(0.5 0 0 / 0.15)" }}
+              title="Nenhum contato registrado"
+            >
+              <Phone className="w-3 h-3" /> sem contato
             </span>
           )}
         </div>
@@ -562,6 +600,14 @@ export default function Actions() {
   // Query para IDs de ações com histórico de contato
   const { data: actionIdsWithContact } = trpc.contactHistory.listActionIds.useQuery();
   const contactActionIdSet = useMemo(() => new Set(actionIdsWithContact ?? []), [actionIdsWithContact]);
+
+  // Query para o último contato de cada ação (mapa actionId -> registro)
+  const { data: lastContactList } = trpc.contactHistory.lastPerAction.useQuery();
+  const lastContactMap = useMemo(() => {
+    const map = new Map<number, { channel: "email" | "whatsapp"; sentAt: Date | string; recipientName: string | null }>();
+    (lastContactList ?? []).forEach(r => map.set(r.actionId, { channel: r.channel, sentAt: r.sentAt, recipientName: r.recipientName }));
+    return map;
+  }, [lastContactList]);
 
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
     docFilter !== "all" ? { docFilter: docFilter as "any" | "pending" | "accepted" } : {}
@@ -1168,6 +1214,7 @@ export default function Actions() {
                                           hasSubItems={hasSubItems}
                                           isExpanded={isItemExpanded}
                                           onToggleExpand={() => setExpandedItems(prev => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
+                                          lastContact={lastContactMap.get(action.id) ?? null}
                                         />
                                       </Fragment>
                                     );
@@ -1203,6 +1250,7 @@ export default function Actions() {
                                     hasSubItems={hasSubItems}
                                     isExpanded={isItemExpanded}
                                     onToggleExpand={() => setExpandedItems(prev => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
+                                    lastContact={lastContactMap.get(action.id) ?? null}
                                   />
                                 );
                               })

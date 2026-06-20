@@ -1087,3 +1087,40 @@ export async function getActionIdsWithContact(): Promise<number[]> {
     .from(contactHistory);
   return rows.map(r => r.actionId);
 }
+
+/** Retorna o registro mais recente de contato para cada ação que possui histórico */
+export async function getLastContactPerAction(): Promise<
+  { actionId: number; channel: "email" | "whatsapp"; recipientName: string | null; sentAt: Date }[]
+> {
+  const db = await getDb();
+  if (!db) return [];
+  // Subquery: para cada actionId, pega o maior sentAt
+  const rows = await db
+    .select({
+      actionId: contactHistory.actionId,
+      channel: contactHistory.channel,
+      recipientName: contactHistory.recipientName,
+      sentAt: contactHistory.sentAt,
+    })
+    .from(contactHistory)
+    .innerJoin(
+      db
+        .select({
+          actionId: contactHistory.actionId,
+          maxSentAt: sql<Date>`MAX(${contactHistory.sentAt})`.as("maxSentAt"),
+        })
+        .from(contactHistory)
+        .groupBy(contactHistory.actionId)
+        .as("latest"),
+      and(
+        eq(contactHistory.actionId, sql`latest.actionId`),
+        eq(contactHistory.sentAt, sql`latest.maxSentAt`)
+      )
+    );
+  return rows.map(r => ({
+    actionId: r.actionId,
+    channel: r.channel,
+    recipientName: r.recipientName,
+    sentAt: r.sentAt,
+  }));
+}

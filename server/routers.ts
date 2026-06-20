@@ -43,6 +43,7 @@ import {
   getContactHistory,
   addContactHistory,
   getActionIdsWithContact,
+  getLastContactPerAction,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -766,6 +767,11 @@ export const appRouter = router({
     listActionIds: publicProcedure
       .query(async () => {
         return getActionIdsWithContact();
+      }),
+
+    lastPerAction: publicProcedure
+      .query(async () => {
+        return getLastContactPerAction();
       }),
 
     add: localAuthProcedure

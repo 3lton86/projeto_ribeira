@@ -329,3 +329,11 @@
 - [x] Backend: procedure orgaos.update conectada via updateOrgaoMutation
 - [x] Frontend: Guia do Usuário completamente reescrito cobrindo Sprints 19–32 (dashboard por órgão, filtros de contato/doc, multi-responsável, telefone no cadastro, auto-preenchimento, edição de órgãos, exportação hierárquica)
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 33 — Indicador de Último Contato na Listagem
+
+- [x] Backend db.ts: getLastContactPerAction retorna { actionId, channel, sentAt, recipientName } via JOIN com subquery de MAX(sentAt)
+- [x] Backend routers.ts: procedure contactHistory.lastPerAction (publicProcedure)
+- [x] Frontend Actions.tsx: lastContactMap memoizado; badge em cada item com ícone (Phone/Mail), data relativa e tooltip com detalhes completos
+- [x] Frontend: badge "sem contato" (opaco) para itens sem histórico
+- [x] 69 testes passando (2 novos), zero erros TypeScript

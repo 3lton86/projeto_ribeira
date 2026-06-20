@@ -119,6 +119,16 @@ vi.mock("./db", () => ({
   updateDocumentStatus: vi.fn().mockResolvedValue(undefined),
   approveUser: vi.fn().mockResolvedValue(undefined),
   rejectUser: vi.fn().mockResolvedValue(undefined),
+  getContactHistory: vi.fn().mockResolvedValue([]),
+  addContactHistory: vi.fn().mockResolvedValue(1),
+  getActionIdsWithContact: vi.fn().mockResolvedValue([2]),
+  getLastContactPerAction: vi.fn().mockResolvedValue([
+    { actionId: 2, channel: "whatsapp", recipientName: "João Silva", sentAt: new Date() },
+  ]),
+  getOrgaoResponsaveis: vi.fn().mockResolvedValue([]),
+  addOrgaoResponsavel: vi.fn().mockResolvedValue(10),
+  updateOrgaoResponsavel: vi.fn().mockResolvedValue(undefined),
+  removeOrgaoResponsavel: vi.fn().mockResolvedValue(undefined),
 }));
 
 function makePublicCtx(): TrpcContext {
@@ -861,5 +871,26 @@ describe("notifications — alert dispatch on action creation", () => {
     expect(Array.isArray(ids)).toBe(true);
     expect(ids).toContain(1);
     expect(ids).toContain(2);
+  });
+});
+
+describe("contactHistory router", () => {
+  it("listActionIds returns array of action IDs with contact history", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    const result = await caller.contactHistory.listActionIds();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toContain(2);
+  });
+
+  it("lastPerAction returns last contact record per action", async () => {
+    const caller = appRouter.createCaller(makePublicCtx());
+    const result = await caller.contactHistory.lastPerAction();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    const first = result[0];
+    expect(first).toHaveProperty("actionId", 2);
+    expect(first).toHaveProperty("channel", "whatsapp");
+    expect(first).toHaveProperty("recipientName", "João Silva");
+    expect(first.sentAt).toBeInstanceOf(Date);
   });
 });
