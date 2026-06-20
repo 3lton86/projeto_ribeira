@@ -160,7 +160,10 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }} />
-            <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
+            <div>
+              <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
+              <span className="ml-0.5 text-sm font-semibold tracking-wide" style={{ color: "oklch(0.65 0.18 185)" }}>PMI Ribeira Sustentável</span>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground ml-3">
             Controle de entrega de documentos e informações pelos órgãos municipais para estruturação do projeto PPP

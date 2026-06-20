@@ -684,6 +684,13 @@ export default function Actions() {
     });
   }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, selectedResponsaveis, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
 
+  // Lista de nomes de responsáveis únicos para o filtro
+  const responsaveisDisponiveis = useMemo(() => {
+    return Array.from(new Set(
+      (allActions ?? []).filter(a => a.isGroup === 0 && (a as any).responsavelNome).map(a => (a as any).responsavelNome as string)
+    )).sort();
+  }, [allActions]);
+
   const grouped = useMemo(() => {
     const map: Record<string, typeof filtered> = {};
     for (const a of filtered) {
@@ -1033,18 +1040,12 @@ export default function Actions() {
                 <input type="text" placeholder="Buscar responsável..." value={responsavelSearch} onChange={(e) => setResponsavelSearch(e.target.value)} className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs glass-card border border-border/40 bg-transparent focus:outline-none focus:border-primary/50 transition-colors" />
               </div>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                {useMemo(() => {
-                  const names = Array.from(new Set(
-                    (allActions ?? []).filter(a => a.isGroup === 0 && (a as any).responsavelNome).map(a => (a as any).responsavelNome as string)
-                  )).sort();
-                  return names.filter(n => n.toLowerCase().includes(responsavelSearch.toLowerCase())).map(nome => (
-                    <button key={nome} onClick={() => toggleResponsavel(nome)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${selectedResponsaveis.includes(nome) ? "bg-primary text-primary-foreground" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-                      {nome}
-                    </button>
-                  ));
-                // eslint-disable-next-line react-hooks/exhaustive-deps
-                }, [allActions, responsavelSearch, selectedResponsaveis])}
+                {responsaveisDisponiveis.filter(n => n.toLowerCase().includes(responsavelSearch.toLowerCase())).map(nome => (
+                  <button key={nome} onClick={() => toggleResponsavel(nome)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${selectedResponsaveis.includes(nome) ? "bg-primary text-primary-foreground" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    {nome}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="sm:col-span-2 grid grid-cols-3 gap-4">
