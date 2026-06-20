@@ -926,6 +926,15 @@ export default function Actions() {
               </span>
             )}
           </button>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/50"
+              title="Remover todos os filtros ativos"
+            >
+              <X className="w-3.5 h-3.5" /> Limpar Filtros
+            </button>
+          )}
         </div>
       </div>
 
