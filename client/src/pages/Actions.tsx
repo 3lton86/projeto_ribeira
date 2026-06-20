@@ -557,6 +557,8 @@ export default function Actions() {
   const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([]);
   const [selectedOrgaos, setSelectedOrgaos] = useState<string[]>([]);
   const [orgaoSearch, setOrgaoSearch] = useState("");
+  const [responsavelSearch, setResponsavelSearch] = useState("");
+  const [selectedResponsaveis, setSelectedResponsaveis] = useState<string[]>([]);
   const [searchText, setSearchText] = useState("");
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>("all");
   const [docFilter, setDocFilter] = useState<DocFilter>("all");
@@ -669,6 +671,7 @@ export default function Actions() {
         if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) return false;
         if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) return false;
         if (selectedOrgaos.length > 0 && !selectedOrgaos.includes((a as any).orgao ?? "")) return false;
+        if (selectedResponsaveis.length > 0 && !selectedResponsaveis.includes((a as any).responsavelNome ?? "")) return false;
         if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) return false;
         // Deadline quick filter
         if (deadlineFilter === "overdue" && !isOverdue((a as any).dueDate, a.status)) return false;
@@ -679,7 +682,7 @@ export default function Actions() {
       }
       return true;
     });
-  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
+  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, selectedResponsaveis, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof filtered> = {};
@@ -743,14 +746,16 @@ export default function Actions() {
   const toggleStatus = (s: Status) => { setSelectedStatuses(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]); setAreaPages({}); };
   const togglePriority = (p: Priority) => { setSelectedPriorities(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]); setAreaPages({}); };
   const toggleOrgao = (o: string) => { setSelectedOrgaos(p => p.includes(o) ? p.filter(x => x !== o) : [...p, o]); setAreaPages({}); };
+  const toggleResponsavel = (r: string) => { setSelectedResponsaveis(p => p.includes(r) ? p.filter(x => x !== r) : [...p, r]); setAreaPages({}); };
 
   const clearFilters = () => {
     setSelectedAreas([]); setSelectedStatuses([]); setSelectedPriorities([]);
     setSelectedOrgaos([]); setOrgaoSearch(""); setSearchText("");
+    setSelectedResponsaveis([]); setResponsavelSearch("");
     setDeadlineFilter("all"); setDocFilter("all"); setContactFilter("all"); setAreaPages({});
   };
 
-  const hasFilters = selectedAreas.length > 0 || selectedStatuses.length > 0 || selectedPriorities.length > 0 || selectedOrgaos.length > 0 || searchText.length > 0 || deadlineFilter !== "all" || docFilter !== "all" || contactFilter !== "all";
+  const hasFilters = selectedAreas.length > 0 || selectedStatuses.length > 0 || selectedPriorities.length > 0 || selectedOrgaos.length > 0 || selectedResponsaveis.length > 0 || searchText.length > 0 || deadlineFilter !== "all" || docFilter !== "all" || contactFilter !== "all";
   const totalItems = filtered.filter(a => a.isGroup === 0).length;
 
   const getAreaPage = (area: string) => areaPages[area] ?? 1;
@@ -871,7 +876,7 @@ export default function Actions() {
             <Filter className="w-3.5 h-3.5" /> Filtros
             {hasFilters && (
               <span className="ml-1 bg-black/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
-                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + (searchText ? 1 : 0) + (deadlineFilter !== "all" ? 1 : 0) + (docFilter !== "all" ? 1 : 0) + (contactFilter !== "all" ? 1 : 0)}
+                {selectedAreas.length + selectedStatuses.length + selectedPriorities.length + selectedOrgaos.length + selectedResponsaveis.length + (searchText ? 1 : 0) + (deadlineFilter !== "all" ? 1 : 0) + (docFilter !== "all" ? 1 : 0) + (contactFilter !== "all" ? 1 : 0)}
               </span>
             )}
           </button>
@@ -991,8 +996,8 @@ export default function Actions() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider flex items-center justify-between">
                 <span>Órgão Responsável</span>
                 {selectedOrgaos.length > 0 && (
@@ -1014,6 +1019,35 @@ export default function Actions() {
                 ))}
               </div>
             </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider flex items-center justify-between">
+                <span>Responsável</span>
+                {selectedResponsaveis.length > 0 && (
+                  <button onClick={() => { setSelectedResponsaveis([]); setAreaPages({}); }} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5">
+                    <X className="w-2.5 h-2.5" /> Limpar
+                  </button>
+                )}
+              </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <input type="text" placeholder="Buscar responsável..." value={responsavelSearch} onChange={(e) => setResponsavelSearch(e.target.value)} className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs glass-card border border-border/40 bg-transparent focus:outline-none focus:border-primary/50 transition-colors" />
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                {useMemo(() => {
+                  const names = Array.from(new Set(
+                    (allActions ?? []).filter(a => a.isGroup === 0 && (a as any).responsavelNome).map(a => (a as any).responsavelNome as string)
+                  )).sort();
+                  return names.filter(n => n.toLowerCase().includes(responsavelSearch.toLowerCase())).map(nome => (
+                    <button key={nome} onClick={() => toggleResponsavel(nome)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${selectedResponsaveis.includes(nome) ? "bg-primary text-primary-foreground" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                      {nome}
+                    </button>
+                  ));
+                // eslint-disable-next-line react-hooks/exhaustive-deps
+                }, [allActions, responsavelSearch, selectedResponsaveis])}
+              </div>
+            </div>
+            <div className="sm:col-span-2 grid grid-cols-3 gap-4">
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Frente Temática</div>
               <div className="flex flex-col gap-1.5">
@@ -1046,6 +1080,7 @@ export default function Actions() {
                   </button>
                 ))}
               </div>
+            </div>
             </div>
           </div>
         </div>

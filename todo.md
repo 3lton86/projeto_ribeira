@@ -344,3 +344,12 @@
 - [x] Coluna "Qtd. Documentos" adicionada ao lado de "Qtd. Comentários"
 - [x] Linhas de continuação (└) para 2º+ documentos do mesmo item
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 35 — PDF Corrigido + Filtros por Órgão/Responsável/Status/Prioridade
+
+- [x] export.ts: exportToPdf reescrito com autoTable landscape A4 — tabela principal com 11 colunas fixas, sem sobreposições nem transbordamento
+- [x] export.ts: colunas Órgão Responsável, Responsável, Cargo, Telefone e Prazo Previsto no PDF
+- [x] export.ts: código de cor automático por Status, Prioridade e Situação Prazo; linhas de grupo destacadas
+- [x] Actions.tsx: filtro por Responsável adicionado ao painel avançado (busca dinâmica a partir dos dados carregados)
+- [x] Actions.tsx: filtros de Órgão, Responsável, Status e Prioridade todos visíveis e funcionais
+- [x] 69 testes passando, zero erros TypeScript
