@@ -665,23 +665,42 @@ export default function Actions() {
   // Filtered actions
   const filtered = useMemo(() => {
     if (!allActions) return [];
-    return allActions.filter((a) => {
-      if (selectedAreas.length > 0 && !selectedAreas.includes(a.area as Area)) return false;
-      if (a.isGroup === 0) {
-        if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) return false;
-        if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) return false;
-        if (selectedOrgaos.length > 0 && !selectedOrgaos.includes((a as any).orgao ?? "")) return false;
-        if (selectedResponsaveis.length > 0 && !selectedResponsaveis.includes((a as any).responsavelNome ?? "")) return false;
-        if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) return false;
-        // Deadline quick filter
-        if (deadlineFilter === "overdue" && !isOverdue((a as any).dueDate, a.status)) return false;
-        if (deadlineFilter === "this_week" && !isDueThisWeek((a as any).dueDate, a.status)) return false;
-        // Contact filter
-        if (contactFilter === "with_contact" && !contactActionIdSet.has(a.id)) return false;
-        if (contactFilter === "no_contact" && contactActionIdSet.has(a.id)) return false;
-      }
-      return true;
-    });
+
+    // 1ª passagem: filtrar apenas os itens (isGroup=0) que correspondem a todos os critérios
+    const visibleItemIds = new Set<number>();
+    for (const a of allActions) {
+      if (a.isGroup !== 0) continue;
+      if (selectedAreas.length > 0 && !selectedAreas.includes(a.area as Area)) continue;
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) continue;
+      if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) continue;
+      if (selectedOrgaos.length > 0 && !selectedOrgaos.includes((a as any).orgao ?? "")) continue;
+      if (selectedResponsaveis.length > 0 && !selectedResponsaveis.includes((a as any).responsavelNome ?? "")) continue;
+      if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) continue;
+      if (deadlineFilter === "overdue" && !isOverdue((a as any).dueDate, a.status)) continue;
+      if (deadlineFilter === "this_week" && !isDueThisWeek((a as any).dueDate, a.status)) continue;
+      if (contactFilter === "with_contact" && !contactActionIdSet.has(a.id)) continue;
+      if (contactFilter === "no_contact" && contactActionIdSet.has(a.id)) continue;
+      visibleItemIds.add(a.id);
+    }
+
+    // 2ª passagem: incluir grupos (isGroup=1) que têm ao menos um item visível como descendente
+    // Um item é descendente de um grupo se seu parentCode começa com o itemCode do grupo
+    const visibleItems = allActions.filter(a => a.isGroup === 0 && visibleItemIds.has(a.id));
+    const visibleGroupIds = new Set<number>();
+    for (const group of allActions) {
+      if (group.isGroup !== 1) continue;
+      if (selectedAreas.length > 0 && !selectedAreas.includes(group.area as Area)) continue;
+      const hasVisibleChild = visibleItems.some(
+        item => item.area === group.area && ((item as any).parentCode === group.itemCode ||
+          ((item as any).parentCode ?? "").startsWith(group.itemCode + "."))
+      );
+      if (hasVisibleChild) visibleGroupIds.add(group.id);
+    }
+
+    return allActions.filter(a =>
+      (a.isGroup === 0 && visibleItemIds.has(a.id)) ||
+      (a.isGroup === 1 && visibleGroupIds.has(a.id))
+    );
   }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, selectedResponsaveis, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
 
   // Lista de nomes de responsáveis únicos para o filtro
