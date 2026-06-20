@@ -246,3 +246,12 @@
 - [x] Coluna "Órgão Provável/Responsável" → campo observacoes
 - [x] Campo dueDate (Prazo Previsto) deixado em branco (NULL) em todos os itens
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 26 — Exibição Recursiva de Sub-itens na Listagem
+
+- [x] Diagnóstico: 265 registros importados corretamente (grupos + itens + sub-itens)
+- [x] Problema identificado: UI filtrava apenas filhos diretos do grupo (parentCode === group.itemCode)
+- [x] Correção: função getAllDescendants() recursiva para coletar todos os descendentes
+- [x] Indentação visual: prop depth no SortableActionRow (borda esquerda + recuo por nível)
+- [x] depth calculado por: itemCode.split('.').length - 1 (ex: "1.1.1" → depth=2)
+- [x] 67 testes passando, zero erros TypeScript

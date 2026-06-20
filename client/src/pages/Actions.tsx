@@ -120,9 +120,10 @@ interface SortableActionRowProps {
   onAddSubItem: (action: any) => void;
   idx: number;
   hierNum?: string;
+  depth?: number; // 0 = item direto do grupo, 1 = sub-item, 2 = sub-sub-item
 }
 
-function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum }: SortableActionRowProps) {
+function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum, depth = 0 }: SortableActionRowProps) {
   const {
     attributes,
     listeners,
@@ -146,8 +147,8 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""}`}
+      style={{ ...style, paddingLeft: depth > 0 ? `${1 + depth * 1.5}rem` : undefined }}
+      className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${depth > 0 ? "border-l-2 border-primary/20 bg-secondary/10" : idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""}`}
     >
       {/* Drag handle */}
       {isAdmin && isDragEnabled && (
@@ -1008,13 +1009,18 @@ export default function Actions() {
                   <div className="border-t border-border/30">
                     {groups.map(group => {
                       const groupKey = `group-${group.id}`;
-                      const allChildren = areaItems.filter(a => a.isGroup === 0 && a.parentCode === group.itemCode);
+                      // Collect ALL descendants of this group recursively (items + sub-items)
+                      const getAllDescendants = (parentCode: string): typeof areaItems => {
+                        const direct = areaItems.filter(a => a.isGroup === 0 && a.parentCode === parentCode);
+                        return direct.flatMap(child => [child, ...getAllDescendants(child.itemCode)]);
+                      };
+                      const allChildren = getAllDescendants(group.itemCode);
                       const visibleChildren = allChildren.filter(a => pagedItemIds.has(a.id));
                       const isGroupExpanded = !expandedGroups.has(`collapsed-${groupKey}`);
 
                       if (allChildren.length === 0) return null;
 
-                      // Apply local order if drag mode was used
+                      // Apply local order if drag mode was used (only direct children)
                       const orderKey = `${area}-${group.itemCode}`;
                       const orderedChildren = localOrder[orderKey]
                         ? (localOrder[orderKey].map(id => visibleChildren.find(a => a.id === id)).filter(Boolean) as typeof visibleChildren)
@@ -1070,6 +1076,7 @@ export default function Actions() {
                                       onAddSubItem={setAddingSubItemTo}
                                       idx={idx}
                                       hierNum={hierNums.get(action.id)}
+                                      depth={(action.itemCode?.split('.').length ?? 1) - 1}
                                     />
                                   ))}
                                 </SortableContext>
@@ -1086,6 +1093,7 @@ export default function Actions() {
                                   onAddSubItem={setAddingSubItemTo}
                                   idx={idx}
                                   hierNum={hierNums.get(action.id)}
+                                  depth={(action.itemCode?.split('.').length ?? 1) - 1}
                                 />
                               ))
                             )
