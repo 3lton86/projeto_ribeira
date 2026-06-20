@@ -173,7 +173,8 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
       ref={setNodeRef}
       data-action-id={action.id}
       style={{ ...style, paddingLeft: depth > 0 ? `${1 + depth * 1.5}rem` : undefined }}
-      className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${depth > 0 ? "border-l-2 border-primary/20 bg-secondary/10" : idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""} ${isRecentlyVisited ? "row-flash" : ""}`}
+      onClick={() => { if (!isDragEnabled) onNavigate(action.id); }}
+      className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${depth > 0 ? "border-l-2 border-primary/20 bg-secondary/10" : idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""} ${isRecentlyVisited ? "row-flash" : ""} ${!isDragEnabled ? "cursor-pointer" : ""}`}
     >
       {/* Drag handle */}
       {isAdmin && isDragEnabled && (
@@ -191,7 +192,7 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
       {/* Expand/collapse toggle for items with sub-items */}
       {hasSubItems ? (
         <button
-          onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleExpand?.(); }}
           className="flex-shrink-0 pt-0.5 w-5 h-5 flex items-center justify-center rounded hover:bg-secondary/60 transition-colors"
           title={isExpanded ? "Recolher sub-itens" : "Expandir sub-itens"}
           aria-label={isExpanded ? "Recolher sub-itens" : "Expandir sub-itens"}
@@ -281,14 +282,14 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
             </button>
           </>
         )}
-        <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigate(action.id); }}
-          className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-          title="Ver ficha completa"
-          aria-label="Ver ficha completa"
+        {/* Hint icon: visible on hover to indicate the row is clickable */}
+        <span
+          className="p-1.5 rounded-lg text-muted-foreground/50"
+          title="Clique no item para abrir a ficha completa"
+          aria-hidden="true"
         >
-          {isAdmin ? <Edit3 className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5 text-muted-foreground" />}
-        </button>
+          {isAdmin ? <Edit3 className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+        </span>
       </div>
     </div>
   );
