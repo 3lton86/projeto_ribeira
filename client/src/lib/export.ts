@@ -3,6 +3,7 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SEMPLA_LOGO_B64 } from "./sempla-logo-b64";
+import { isEmpresaParceira } from "../../../shared/orgaos";
 
 // ---- Types ----
 
@@ -611,6 +612,15 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       if (data.column.index === 5 && data.section === "body") {
         const sit2 = String(data.cell.raw ?? "");
         if (sit2) data.cell.styles.textColor = deadlineColor(sit2);
+      }
+      // Highlight empresa parceira in orgao column (index 6)
+      if (data.column.index === 6 && data.section === "body") {
+        const orgaoVal = String(data.cell.raw ?? "");
+        if (orgaoVal && isEmpresaParceira(orgaoVal)) {
+          data.cell.styles.textColor = [180, 83, 9] as [number, number, number]; // amber-700
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [255, 251, 235] as [number, number, number]; // amber-50
+        }
       }
     },
     didDrawPage: (data: any) => {

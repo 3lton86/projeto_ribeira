@@ -34,7 +34,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
-import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
+import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS } from "@shared/orgaos";
 
 type UserRow = {
   id: number;
@@ -552,8 +552,9 @@ function UserFormDialog({
                 </div>
               </div>
               {!selectAll && (
-                <div className="h-48 overflow-y-auto rounded border border-border/50">
+                <div className="h-56 overflow-y-auto rounded border border-border/50">
                   <div className="p-2 space-y-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1">Órgãos Municipais</div>
                     {ORGAOS_MUNICIPAIS.map((orgao) => (
                       <div
                         key={orgao}
@@ -566,9 +567,23 @@ function UserFormDialog({
                           onCheckedChange={() => {}}
                           onClick={(e) => e.stopPropagation()}
                         />
-                        <span className="text-xs text-foreground select-none">
-                          {orgao}
-                        </span>
+                        <span className="text-xs text-foreground select-none">{orgao}</span>
+                      </div>
+                    ))}
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 px-2 pt-2 pb-1">Empresas Parceiras</div>
+                    {EMPRESAS_PARCEIRAS.map((orgao) => (
+                      <div
+                        key={orgao}
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                        onClick={() => toggleOrgao(orgao)}
+                      >
+                        <Checkbox
+                          id={`orgao-${orgao}`}
+                          checked={form.allowedOrgaos.includes(orgao)}
+                          onCheckedChange={() => {}}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className="text-xs text-amber-700 dark:text-amber-300 select-none">{orgao}</span>
                       </div>
                     ))}
                   </div>

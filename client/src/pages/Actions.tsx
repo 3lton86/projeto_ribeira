@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
+import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS, isEmpresaParceira } from "../../../shared/orgaos";
 import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
 import { useAuth } from "@/_core/hooks/useAuth";
 import React, { useState, useMemo, useCallback, Fragment } from "react";
@@ -1065,13 +1065,28 @@ export default function Actions() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
                 <input type="text" placeholder="Buscar órgão..." value={orgaoSearch} onChange={(e) => setOrgaoSearch(e.target.value)} className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs glass-card border border-border/40 bg-transparent focus:outline-none focus:border-primary/50 transition-colors" />
               </div>
-              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
                 {ORGAOS_MUNICIPAIS.filter(o => o.toLowerCase().includes(orgaoSearch.toLowerCase())).map(orgao => (
                   <button key={orgao} onClick={() => { toggleOrgao(orgao); }}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${selectedOrgaos.includes(orgao) ? "bg-primary text-primary-foreground" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {orgao}
                   </button>
                 ))}
+                {EMPRESAS_PARCEIRAS.filter(o => o.toLowerCase().includes(orgaoSearch.toLowerCase())).length > 0 && (
+                  <>
+                    <div className="w-full text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mt-1 mb-0.5">Empresas Parceiras</div>
+                    {EMPRESAS_PARCEIRAS.filter(o => o.toLowerCase().includes(orgaoSearch.toLowerCase())).map(orgao => (
+                      <button key={orgao} onClick={() => { toggleOrgao(orgao); }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border ${
+                          selectedOrgaos.includes(orgao)
+                            ? "bg-amber-500 text-white border-amber-500"
+                            : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                        }`}>
+                        {orgao}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
             <div>

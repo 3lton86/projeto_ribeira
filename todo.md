@@ -370,3 +370,10 @@
 - [x] ActionDetail.tsx: seletores de órgão (add/edit) incluem empresas parceiras via optgroup
 - [x] server/routers.ts: validações Zod atualizadas para TODOS_ORGAOS (5 ocorrências)
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 39 — Empresas Parceiras: Filtro, Cadastro de Usuários e PDF
+
+- [x] Actions.tsx: empresas parceiras incluídas no painel de filtro por órgão com visual âmbar (botões com borda laranja)
+- [x] Users.tsx: seletor de allowedOrgaos inclui seção "Empresas Parceiras" com checkboxes em cor âmbar
+- [x] export.ts: empresas parceiras destacadas com fundo âmbar-50 e texto amber-700 na coluna Órgão Responsável do PDF
+- [x] 69 testes passando, zero erros TypeScript
