@@ -255,3 +255,22 @@
 - [x] Indentação visual: prop depth no SortableActionRow (borda esquerda + recuo por nível)
 - [x] depth calculado por: itemCode.split('.').length - 1 (ex: "1.1.1" → depth=2)
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 27 — Paginação, Exportação Hierárquica e Expansão de Itens
+
+- [ ] Paginação por grupo completo: grupos não são quebrados entre páginas
+- [ ] Exportação Excel: incluir sub-itens com indentação de células por nível hierárquico
+- [ ] Exportação PDF: incluir sub-itens com recuo visual por nível hierárquico
+- [ ] Expansão/recolhimento de itens principais (ocultar/exibir sub-itens)
+- [ ] 67 testes passando, zero erros TypeScript
+
+## Sprint 27 — Paginação, Expansão e Exportação Hierárquica
+
+- [x] Paginação por grupo completo (grupo + todos os descendentes na mesma página, sem quebras)
+- [x] Exportação PDF: grupos como cabeçalhos, sub-itens com indentação e barra lateral colorida por nível
+- [x] Exportação PDF: campo Observações incluído nos itens
+- [x] Exportação Excel: grupos em negrito/cor, sub-itens com recuo por nível hierárquico
+- [x] Botão de expandir/recolher (chevron) nos itens que possuem sub-itens
+- [x] Sub-itens ocultados quando item pai está recolhido
+- [x] getExportData atualizado para incluir grupos (isGroup=1) e parentCode
+- [x] 67 testes passando, zero erros TypeScript

@@ -627,28 +627,34 @@ export async function getExportData(filters?: {
 }) {
   const db = await getDb();
   if (!db) return [];
-  const conditions = [];
-  if (filters?.area?.length) conditions.push(inArray(actions.area, filters.area as any));
-  if (filters?.priority?.length) conditions.push(inArray(actions.priority, filters.priority as any));
-  if (filters?.status?.length) conditions.push(inArray(actions.status, filters.status as any));
-  if (filters?.orgao?.length) conditions.push(inArray(actions.orgao, filters.orgao as any));
-  conditions.push(eq(actions.isGroup, 0));
+  // Fetch ALL rows (groups + items + sub-items) for the area filter, then apply item-level filters
+  const areaConditions = [];
+  if (filters?.area?.length) areaConditions.push(inArray(actions.area, filters.area as any));
 
-  const rows = await db
+  const allRows = await db
     .select()
     .from(actions)
-    .where(and(...conditions))
+    .where(areaConditions.length > 0 ? and(...areaConditions) : undefined)
     .orderBy(actions.area, actions.sortOrder);
 
-  // Apply text search client-side (description)
-  const filtered = filters?.searchText
-    ? rows.filter(r => r.description.toLowerCase().includes(filters.searchText!.toLowerCase()))
-    : rows;
+  // Apply item-level filters only to non-group rows
+  const itemConditionFn = (r: typeof allRows[0]) => {
+    if (r.isGroup === 1) return true; // groups are always included if area matches
+    if (filters?.priority?.length && r.priority && !filters.priority.includes(r.priority)) return false;
+    if (filters?.status?.length && !filters.status.includes(r.status)) return false;
+    if (filters?.orgao?.length && !filters.orgao.includes(r.orgao ?? "")) return false;
+    if (filters?.searchText && !r.description.toLowerCase().includes(filters.searchText.toLowerCase())) return false;
+    return true;
+  };
+
+  const rows = allRows.filter(itemConditionFn);
+
+  const filtered = rows;
 
   if (filtered.length === 0) return [];
 
-  // Fetch comments for all returned actions
-  const actionIds = filtered.map(r => r.id);
+  // Fetch comments and docs only for non-group items
+  const actionIds = filtered.filter(r => r.isGroup === 0).map(r => r.id);
   const allComments = await db
     .select({
       id: comments.id,
@@ -683,8 +689,8 @@ export async function getExportData(filters?: {
 
   return filtered.map(r => ({
     ...r,
-    comments: commentsByAction[r.id] ?? [],
-    documents: docsByAction[r.id] ?? [],
+    comments: r.isGroup === 0 ? (commentsByAction[r.id] ?? []) : [],
+    documents: r.isGroup === 0 ? (docsByAction[r.id] ?? []) : [],
   }));
 }
 

@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
 import { buildHierarchicalNumbers } from "../../../shared/hierarchyNumbers";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, Fragment } from "react";
 import { useLocation, Link } from "wouter";
 import {
   ChevronDown,
@@ -121,9 +121,12 @@ interface SortableActionRowProps {
   idx: number;
   hierNum?: string;
   depth?: number; // 0 = item direto do grupo, 1 = sub-item, 2 = sub-sub-item
+  hasSubItems?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum, depth = 0 }: SortableActionRowProps) {
+function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand }: SortableActionRowProps) {
   const {
     attributes,
     listeners,
@@ -163,6 +166,19 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
         </button>
       )}
 
+      {/* Expand/collapse toggle for items with sub-items */}
+      {hasSubItems ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+          className="flex-shrink-0 pt-0.5 w-5 h-5 flex items-center justify-center rounded hover:bg-secondary/60 transition-colors"
+          title={isExpanded ? "Recolher sub-itens" : "Expandir sub-itens"}
+          aria-label={isExpanded ? "Recolher sub-itens" : "Expandir sub-itens"}
+        >
+          {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+        </button>
+      ) : (
+        <span className="flex-shrink-0 w-5" />
+      )}
       <span className="text-xs text-muted-foreground w-8 flex-shrink-0 pt-0.5 font-mono" title={`Código interno: ${action.itemCode}`}>{hierNum ?? action.itemCode}</span>
 
       <div className="flex-1 min-w-0">
@@ -506,6 +522,7 @@ export default function Actions() {
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>("all");
   const [docFilter, setDocFilter] = useState<DocFilter>("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set()); // items with sub-items expanded by default
   const [showFilters, setShowFilters] = useState(false);
   const [isDragMode, setIsDragMode] = useState(false);
 
@@ -976,10 +993,42 @@ export default function Actions() {
 
             const allAreaActionItems = areaItems.filter(a => a.isGroup === 0);
             const currentPage = getAreaPage(area);
-            const totalPages = Math.ceil(allAreaActionItems.length / PAGE_SIZE);
+
+            // Pagination by complete groups: each page contains whole groups (never split a group across pages)
+            // Build group pages: assign groups to pages greedily, keeping each group intact
+            const getAllDescendantsForPaging = (parentCode: string): typeof areaItems => {
+              const direct = areaItems.filter(a => a.isGroup === 0 && a.parentCode === parentCode);
+              return direct.flatMap(child => [child, ...getAllDescendantsForPaging(child.itemCode)]);
+            };
+            const groupsWithCounts = groups.map(g => ({
+              group: g,
+              descendants: getAllDescendantsForPaging(g.itemCode),
+            })).filter(g => g.descendants.length > 0);
+
+            // Assign groups to pages
+            const groupPages: (typeof groupsWithCounts)[] = [];
+            let currentPageGroups: typeof groupsWithCounts = [];
+            let currentPageCount = 0;
+            for (const gEntry of groupsWithCounts) {
+              const size = gEntry.descendants.length;
+              if (currentPageGroups.length > 0 && currentPageCount + size > PAGE_SIZE) {
+                groupPages.push(currentPageGroups);
+                currentPageGroups = [gEntry];
+                currentPageCount = size;
+              } else {
+                currentPageGroups.push(gEntry);
+                currentPageCount += size;
+              }
+            }
+            if (currentPageGroups.length > 0) groupPages.push(currentPageGroups);
+
+            const totalPages = Math.max(groupPages.length, 1);
+            const safeCurrentPage = Math.min(currentPage, totalPages);
+            const currentPageGroupEntries = groupPages[safeCurrentPage - 1] ?? [];
             const pagedItemIds = new Set(
-              allAreaActionItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(a => a.id)
+              currentPageGroupEntries.flatMap(g => g.descendants.map(a => a.id))
             );
+            const pagedGroupIds = new Set(currentPageGroupEntries.map(g => g.group.id));
 
             return (
               <div key={area} className="glass-card rounded-xl overflow-hidden">
@@ -998,7 +1047,7 @@ export default function Actions() {
                     {allAreaActionItems.length} ações
                     {totalPages > 1 && (
                       <span className="ml-2 text-xs text-muted-foreground font-normal">
-                        (pág. {currentPage}/{totalPages})
+                        (pág. {safeCurrentPage}/{totalPages})
                       </span>
                     )}
                   </span>
@@ -1007,7 +1056,7 @@ export default function Actions() {
 
                 {isAreaExpanded && (
                   <div className="border-t border-border/30">
-                    {groups.map(group => {
+                    {groups.filter(g => pagedGroupIds.has(g.id)).map(group => {
                       const groupKey = `group-${group.id}`;
                       // Collect ALL descendants of this group recursively (items + sub-items)
                       const getAllDescendants = (parentCode: string): typeof areaItems => {
@@ -1065,37 +1114,63 @@ export default function Actions() {
                                 onDragEnd={(event) => handleDragEnd(event, orderedChildren, allChildren, area)}
                               >
                                 <SortableContext items={orderedChildren.map(a => a.id)} strategy={verticalListSortingStrategy}>
-                                  {orderedChildren.map((action, idx) => (
-                                    <SortableActionRow
-                                      key={action.id}
-                                      action={action}
-                                      isAdmin={isAdmin}
-                                      isDragEnabled={isDragMode}
-                                      onEdit={setEditingAction}
-                                      onDelete={setDeletingAction}
-                                      onAddSubItem={setAddingSubItemTo}
-                                      idx={idx}
-                                      hierNum={hierNums.get(action.id)}
-                                      depth={(action.itemCode?.split('.').length ?? 1) - 1}
-                                    />
-                                  ))}
+                                  {orderedChildren.map((action, idx) => {
+                                    const directSubItems = areaItems.filter(a => a.isGroup === 0 && a.parentCode === action.itemCode);
+                                    const hasSubItems = directSubItems.length > 0;
+                                    const isItemExpanded = !expandedItems.has(action.id);
+                                    return (
+                                      <Fragment key={action.id}>
+                                        <SortableActionRow
+                                          action={action}
+                                          isAdmin={isAdmin}
+                                          isDragEnabled={isDragMode}
+                                          onEdit={setEditingAction}
+                                          onDelete={setDeletingAction}
+                                          onAddSubItem={setAddingSubItemTo}
+                                          idx={idx}
+                                          hierNum={hierNums.get(action.id)}
+                                          depth={(action.itemCode?.split('.').length ?? 1) - 1}
+                                          hasSubItems={hasSubItems}
+                                          isExpanded={isItemExpanded}
+                                          onToggleExpand={() => setExpandedItems(prev => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
+                                        />
+                                      </Fragment>
+                                    );
+                                  })}
                                 </SortableContext>
                               </DndContext>
                             ) : (
-                              orderedChildren.map((action, idx) => (
-                                <SortableActionRow
-                                  key={action.id}
-                                  action={action}
-                                  isAdmin={isAdmin}
-                                  isDragEnabled={false}
-                                  onEdit={setEditingAction}
-                                  onDelete={setDeletingAction}
-                                  onAddSubItem={setAddingSubItemTo}
-                                  idx={idx}
-                                  hierNum={hierNums.get(action.id)}
-                                  depth={(action.itemCode?.split('.').length ?? 1) - 1}
-                                />
-                              ))
+                              orderedChildren.map((action, idx) => {
+                                const directSubItems = areaItems.filter(a => a.isGroup === 0 && a.parentCode === action.itemCode);
+                                const hasSubItems = directSubItems.length > 0;
+                                const isItemExpanded = !expandedItems.has(action.id);
+                                // Hide sub-items if parent is collapsed
+                                const depth = (action.itemCode?.split('.').length ?? 1) - 1;
+                                if (depth > 0) {
+                                  // Check if any ancestor is collapsed
+                                  const parts = action.itemCode.split('.');
+                                  const parentCode = parts.slice(0, -1).join('.');
+                                  const parentItem = areaItems.find(a => a.itemCode === parentCode && a.isGroup === 0);
+                                  if (parentItem && expandedItems.has(parentItem.id)) return null;
+                                }
+                                return (
+                                  <SortableActionRow
+                                    key={action.id}
+                                    action={action}
+                                    isAdmin={isAdmin}
+                                    isDragEnabled={false}
+                                    onEdit={setEditingAction}
+                                    onDelete={setDeletingAction}
+                                    onAddSubItem={setAddingSubItemTo}
+                                    idx={idx}
+                                    hierNum={hierNums.get(action.id)}
+                                    depth={depth}
+                                    hasSubItems={hasSubItems}
+                                    isExpanded={isItemExpanded}
+                                    onToggleExpand={() => setExpandedItems(prev => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
+                                  />
+                                );
+                              })
                             )
                           )}
 
@@ -1109,7 +1184,7 @@ export default function Actions() {
                     })}
 
                     <PaginationControls
-                      currentPage={currentPage}
+                      currentPage={safeCurrentPage}
                       totalPages={totalPages}
                       totalItems={allAreaActionItems.length}
                       pageSize={PAGE_SIZE}

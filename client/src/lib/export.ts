@@ -22,6 +22,8 @@ type DocumentRow = {
 export type ActionRow = {
   area: string;
   itemCode: string;
+  parentCode?: string | null;
+  isGroup?: number;
   description: string;
   priority: string | null;
   status: string;
@@ -29,6 +31,7 @@ export type ActionRow = {
   requestDate: Date | null;
   receiptDate: Date | null;
   documentBase: string | null;
+  observacoes?: string | null;
   orgao?: string | null;
   responsavelNome?: string | null;
   responsavelCargo?: string | null;
@@ -70,31 +73,41 @@ function deadlineSituation(dueDate: Date | null | undefined, status: string): st
 // ---- Excel Export ----
 
 export function exportToExcel(data: ActionRow[]) {
-  const rows = data.map((a) => ({
-    "Área": a.area,
-    "Item": a.itemCode,
-    "Descrição": a.description,
-    "Prioridade": a.priority ?? "",
-    "Status": a.status,
-    "Situação Prazo": deadlineSituation(a.dueDate, a.status),
-    "Órgão Responsável": a.orgao ?? "",
-    "Nome do Responsável": a.responsavelNome ?? "",
-    "Cargo": a.responsavelCargo ?? "",
-    "Telefone": a.responsavelTel ?? "",
-    "E-mail": a.responsavelEmail ?? "",
-    "Prazo Previsto": formatDate(a.dueDate),
-    "Data da Solicitação": formatDate(a.requestDate),
-    "Data do Recebimento": formatDate(a.receiptDate),
-    "Base Documental": a.documentBase ?? "",
-    "Qtd. Comentários": a.comments?.length ?? 0,
-  }));
+  // Determine hierarchy depth for indentation
+  const getDepth = (itemCode: string) => (itemCode.match(/\./g) || []).length;
+
+  const rows = data.map((a) => {
+    const isGroup = a.isGroup === 1;
+    const depth = getDepth(a.itemCode);
+    const indent = "  ".repeat(depth);
+    return {
+      "Área": a.area,
+      "Código": a.itemCode,
+      "Descrição": isGroup ? `${indent}▌ ${a.description}` : `${indent}${a.description}`,
+      "Tipo": isGroup ? "Grupo" : (depth === 0 ? "Item" : `Sub-item nível ${depth}`),
+      "Prioridade": isGroup ? "" : (a.priority ?? ""),
+      "Status": isGroup ? "" : a.status,
+      "Situação Prazo": isGroup ? "" : deadlineSituation(a.dueDate, a.status),
+      "Observações": a.observacoes ?? "",
+      "Órgão Responsável": a.orgao ?? "",
+      "Nome do Responsável": a.responsavelNome ?? "",
+      "Cargo": a.responsavelCargo ?? "",
+      "Telefone": a.responsavelTel ?? "",
+      "E-mail": a.responsavelEmail ?? "",
+      "Prazo Previsto": isGroup ? "" : formatDate(a.dueDate),
+      "Data da Solicitação": isGroup ? "" : formatDate(a.requestDate),
+      "Data do Recebimento": isGroup ? "" : formatDate(a.receiptDate),
+      "Base Documental": a.documentBase ?? "",
+      "Qtd. Comentários": isGroup ? "" : (a.comments?.length ?? 0),
+    };
+  });
 
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
 
   ws["!cols"] = [
-    { wch: 14 }, { wch: 8 }, { wch: 60 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
-    { wch: 18 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 32 },
+    { wch: 14 }, { wch: 10 }, { wch: 65 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
+    { wch: 40 }, { wch: 18 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 32 },
     { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 10 },
   ];
 
@@ -495,23 +508,47 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
   for (const [area, items] of Object.entries(grouped)) {
     checkNewPage(20);
 
+    // Count only non-group items for display
+    const nonGroupCount = items.filter(a => a.isGroup !== 1).length;
+
     // Area header bar
     doc.setFillColor(...areaColor(area));
     doc.rect(margin, y, contentW, 8, "F");
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...C.white);
-    doc.text(`${area.toUpperCase()}  —  ${items.length} item(ns)`, margin + 4, y + 5.5);
+    doc.text(`${area.toUpperCase()}  —  ${nonGroupCount} item(ns)`, margin + 4, y + 5.5);
     y += 12;
 
     for (const action of items) {
+      const isGroupRow = action.isGroup === 1;
+      const depth = (action.itemCode.match(/\./g) || []).length;
+      const indentMm = depth * 6; // 6mm per level of nesting
+      const cardMargin = margin + indentMm;
+      const cardWidth = contentW - indentMm;
+
+      if (isGroupRow) {
+        // Render group as a section header bar
+        checkNewPage(10);
+        doc.setFillColor(...areaColor(area).map(c => Math.min(255, c + 60)) as [number, number, number]);
+        doc.roundedRect(cardMargin, y, cardWidth, 7, 1, 1, "F");
+        doc.setFontSize(8.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.white);
+        const groupLabel = `${action.itemCode}  ${action.description}`;
+        const groupLines = doc.splitTextToSize(groupLabel, cardWidth - 8);
+        doc.text(groupLines[0], cardMargin + 4, y + 4.8);
+        y += 10;
+        continue;
+      }
+
       const sit = deadlineSituation(action.dueDate, action.status);
       const hasComments = (action.comments?.length ?? 0) > 0;
       const hasDocs = (action.documents?.length ?? 0) > 0;
 
       // Estimate height needed
-      const descLines = wrapText(doc, action.description, contentW - 8, 8.5);
-      const docBaseLines = action.documentBase ? wrapText(doc, action.documentBase, contentW - 8, 7.5) : [];
+      const descLines = wrapText(doc, action.description, cardWidth - 8, 8.5);
+      const docBaseLines = action.documentBase ? wrapText(doc, action.documentBase, cardWidth - 8, 7.5) : [];
       const commentCount = action.comments?.length ?? 0;
       const docCount = action.documents?.length ?? 0;
 
@@ -521,6 +558,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
         (action.orgao || action.responsavelNome ? 20 : 0) + // contact block
         8 + // metadata row
         (action.documentBase ? docBaseLines.length * 4 + 6 : 0) +
+        (action.observacoes ? 10 : 0) +
         (hasComments ? 6 + commentCount * 10 : 0) +
         (hasDocs ? 6 + docCount * 7 : 0) +
         4; // bottom padding
@@ -533,45 +571,46 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       doc.setFillColor(...C.white);
       doc.setDrawColor(...C.lightGray);
       doc.setLineWidth(0.3);
-      doc.roundedRect(margin, y, contentW, estimatedH, 2, 2, "FD");
+      doc.roundedRect(cardMargin, y, cardWidth, estimatedH, 2, 2, "FD");
 
-      // Left accent bar (area color)
-      doc.setFillColor(...areaColor(area));
-      doc.rect(margin, y, 2, estimatedH, "F");
+      // Left accent bar (depth-aware color)
+      const accentColor = depth > 0 ? [0, 150, 136] as [number, number, number] : areaColor(area);
+      doc.setFillColor(...accentColor);
+      doc.rect(cardMargin, y, 2, estimatedH, "F");
 
       // ---- Item header row ----
       y += 2.5;
       const headerRowH = 7;
 
       // Item code badge
-      doc.setFillColor(...areaColor(area));
-      doc.roundedRect(margin + 4, y, 14, headerRowH, 1, 1, "F");
+      doc.setFillColor(...accentColor);
+      doc.roundedRect(cardMargin + 4, y, 14, headerRowH, 1, 1, "F");
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...C.white);
-      doc.text(action.itemCode, margin + 11, y + 4.8, { align: "center" });
+      doc.text(action.itemCode, cardMargin + 11, y + 4.8, { align: "center" });
 
       // Status badge
       doc.setFillColor(...statusBg(action.status));
-      doc.roundedRect(margin + 20, y, 28, headerRowH, 1, 1, "F");
+      doc.roundedRect(cardMargin + 20, y, 28, headerRowH, 1, 1, "F");
       doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...statusColor(action.status));
-      doc.text(action.status, margin + 34, y + 4.8, { align: "center" });
+      doc.text(action.status, cardMargin + 34, y + 4.8, { align: "center" });
 
       // Priority badge
       if (action.priority) {
         doc.setFillColor(...C.veryLightGray);
-        doc.roundedRect(margin + 50, y, 20, headerRowH, 1, 1, "F");
+        doc.roundedRect(cardMargin + 50, y, 20, headerRowH, 1, 1, "F");
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...priorityColor(action.priority));
-        doc.text(`▲ ${action.priority}`, margin + 60, y + 4.8, { align: "center" });
+        doc.text(`▲ ${action.priority}`, cardMargin + 60, y + 4.8, { align: "center" });
       }
 
       // Deadline situation badge
       doc.setFillColor(...C.veryLightGray);
-      const sitX = margin + 73;
+      const sitX = cardMargin + 73;
       doc.roundedRect(sitX, y, 26, headerRowH, 1, 1, "F");
       doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
@@ -583,7 +622,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
         doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...C.gray);
-        doc.text(`Prazo: ${formatDate(action.dueDate)}`, margin + 102, y + 4.8);
+        doc.text(`Prazo: ${formatDate(action.dueDate)}`, cardMargin + 102, y + 4.8);
       }
 
       // Órgão (top right)
@@ -605,7 +644,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...C.black);
       descLines.forEach((line: string) => {
-        doc.text(line, margin + 4, y);
+        doc.text(line, cardMargin + 4, y);
         y += 4.5;
       });
       y += 2;
@@ -613,17 +652,17 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       // ---- Contact / Responsible block ----
       if (action.responsavelNome || action.responsavelCargo || action.responsavelTel || action.responsavelEmail) {
         doc.setFillColor(...C.veryLightGray);
-        doc.roundedRect(margin + 4, y, contentW - 8, 16, 1, 1, "F");
+        doc.roundedRect(cardMargin + 4, y, cardWidth - 8, 16, 1, 1, "F");
 
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...C.teal);
-        doc.text("RESPONSÁVEL PELA ENTREGA", margin + 7, y + 4.5);
+        doc.text("RESPONSÁVEL PELA ENTREGA", cardMargin + 7, y + 4.5);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...C.black);
-        const col1X = margin + 7;
-        const col2X = margin + 7 + (contentW - 8) / 2;
+        const col1X = cardMargin + 7;
+        const col2X = cardMargin + 7 + (cardWidth - 8) / 2;
 
         if (action.responsavelNome) {
           doc.setFont("helvetica", "bold");
@@ -653,7 +692,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       if (action.requestDate) metaParts.push(`Solicitação: ${formatDate(action.requestDate)}`);
       if (action.receiptDate) metaParts.push(`Recebimento: ${formatDate(action.receiptDate)}`);
       if (metaParts.length > 0) {
-        doc.text(metaParts.join("   ·   "), margin + 4, y);
+        doc.text(metaParts.join("   ·   "), cardMargin + 4, y);
         y += 5;
       }
 
@@ -662,13 +701,29 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...C.teal);
-        doc.text("Base Documental:", margin + 4, y);
+        doc.text("Base Documental:", cardMargin + 4, y);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...C.black);
-        const bdLines = wrapText(doc, action.documentBase, contentW - 8, 7);
+        const bdLines = wrapText(doc, action.documentBase, cardWidth - 8, 7);
         bdLines.forEach((line: string) => {
           y += 4;
-          doc.text(line, margin + 4, y);
+          doc.text(line, cardMargin + 4, y);
+        });
+        y += 4;
+      }
+
+      // ---- Observações ----
+      if (action.observacoes) {
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.teal);
+        doc.text("Observações:", cardMargin + 4, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...C.black);
+        const obsLines = wrapText(doc, action.observacoes, cardWidth - 8, 7);
+        obsLines.forEach((line: string) => {
+          y += 4;
+          doc.text(line, cardMargin + 4, y);
         });
         y += 4;
       }
@@ -677,33 +732,32 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       if (hasComments) {
         y += 2;
         doc.setFillColor(...C.sectionBg);
-        doc.roundedRect(margin + 4, y, contentW - 8, 5, 1, 1, "F");
+        doc.roundedRect(cardMargin + 4, y, cardWidth - 8, 5, 1, 1, "F");
         doc.setFontSize(7.5);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...C.teal);
-        doc.text(`COMENTÁRIOS (${action.comments!.length})`, margin + 7, y + 3.5);
+        doc.text(`COMENTÁRIOS (${action.comments!.length})`, cardMargin + 7, y + 3.5);
         y += 7;
 
         for (const c of action.comments!) {
           doc.setFillColor(...C.veryLightGray);
-          doc.roundedRect(margin + 4, y, contentW - 8, 9, 1, 1, "F");
+          doc.roundedRect(cardMargin + 4, y, cardWidth - 8, 9, 1, 1, "F");
 
           doc.setFontSize(7);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...C.black);
-          doc.text(c.userName ?? "Usuário", margin + 7, y + 3.5);
+          doc.text(c.userName ?? "Usuário", cardMargin + 7, y + 3.5);
 
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...C.gray);
-          doc.text(formatDateTime(c.createdAt), margin + 7 + doc.getTextWidth((c.userName ?? "Usuário") + "  "), y + 3.5);
+          doc.text(formatDateTime(c.createdAt), cardMargin + 7 + doc.getTextWidth((c.userName ?? "Usuário") + "  "), y + 3.5);
 
           doc.setTextColor(...C.black);
-          const cLines = doc.splitTextToSize(c.content, contentW - 16);
+          const cLines = doc.splitTextToSize(c.content, cardWidth - 16);
           const firstLine = cLines[0] ?? "";
-          doc.text(firstLine, margin + 7, y + 7);
+          doc.text(firstLine, cardMargin + 7, y + 7);
           if (cLines.length > 1) {
-            // just show first line with ellipsis for space
-            doc.text("…", margin + 7 + doc.getTextWidth(firstLine), y + 7);
+            doc.text("…", cardMargin + 7 + doc.getTextWidth(firstLine), y + 7);
           }
           y += 11;
         }
@@ -713,24 +767,24 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       if (hasDocs) {
         y += 2;
         doc.setFillColor(...C.sectionBg);
-        doc.roundedRect(margin + 4, y, contentW - 8, 5, 1, 1, "F");
+        doc.roundedRect(cardMargin + 4, y, cardWidth - 8, 5, 1, 1, "F");
         doc.setFontSize(7.5);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...C.teal);
-        doc.text(`DOCUMENTOS ENTREGUES (${action.documents!.length})`, margin + 7, y + 3.5);
+        doc.text(`DOCUMENTOS ENTREGUES (${action.documents!.length})`, cardMargin + 7, y + 3.5);
         y += 7;
 
         for (const d of action.documents!) {
           doc.setFontSize(7);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...C.black);
-          doc.text(`• ${d.label}`, margin + 7, y);
+          doc.text(`• ${d.label}`, cardMargin + 7, y);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...C.blue);
           const urlShort = d.url.length > 70 ? d.url.substring(0, 70) + "…" : d.url;
-          doc.text(urlShort, margin + 7, y + 4);
+          doc.text(urlShort, cardMargin + 7, y + 4);
           doc.setTextColor(...C.gray);
-          doc.text(`${d.uploaderName ?? ""} · ${formatDate(d.createdAt)}`, margin + 7, y + 7.5);
+          doc.text(`${d.uploaderName ?? ""} · ${formatDate(d.createdAt)}`, cardMargin + 7, y + 7.5);
           y += 10;
         }
       }
