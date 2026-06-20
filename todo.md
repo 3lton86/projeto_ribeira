@@ -238,3 +238,11 @@
 - [x] Frontend LocalAuthContext: novo helper canInteractWithAnyOrgao(orgaos: string[])
 - [x] Frontend ActionDetail: canInteract usa canInteractWithAnyOrgao com lista unificada (legado + co-responsáveis)
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 25 — Importação da Planilha de Solicitações (11.06.2026)
+
+- [x] Banco zerado: actions, comments, history, audit_log, action_documents, notifications, action_orgaos
+- [x] Importação das 4 abas: Governança (12), Técnico (103), Jurídico (74), Eco-Fin (76) = 265 registros
+- [x] Coluna "Órgão Provável/Responsável" → campo observacoes
+- [x] Campo dueDate (Prazo Previsto) deixado em branco (NULL) em todos os itens
+- [x] 67 testes passando, zero erros TypeScript
