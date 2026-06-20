@@ -170,6 +170,7 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
   return (
     <div
       ref={setNodeRef}
+      data-action-id={action.id}
       style={{ ...style, paddingLeft: depth > 0 ? `${1 + depth * 1.5}rem` : undefined }}
       className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${depth > 0 ? "border-l-2 border-primary/20 bg-secondary/10" : idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""}`}
     >
@@ -644,25 +645,51 @@ export default function Actions() {
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
   const [location, navigate] = useLocation();
 
-  // Restore scroll position when returning from ActionDetail.
-  // We depend on `location` so this fires every time the route becomes /acoes,
-  // even when the component is NOT unmounted/remounted by the router.
+  // ── Scroll restoration ──────────────────────────────────────────────────
+  // Strategy: save both the Y position AND the action id before navigating.
+  // On return we wait until isLoading is false (data is rendered), then
+  // try to scroll to the saved element first (most precise); if not found,
+  // fall back to the raw Y value.
+  const pendingScrollRef = useRef<{ y: number; id: string | null } | null>(null);
+
+  // Step 1: when location changes TO /acoes, read sessionStorage and arm the ref.
   useEffect(() => {
     if (location !== "/acoes") return;
-    const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved === null) return;
-    const y = parseInt(saved, 10);
+    const savedY = sessionStorage.getItem(SCROLL_KEY);
+    const savedId = sessionStorage.getItem(SCROLL_KEY + "-id");
+    if (savedY === null) return;
     sessionStorage.removeItem(SCROLL_KEY);
-    // Double rAF ensures the list has fully rendered before we scroll.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: y, behavior: "instant" });
-      });
-    });
+    sessionStorage.removeItem(SCROLL_KEY + "-id");
+    pendingScrollRef.current = { y: parseInt(savedY, 10), id: savedId };
   }, [location]);
+
+  // Step 2: once data finishes loading, execute the pending scroll.
+  useEffect(() => {
+    if (isLoading) return;
+    const pending = pendingScrollRef.current;
+    if (!pending) return;
+    pendingScrollRef.current = null;
+
+    const doScroll = () => {
+      // Try element-based scroll first (most precise)
+      if (pending.id) {
+        const el = document.querySelector(`[data-action-id="${pending.id}"]`);
+        if (el) {
+          el.scrollIntoView({ block: "center", behavior: "instant" });
+          return;
+        }
+      }
+      // Fallback to raw Y position
+      window.scrollTo({ top: pending.y, behavior: "instant" });
+    };
+
+    // rAF x2 ensures DOM has painted after React commit
+    requestAnimationFrame(() => requestAnimationFrame(doScroll));
+  }, [isLoading]);
 
   const handleNavigateToAction = useCallback((id: number) => {
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    sessionStorage.setItem(SCROLL_KEY + "-id", String(id));
     navigate(`/acoes/${id}`);
   }, [navigate]);
 

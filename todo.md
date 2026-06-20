@@ -416,3 +416,12 @@
 - [x] Correção: useEffect agora depende de `location` (useLocation do wouter) e verifica `location === "/acoes"` antes de restaurar o scroll
 - [x] handleNavigateToAction continua salvando window.scrollY no sessionStorage antes de navegar
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 43 — Correção Robusta de Scroll (segunda iteração)
+
+- [x] Diagnóstico: o useEffect anterior disparava antes dos dados chegarem (isLoading=true), portanto o elemento ainda não estava no DOM
+- [x] Nova estratégia em dois passos: Step 1 arma um ref pendente quando a rota muda para /acoes; Step 2 executa o scroll apenas quando isLoading passa para false
+- [x] Scroll por elemento: cada linha da listagem recebe data-action-id={action.id}; ao retornar, scrollIntoView({ block: "center" }) posiciona o item no centro da tela
+- [x] Fallback por Y: se o elemento não for encontrado (item filtrado/paginado), usa window.scrollTo com a posição Y salva
+- [x] handleNavigateToAction salva tanto o Y quanto o id no sessionStorage antes de navegar
+- [x] 69 testes passando, zero erros TypeScript
