@@ -40,6 +40,8 @@ import {
   addOrgaoResponsavel,
   updateOrgaoResponsavel,
   removeOrgaoResponsavel,
+  getContactHistory,
+  addContactHistory,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -749,6 +751,31 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await removeOrgaoResponsavel(input.id);
         return { ok: true };
+      }),
+  }),
+
+  // ---- CONTACT HISTORY ----
+  contactHistory: router({
+    list: localAuthProcedure
+      .input(z.object({ actionId: z.number() }))
+      .query(async ({ input }) => {
+        return getContactHistory(input.actionId);
+      }),
+
+    add: localAuthProcedure
+      .input(
+        z.object({
+          actionId: z.number(),
+          channel: z.enum(["email", "whatsapp"]),
+          recipientName: z.string().optional().nullable(),
+          recipientContact: z.string().optional().nullable(),
+          message: z.string().optional().nullable(),
+          sentBy: z.string().optional().nullable(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const id = await addContactHistory(input);
+        return { id };
       }),
   }),
 

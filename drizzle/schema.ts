@@ -202,3 +202,17 @@ export const orgaoResponsaveis = mysqlTable("orgao_responsaveis", {
 
 export type OrgaoResponsavel = typeof orgaoResponsaveis.$inferSelect;
 export type InsertOrgaoResponsavel = typeof orgaoResponsaveis.$inferInsert;
+
+// Histórico de contatos enviados a responsáveis de itens
+export const contactHistory = mysqlTable("contact_history", {
+  id: int("id").autoincrement().primaryKey(),
+  actionId: int("actionId").notNull(),           // ação/item relacionado
+  channel: mysqlEnum("channel", ["email", "whatsapp"]).notNull(),
+  recipientName: varchar("recipientName", { length: 200 }),
+  recipientContact: varchar("recipientContact", { length: 320 }), // email ou telefone
+  message: text("message"),                      // mensagem enviada
+  sentBy: varchar("sentBy", { length: 200 }),    // nome do usuário que enviou
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+});
+export type ContactHistory = typeof contactHistory.$inferSelect;
+export type InsertContactHistory = typeof contactHistory.$inferInsert;

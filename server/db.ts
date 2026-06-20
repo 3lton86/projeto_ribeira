@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, actionDocuments, actionOrgaos, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, orgaoResponsaveis, userOrgaos, users } from "../drizzle/schema";
+import { actions, actionDocuments, actionOrgaos, auditLog, comments, contactHistory, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, orgaoResponsaveis, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1042,4 +1042,36 @@ export async function removeOrgaoResponsavel(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(orgaoResponsaveis).where(eq(orgaoResponsaveis.id, id));
+}
+
+// ---- CONTACT HISTORY ----
+export async function getContactHistory(actionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(contactHistory)
+    .where(eq(contactHistory.actionId, actionId))
+    .orderBy(desc(contactHistory.sentAt));
+}
+
+export async function addContactHistory(data: {
+  actionId: number;
+  channel: "email" | "whatsapp";
+  recipientName?: string | null;
+  recipientContact?: string | null;
+  message?: string | null;
+  sentBy?: string | null;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const [result] = await db.insert(contactHistory).values({
+    actionId: data.actionId,
+    channel: data.channel,
+    recipientName: data.recipientName ?? null,
+    recipientContact: data.recipientContact ?? null,
+    message: data.message ?? null,
+    sentBy: data.sentBy ?? null,
+  });
+  return (result as any).insertId ?? 0;
 }

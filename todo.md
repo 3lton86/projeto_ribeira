@@ -285,12 +285,26 @@
 
 ## Sprint 29 — Gestão de Responsáveis por Órgão
 
-- [ ] Schema: tabela orgao_responsaveis (id, orgao, nome, cargo, telefone, email, localUserId nullable, sortOrder, createdAt)
-- [ ] Migração do banco (pnpm db:push)
-- [ ] Backend db.ts: getOrgaoResponsaveis, addOrgaoResponsavel, updateOrgaoResponsavel, removeOrgaoResponsavel
-- [ ] Backend routers.ts: procedures orgaoResponsaveis.list, .add, .update, .remove (admin)
-- [ ] Frontend: página /orgaos (admin) com tabela por órgão, adicionar/editar/remover responsáveis, vincular a usuário local existente
-- [ ] Frontend: dialog de adicionar órgão na ficha do item auto-preenche responsável com o primeiro da tabela orgao_responsaveis
-- [ ] Frontend: ao selecionar órgão no dialog, lista de responsáveis é filtrada pelos vinculados ao órgão
-- [ ] Frontend: edição de órgão já atribuído na ficha do item permite alterar responsável via seleção
-- [ ] Testes passando, zero erros TypeScript
+- [x] Schema: tabela orgao_responsaveis (id, orgao, nome, cargo, telefone, email, localUserId nullable, sortOrder, createdAt)
+- [x] Migração do banco (pnpm db:push)
+- [x] Backend db.ts: getOrgaoResponsaveis, addOrgaoResponsavel, updateOrgaoResponsavel, removeOrgaoResponsavel
+- [x] Backend routers.ts: procedures orgaoResponsaveis.list, .add, .update, .remove (admin)
+- [x] Frontend: página /orgaos (admin) com tabela por órgão, adicionar/editar/remover responsáveis, vincular a usuário local existente
+- [x] Frontend: dialog de adicionar órgão na ficha do item auto-preenche responsável com o primeiro da tabela orgao_responsaveis
+- [x] Frontend: ao selecionar órgão no dialog, lista de responsáveis é filtrada pelos vinculados ao órgão
+- [x] Frontend: edição de órgão já atribuído na ficha do item permite alterar responsável via seleção
+- [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 30 — Contatos Inteligentes e Histórico
+
+- [x] Schema: tabela contact_history (id, actionId, channel, recipientName, recipientContact, message, sentBy, sentAt)
+- [x] Migração do banco (pnpm db:push)
+- [x] Backend db.ts: getContactHistory, addContactHistory
+- [x] Backend routers.ts: procedures contactHistory.list, contactHistory.add
+- [x] Frontend ActionDetail: mensagem pré-preenchida nos botões de e-mail e WhatsApp (título + prazo + status + rodapé bit.ly/ribeirapmi)
+- [x] Frontend ActionDetail: alerta visual (laranja) nos botões de contato quando item atrasado ou com documentos pendentes
+- [x] Frontend ActionDetail: aba "Contatos" com Histórico de Contatos (canal, destinatário, data, prévia)
+- [x] Frontend ActionDetail: botões WhatsApp e e-mail ao lado do campo de comentário
+- [x] Registro automático no Histórico de Contatos ao usar os botões de envio
+- [x] Dialog de confirmação com prévia editável da mensagem antes de abrir WhatsApp/e-mail
+- [x] 67 testes passando, zero erros TypeScript

@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Building2,
   ChevronDown,
+  PhoneCall,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
@@ -105,7 +106,7 @@ function formatDate(d: Date | string | null | undefined): string {
 export default function ActionDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0");
-  const { canEdit, isSetorial, canInteractWithOrgao, canInteractWithAnyOrgao } = useLocalAuth();
+  const { canEdit, isSetorial, canInteractWithOrgao, canInteractWithAnyOrgao, localUser } = useLocalAuth();
   const utils = trpc.useUtils();
 
   const { data: action, isLoading } = trpc.actions.getById.useQuery({ id });
@@ -135,6 +136,7 @@ export default function ActionDetail() {
     { enabled: canEdit } // only fetch for admins
   );
   const { data: actionOrgaos } = trpc.orgaos.list.useQuery({ actionId: id });
+  const { data: contactHistoryItems } = trpc.contactHistory.list.useQuery({ actionId: id });
 
   // Tabela de responsáveis por órgão (para auto-preenchimento e seleção)
   const { data: orgaoResponsaveisAll } = trpc.orgaoResponsaveis.list.useQuery({ orgao: undefined });
@@ -145,6 +147,47 @@ export default function ActionDetail() {
   const coOrgaoNames = (actionOrgaos ?? []).map(o => o.orgao);
   const allOrgaos = actionOrgao ? [actionOrgao, ...coOrgaoNames] : coOrgaoNames;
   const canInteract = canEdit || (isSetorial && canInteractWithAnyOrgao(allOrgaos));
+
+  // Alerta visual: item atrasado ou com documentos pendentes
+  const isOverdue = useMemo(() => {
+    if (!action) return false;
+    const due = (action as any).dueDate;
+    if (!due) return false;
+    return new Date(due) < new Date() && action.status !== "Concluído" && action.status !== "Cancelado";
+  }, [action]);
+
+  const hasPendingDocs = useMemo(() => {
+    return (documents ?? []).some((d) => d.docStatus === "pending");
+  }, [documents]);
+
+  const contactAlert = isOverdue || hasPendingDocs;
+
+  // Função para gerar mensagem padrão de contato
+  const buildContactMessage = (orgaoName: string, responsavelNome: string, channel: "email" | "whatsapp", commentText?: string) => {
+    const title = action?.description ?? "";
+    const hierStr = hierNum ? `[${hierNum}] ` : "";
+    const dueStr = (action as any)?.dueDate
+      ? new Date((action as any).dueDate).toLocaleDateString("pt-BR")
+      : "a definir";
+    const status = action?.status ?? "";
+    const alertLine = isOverdue
+      ? `\u26a0️ ATENÇÃO: Este item está com prazo VENCIDO.\n`
+      : hasPendingDocs
+      ? `⚠️ ATENÇÃO: Este item possui documentos com pendência.\n`
+      : "";
+    if (commentText) {
+      // Mensagem de comentário
+      return `${alertLine}Prezado(a) ${responsavelNome || "Responsável"},\n\n` +
+        `Ref. ao item ${hierStr}"${title}" (${orgaoName}):\n\n` +
+        `${commentText}\n\n` +
+        `Prazo previsto: ${dueStr} | Status: ${status}\n\n` +
+        `Ref. a demanda monitorada na plataforma bit.ly/ribeirapmi`;
+    }
+    return `${alertLine}Prezado(a) ${responsavelNome || "Responsável"},\n\n` +
+      `Solicitamos atenção ao item ${hierStr}"${title}" sob responsabilidade de ${orgaoName}.\n\n` +
+      `Prazo previsto: ${dueStr}\nStatus atual: ${status}\n\n` +
+      `Ref. a demanda monitorada na plataforma bit.ly/ribeirapmi`;
+  };
 
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<{
@@ -162,12 +205,19 @@ export default function ActionDetail() {
     responsavelEmail: string;
   } | null>(null);
   const [newComment, setNewComment] = useState("");
-  const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents" | "auditoria">("comments");
+  const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents" | "contacts" | "auditoria">("comments");
   const [showAddDoc, setShowAddDoc] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
   const [showAddOrgao, setShowAddOrgao] = useState(false);
   const [deleteOrgaoId, setDeleteOrgaoId] = useState<number | null>(null);
   const [newOrgao, setNewOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
+  // Contact send dialog state
+  const [contactSendDialog, setContactSendDialog] = useState<{
+    channel: "email" | "whatsapp";
+    recipientName: string;
+    recipientContact: string;
+    message: string;
+  } | null>(null);
 
   const updateMutation = trpc.actions.update.useMutation({
     onSuccess: () => {
@@ -219,6 +269,12 @@ export default function ActionDetail() {
       setDeleteDocId(null);
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const addContactHistoryMutation = trpc.contactHistory.add.useMutation({
+    onSuccess: () => {
+      utils.contactHistory.list.invalidate({ actionId: id });
+    },
   });
 
   const startEdit = () => {
@@ -515,27 +571,39 @@ export default function ActionDetail() {
                             <div className="flex items-center gap-1.5">
                               <span className="font-medium text-foreground/70">Nome: </span>
                               <span>{o.responsavelNome}</span>
-                              {/* Botões de contato rápido */}
+                              {/* Botões de contato rápido com mensagem pré-preenchida e alerta visual */}
                               <div className="flex items-center gap-1 ml-1">
                                 {o.responsavelEmail && (
-                                  <a
-                                    href={`mailto:${o.responsavelEmail}`}
-                                    title={`Enviar e-mail para ${o.responsavelNome}`}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 text-blue-500 hover:bg-blue-500/30 transition-colors"
+                                  <button
+                                    title={`Enviar e-mail para ${o.responsavelNome}${contactAlert ? " (⚠️ item com alerta)" : ""}`}
+                                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full transition-colors ${
+                                      contactAlert
+                                        ? "bg-orange-500/20 text-orange-600 hover:bg-orange-500/35 ring-1 ring-orange-400/60"
+                                        : "bg-blue-500/15 text-blue-500 hover:bg-blue-500/30"
+                                    }`}
+                                    onClick={() => {
+                                      const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "email");
+                                      setContactSendDialog({ channel: "email", recipientName: o.responsavelNome ?? "", recipientContact: o.responsavelEmail ?? "", message: msg });
+                                    }}
                                   >
                                     <Mail className="w-3 h-3" />
-                                  </a>
+                                  </button>
                                 )}
                                 {o.responsavelTel && (
-                                  <a
-                                    href={`https://wa.me/55${o.responsavelTel.replace(/\D/g, "")}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={`WhatsApp: ${o.responsavelTel}`}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500/15 text-green-600 hover:bg-green-500/30 transition-colors"
+                                  <button
+                                    title={`WhatsApp para ${o.responsavelNome}${contactAlert ? " (⚠️ item com alerta)" : ""}`}
+                                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full transition-colors ${
+                                      contactAlert
+                                        ? "bg-orange-500/20 text-orange-600 hover:bg-orange-500/35 ring-1 ring-orange-400/60"
+                                        : "bg-green-500/15 text-green-600 hover:bg-green-500/30"
+                                    }`}
+                                    onClick={() => {
+                                      const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "whatsapp");
+                                      setContactSendDialog({ channel: "whatsapp", recipientName: o.responsavelNome ?? "", recipientContact: o.responsavelTel ?? "", message: msg });
+                                    }}
                                   >
                                     <Phone className="w-3 h-3" />
-                                  </a>
+                                  </button>
                                 )}
                               </div>
                             </div>
@@ -571,6 +639,7 @@ export default function ActionDetail() {
             { key: "comments", label: "Comentários", icon: MessageSquare, count: comments?.length },
             { key: "history", label: "Histórico", icon: History, count: historyItems?.length },
             { key: "documents", label: "Documentos", icon: Link2, count: documents?.length },
+            { key: "contacts", label: "Contatos", icon: PhoneCall, count: contactHistoryItems?.length },
             ...(canEdit ? [{ key: "auditoria", label: "Auditoria", icon: ShieldCheck, count: auditItems?.length }] : []),
           ].map(({ key, label, icon: Icon, count }) => (
             <button
@@ -608,7 +677,50 @@ export default function ActionDetail() {
                     placeholder="Adicionar observação ou comentário..."
                     className="w-full px-3 py-2.5 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-primary/60"
                   />
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Botões de envio por WhatsApp/e-mail do comentário */}
+                    <div className="flex items-center gap-1.5">
+                      {(actionOrgaos ?? []).filter(o => o.responsavelTel).map((o) => (
+                        <button
+                          key={`wa-${o.id}`}
+                          title={`Enviar comentário via WhatsApp para ${o.responsavelNome ?? o.orgao}`}
+                          disabled={!newComment.trim()}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${
+                            contactAlert
+                              ? "bg-orange-500/20 text-orange-600 hover:bg-orange-500/30 ring-1 ring-orange-400/50"
+                              : "bg-green-500/15 text-green-700 hover:bg-green-500/25"
+                          }`}
+                          onClick={() => {
+                            if (!newComment.trim()) return;
+                            const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "whatsapp", newComment.trim());
+                            setContactSendDialog({ channel: "whatsapp", recipientName: o.responsavelNome ?? o.orgao, recipientContact: o.responsavelTel ?? "", message: msg });
+                          }}
+                        >
+                          <Phone className="w-3 h-3" />
+                          {o.orgao}
+                        </button>
+                      ))}
+                      {(actionOrgaos ?? []).filter(o => o.responsavelEmail).map((o) => (
+                        <button
+                          key={`em-${o.id}`}
+                          title={`Enviar comentário por e-mail para ${o.responsavelNome ?? o.orgao}`}
+                          disabled={!newComment.trim()}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${
+                            contactAlert
+                              ? "bg-orange-500/20 text-orange-600 hover:bg-orange-500/30 ring-1 ring-orange-400/50"
+                              : "bg-blue-500/15 text-blue-600 hover:bg-blue-500/25"
+                          }`}
+                          onClick={() => {
+                            if (!newComment.trim()) return;
+                            const msg = buildContactMessage(o.orgao, o.responsavelNome ?? "", "email", newComment.trim());
+                            setContactSendDialog({ channel: "email", recipientName: o.responsavelNome ?? o.orgao, recipientContact: o.responsavelEmail ?? "", message: msg });
+                          }}
+                        >
+                          <Mail className="w-3 h-3" />
+                          {o.orgao}
+                        </button>
+                      ))}
+                    </div>
                     <button
                       onClick={() => {
                         if (!newComment.trim()) return;
@@ -848,6 +960,63 @@ export default function ActionDetail() {
               )}
             </div>
           )}
+
+          {/* CONTACTS TAB */}
+          {activeTab === "contacts" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <PhoneCall className="w-4 h-4" style={{ color: "oklch(0.55 0.18 185)" }} />
+                  Histórico de Contatos
+                </h3>
+                <p className="text-xs text-muted-foreground">Registros de mensagens enviadas aos responsáveis.</p>
+              </div>
+              {contactHistoryItems && contactHistoryItems.length > 0 ? (
+                <div className="space-y-2">
+                  {contactHistoryItems.map((entry: any) => (
+                    <div key={entry.id} className="flex gap-3 items-start p-3 rounded-lg bg-secondary/20 border border-border/30">
+                      <div
+                        className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                        style={{
+                          background: entry.channel === "whatsapp" ? "oklch(0.45 0.18 145 / 0.15)" : "oklch(0.38 0.16 240 / 0.15)",
+                          color: entry.channel === "whatsapp" ? "oklch(0.30 0.18 145)" : "oklch(0.30 0.16 240)",
+                        }}
+                      >
+                        {entry.channel === "whatsapp" ? <Phone className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-xs font-semibold text-foreground">{entry.sentBy ?? "Sistema"}</span>
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                            style={{
+                              background: entry.channel === "whatsapp" ? "oklch(0.45 0.18 145 / 0.10)" : "oklch(0.38 0.16 240 / 0.10)",
+                              color: entry.channel === "whatsapp" ? "oklch(0.30 0.18 145)" : "oklch(0.30 0.16 240)",
+                            }}
+                          >
+                            {entry.channel === "whatsapp" ? "WhatsApp" : "E-mail"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">→ {entry.recipientName}</span>
+                          {entry.recipientContact && (
+                            <span className="text-xs text-muted-foreground opacity-70">{entry.recipientContact}</span>
+                          )}
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {new Date(entry.sentAt).toLocaleString("pt-BR")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{entry.messagePreview}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <PhoneCall className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  Nenhum contato registrado para este item.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1030,6 +1199,75 @@ export default function ActionDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog: Confirmar e Enviar Contato */}
+      <Dialog open={contactSendDialog !== null} onOpenChange={(open) => !open && setContactSendDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {contactSendDialog?.channel === "whatsapp" ? (
+                <Phone className="w-4 h-4 text-green-600" />
+              ) : (
+                <Mail className="w-4 h-4 text-blue-500" />
+              )}
+              Enviar via {contactSendDialog?.channel === "whatsapp" ? "WhatsApp" : "E-mail"}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Para: <strong>{contactSendDialog?.recipientName}</strong> ({contactSendDialog?.recipientContact})
+            </p>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {contactAlert && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-400/40 text-orange-700 text-xs">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                {isOverdue ? "Este item está com prazo vencido." : "Este item possui documentos com pendência."}
+              </div>
+            )}
+            <div>
+              <Label className="text-xs uppercase tracking-wider">Mensagem</Label>
+              <textarea
+                rows={8}
+                value={contactSendDialog?.message ?? ""}
+                onChange={(e) => setContactSendDialog(prev => prev ? { ...prev, message: e.target.value } : null)}
+                className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground resize-none focus:outline-none focus:border-primary/60"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContactSendDialog(null)}>Cancelar</Button>
+            <Button
+              className={contactSendDialog?.channel === "whatsapp" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
+              onClick={() => {
+                if (!contactSendDialog) return;
+                const { channel, recipientName, recipientContact, message } = contactSendDialog;
+                if (channel === "whatsapp") {
+                  const phone = recipientContact.replace(/\D/g, "");
+                  const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+                  window.open(url, "_blank");
+                } else {
+                  const subject = encodeURIComponent(`Demanda Ribeira - ${action?.description ?? "Item"}`);
+                  const body = encodeURIComponent(message);
+                  window.open(`mailto:${recipientContact}?subject=${subject}&body=${body}`, "_blank");
+                }
+                // Register in contact history
+                addContactHistoryMutation.mutate({
+                  actionId: id,
+                  channel,
+                  recipientName,
+                  recipientContact,
+                  message: message.slice(0, 500),
+                  sentBy: localUser?.name ?? localUser?.username ?? "Admin",
+                });
+                toast.success(`Contato registrado no histórico.`);
+                setContactSendDialog(null);
+              }}
+            >
+              <Send className="w-3.5 h-3.5 mr-1.5" />
+              Abrir {contactSendDialog?.channel === "whatsapp" ? "WhatsApp" : "E-mail"} e Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
