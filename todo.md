@@ -274,3 +274,11 @@
 - [x] Sub-itens ocultados quando item pai está recolhido
 - [x] getExportData atualizado para incluir grupos (isGroup=1) e parentCode
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 28 — Dashboard: Gráficos por Órgão com Status de Documentos
+
+- [x] Backend db.ts: função getOrgaoDocStats retornando por órgão: totalItems, withDocs, docsAccepted, docsPending
+- [x] Backend routers.ts: procedure dashboard.orgaoStats (publicProcedure)
+- [x] Frontend Dashboard.tsx: novo painel "Itens por Órgão Responsável" com gráfico de barras agrupadas + tabela resumo
+- [x] Filtro de frente temática no painel de órgãos (Todas / Governança / Técnico / Jurídico / Eco-Fin)
+- [x] 67 testes passando, zero erros TypeScript

@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
-import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download, AlertTriangle, Timer } from "lucide-react";
+import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download, AlertTriangle, Timer, Building2 } from "lucide-react";
 
 import { Link } from "wouter";
 import { useState } from "react";
@@ -120,6 +120,8 @@ function ExportPdfButton() {
 
 export default function Dashboard() {
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery();
+  const [orgaoAreaFilter, setOrgaoAreaFilter] = useState<string | undefined>(undefined);
+  const { data: orgaoStats } = trpc.dashboard.orgaoStats.useQuery({ area: orgaoAreaFilter });
 
   if (isLoading) {
     return (
@@ -385,6 +387,114 @@ export default function Dashboard() {
               </div>
             </Link>
         ))}
+      </div>
+
+      {/* ---- PAINEL: ITENS POR ÓRGÃO ---- */}
+      <div className="glass-card rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-semibold text-foreground">Itens por Órgão Responsável</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Filtrar por frente:</span>
+            <select
+              value={orgaoAreaFilter ?? ""}
+              onChange={(e) => setOrgaoAreaFilter(e.target.value || undefined)}
+              className="text-xs px-2 py-1 rounded-md border border-border bg-background text-foreground"
+            >
+              <option value="">Todas</option>
+              <option value="Governança">Governança</option>
+              <option value="Técnico">Técnico</option>
+              <option value="Jurídico">Jurídico</option>
+              <option value="Eco-Fin">Eco-Fin</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 mb-4 text-xs">
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"oklch(0.55 0.18 230)"}} />Total de itens</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"oklch(0.72 0.18 185)"}} />Com documentos</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"oklch(0.65 0.20 145)"}} />Doc aceito</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"oklch(0.72 0.18 50)"}} />Doc com pendência</span>
+        </div>
+
+        {!orgaoStats || orgaoStats.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">Nenhum órgão vinculado.</div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <div style={{ minWidth: Math.max(600, orgaoStats.length * 52) }}>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart
+                  data={orgaoStats}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 60 }}
+                  barCategoryGap="25%"
+                  barGap={2}
+                >
+                  <XAxis
+                    dataKey="orgao"
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    angle={-40}
+                    textAnchor="end"
+                    interval={0}
+                    height={64}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: number, name: string) => {
+                      const labels: Record<string, string> = {
+                        totalItems: "Total de itens",
+                        withDocs: "Com documentos",
+                        docsAccepted: "Doc aceito",
+                        docsPending: "Doc com pendência",
+                      };
+                      return [value, labels[name] ?? name];
+                    }}
+                  />
+                  <Bar dataKey="totalItems" name="totalItems" fill="oklch(0.55 0.18 230)" radius={[3,3,0,0]} maxBarSize={20} />
+                  <Bar dataKey="withDocs" name="withDocs" fill="oklch(0.72 0.18 185)" radius={[3,3,0,0]} maxBarSize={20} />
+                  <Bar dataKey="docsAccepted" name="docsAccepted" fill="oklch(0.65 0.20 145)" radius={[3,3,0,0]} maxBarSize={20} />
+                  <Bar dataKey="docsPending" name="docsPending" fill="oklch(0.72 0.18 50)" radius={[3,3,0,0]} maxBarSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Table summary */}
+        {orgaoStats && orgaoStats.length > 0 && (
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 pr-3 font-semibold text-muted-foreground">Órgão</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground">Total</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground">Com Doc</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground">Aceito</th>
+                  <th className="text-right py-2 pl-2 font-semibold text-muted-foreground">Pendência</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orgaoStats.map((row) => (
+                  <tr key={row.orgao} className="border-b border-border/40 hover:bg-secondary/30 transition-colors">
+                    <td className="py-1.5 pr-3 font-medium text-foreground">{row.orgao}</td>
+                    <td className="text-right py-1.5 px-2 text-foreground">{row.totalItems}</td>
+                    <td className="text-right py-1.5 px-2" style={{color:"oklch(0.72 0.18 185)"}}>{row.withDocs}</td>
+                    <td className="text-right py-1.5 px-2" style={{color:"oklch(0.55 0.22 145)"}}>{row.docsAccepted}</td>
+                    <td className="text-right py-1.5 pl-2" style={{color:"oklch(0.65 0.20 50)"}}>{row.docsPending}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -869,3 +869,106 @@ export async function removeActionOrgao(id: number): Promise<void> {
   if (!db) return;
   await db.delete(actionOrgaos).where(eq(actionOrgaos.id, id));
 }
+
+/**
+ * Returns per-organ statistics: total items linked, items with any document,
+ * items with at least one accepted doc, items with at least one pending doc.
+ * Optionally filtered by area.
+ */
+export async function getOrgaoDocStats(area?: string): Promise<
+  Array<{
+    orgao: string;
+    totalItems: number;
+    withDocs: number;
+    docsAccepted: number;
+    docsPending: number;
+  }>
+> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // 1. Get all action_orgaos rows (with optional area filter via join)
+  const orgaoRows = await db
+    .select({
+      orgao: actionOrgaos.orgao,
+      actionId: actionOrgaos.actionId,
+    })
+    .from(actionOrgaos)
+    .innerJoin(actions, eq(actionOrgaos.actionId, actions.id))
+    .where(
+      area
+        ? and(eq(actions.isGroup, 0), eq(actions.area, area as "Governança" | "Técnico" | "Jurídico" | "Eco-Fin"))
+        : eq(actions.isGroup, 0)
+    );
+
+  if (orgaoRows.length === 0) return [];
+
+  // 2. Get all documents for those actions
+  const actionIds = Array.from(new Set(orgaoRows.map((r) => r.actionId)));
+  const docs = await db
+    .select({
+      actionId: actionDocuments.actionId,
+      docStatus: actionDocuments.docStatus,
+    })
+    .from(actionDocuments)
+    .where(inArray(actionDocuments.actionId, actionIds));
+
+  // Build a map: actionId -> { hasDocs, hasAccepted, hasPending }
+  const docMap = new Map<
+    number,
+    { hasDocs: boolean; hasAccepted: boolean; hasPending: boolean }
+  >();
+  for (const doc of docs) {
+    const existing = docMap.get(doc.actionId) ?? {
+      hasDocs: false,
+      hasAccepted: false,
+      hasPending: false,
+    };
+    existing.hasDocs = true;
+    if (doc.docStatus === "accepted") existing.hasAccepted = true;
+    if (doc.docStatus === "pending") existing.hasPending = true;
+    docMap.set(doc.actionId, existing);
+  }
+
+  // 3. Aggregate by organ
+  const orgaoMap = new Map<
+    string,
+    { actionIds: Set<number> }
+  >();
+  for (const row of orgaoRows) {
+    const entry = orgaoMap.get(row.orgao) ?? { actionIds: new Set() };
+    entry.actionIds.add(row.actionId);
+    orgaoMap.set(row.orgao, entry);
+  }
+
+  const result: Array<{
+    orgao: string;
+    totalItems: number;
+    withDocs: number;
+    docsAccepted: number;
+    docsPending: number;
+  }> = [];
+
+  for (const [orgao, { actionIds: ids }] of Array.from(orgaoMap.entries())) {
+    let withDocs = 0;
+    let docsAccepted = 0;
+    let docsPending = 0;
+    for (const id of Array.from(ids)) {
+      const d = docMap.get(id);
+      if (d?.hasDocs) withDocs++;
+      if (d?.hasAccepted) docsAccepted++;
+      if (d?.hasPending) docsPending++;
+    }
+    result.push({
+      orgao,
+      totalItems: ids.size,
+      withDocs,
+      docsAccepted,
+      docsPending,
+    });
+  }
+
+  // Sort by totalItems desc
+  result.sort((a, b) => b.totalItems - a.totalItems);
+  return result;
+}

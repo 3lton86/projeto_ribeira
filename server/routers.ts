@@ -8,6 +8,7 @@ import {
   getActionById,
   getActions,
   getDashboardStats,
+  getOrgaoDocStats,
   getExportData,
   getGovernanceNodes,
   getCommentsByActionId,
@@ -593,6 +594,11 @@ export const appRouter = router({
     stats: publicProcedure.query(async () => {
       return getDashboardStats();
     }),
+    orgaoStats: publicProcedure
+      .input(z.object({ area: z.string().optional() }))
+      .query(async ({ input }) => {
+        return getOrgaoDocStats(input.area);
+      }),
   }),
 
   // ---- DOCUMENTS ----
