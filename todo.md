@@ -425,3 +425,13 @@
 - [x] Fallback por Y: se o elemento não for encontrado (item filtrado/paginado), usa window.scrollTo com a posição Y salva
 - [x] handleNavigateToAction salva tanto o Y quanto o id no sessionStorage antes de navegar
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 46 — Destaque Visual do Item Recém-Visitado
+
+- [x] Keyframe row-flash adicionado no index.css: fade de fundo azul (oklch 0.55/0.18/240) com borda inset, 2s de duração
+- [x] Fallback para prefers-reduced-motion: outline estático em vez de animação
+- [x] Prop isRecentlyVisited adicionado na interface SortableActionRowProps
+- [x] Estado recentlyVisitedId no componente Actions: ativado após scroll, limpo após 2,4s
+- [x] Classe row-flash aplicada condicionalmente no container raiz do SortableActionRow
+- [x] Prop passado nos dois pontos de renderização (DnD e modo normal)
+- [x] 69 testes passando, zero erros TypeScript

@@ -144,9 +144,10 @@ interface SortableActionRowProps {
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   lastContact?: { channel: "email" | "whatsapp"; sentAt: Date | string; recipientName: string | null } | null;
+  isRecentlyVisited?: boolean;
 }
 
-function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, onNavigate, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand, lastContact }: SortableActionRowProps) {
+function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, onAddSubItem, onNavigate, idx, hierNum, depth = 0, hasSubItems = false, isExpanded = true, onToggleExpand, lastContact, isRecentlyVisited = false }: SortableActionRowProps) {
   const {
     attributes,
     listeners,
@@ -172,7 +173,7 @@ function SortableActionRow({ action, isAdmin, isDragEnabled, onEdit, onDelete, o
       ref={setNodeRef}
       data-action-id={action.id}
       style={{ ...style, paddingLeft: depth > 0 ? `${1 + depth * 1.5}rem` : undefined }}
-      className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${depth > 0 ? "border-l-2 border-primary/20 bg-secondary/10" : idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""}`}
+      className={`flex items-start gap-3 px-4 py-3 border-t border-border/20 table-row-hover group ${depth > 0 ? "border-l-2 border-primary/20 bg-secondary/10" : idx % 2 === 0 ? "" : "bg-secondary/5"} ${isDragging ? "bg-secondary/20 rounded-lg shadow-lg" : ""} ${isRecentlyVisited ? "row-flash" : ""}`}
     >
       {/* Drag handle */}
       {isAdmin && isDragEnabled && (
@@ -688,6 +689,8 @@ export default function Actions() {
 
   // Pending scroll ref: armed when returning from ActionDetail
   const pendingScrollRef = useRef<{ y: number; id: string | null } | null>(null);
+  // ID of the recently-visited item (used to apply the row-flash highlight)
+  const [recentlyVisitedId, setRecentlyVisitedId] = useState<number | null>(null);
 
   // Step 1: when location changes TO /acoes, read sessionStorage and arm scroll ref.
   useEffect(() => {
@@ -698,7 +701,7 @@ export default function Actions() {
     pendingScrollRef.current = { y: parseInt(savedY, 10), id: savedId };
   }, [location]);
 
-  // Step 2: once data finishes loading, execute the pending scroll.
+  // Step 2: once data finishes loading, execute the pending scroll and trigger highlight.
   useEffect(() => {
     if (isLoading) return;
     const pending = pendingScrollRef.current;
@@ -714,6 +717,10 @@ export default function Actions() {
         const el = document.querySelector(`[data-action-id="${pending.id}"]`);
         if (el) {
           el.scrollIntoView({ block: "center", behavior: "instant" });
+          // Trigger the visual highlight flash
+          setRecentlyVisitedId(Number(pending.id));
+          // Remove highlight after animation completes (2s + small buffer)
+          setTimeout(() => setRecentlyVisitedId(null), 2400);
           return;
         }
       }
@@ -1423,6 +1430,7 @@ export default function Actions() {
                                           isExpanded={isItemExpanded}
                                           onToggleExpand={() => setExpandedItems(prev => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
                                           lastContact={lastContactMap.get(action.id) ?? null}
+                                          isRecentlyVisited={recentlyVisitedId === action.id}
                                         />
                                       </Fragment>
                                     );
@@ -1460,6 +1468,7 @@ export default function Actions() {
                                     isExpanded={isItemExpanded}
                                     onToggleExpand={() => setExpandedItems(prev => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
                                     lastContact={lastContactMap.get(action.id) ?? null}
+                                    isRecentlyVisited={recentlyVisitedId === action.id}
                                   />
                                 );
                               })
