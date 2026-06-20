@@ -496,25 +496,74 @@ function CreateSubItemModal({ parent, onClose, onSaved }: { parent: any; onClose
 
 // ---- Delete Confirm Dialog ----
 function DeleteConfirmDialog({ actionDescription, onConfirm, onCancel, isPending }: { actionDescription: string; onConfirm: () => void; onCancel: () => void; isPending: boolean }) {
+  const [confirmText, setConfirmText] = useState("");
+  const isConfirmed = confirmText.trim().toUpperCase() === "EXCLUIR";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-5" style={{ background: "oklch(0.13 0.02 240)", border: "1px solid oklch(0.60 0.22 25 / 0.4)", boxShadow: "0 25px 60px rgba(0,0,0,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.80)" }} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-5" style={{ background: "oklch(0.13 0.02 240)", border: "1px solid oklch(0.60 0.22 25 / 0.5)", boxShadow: "0 25px 60px rgba(0,0,0,0.7)" }}>
+
+        {/* Header */}
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "oklch(0.60 0.22 25 / 0.15)", border: "1px solid oklch(0.60 0.22 25 / 0.4)" }}>
-            <Trash2 className="w-5 h-5" style={{ color: "oklch(0.60 0.22 25)" }} />
+            <Trash2 className="w-5 h-5" style={{ color: "oklch(0.65 0.22 25)" }} />
           </div>
           <div>
             <h2 className="font-display text-lg font-bold text-foreground">Excluir Ação</h2>
-            <p className="text-sm text-muted-foreground mt-1">Esta operação é irreversível. Todos os comentários, histórico e documentos associados também serão excluídos.</p>
+            <p className="text-sm text-muted-foreground mt-1">Esta operação é <strong className="text-red-400">irreversível</strong>. Todos os comentários, histórico e documentos associados também serão permanentemente excluídos.</p>
           </div>
         </div>
+
+        {/* Item preview */}
         <div className="rounded-lg p-3 bg-secondary/30 border border-border/40">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Item a ser excluído</p>
           <p className="text-sm text-foreground line-clamp-3">{actionDescription}</p>
         </div>
-        <div className="flex items-center justify-end gap-3">
-          <button onClick={onCancel} disabled={isPending} className="px-4 py-2 rounded-lg text-sm font-medium glass-card hover:border-border transition-all disabled:opacity-50">Cancelar</button>
-          <button onClick={onConfirm} disabled={isPending} className="px-5 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2" style={{ background: "oklch(0.45 0.22 25)", color: "#fff" }}>
-            {isPending ? <><span className="animate-spin w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full" /> Excluindo...</> : <><Trash2 className="w-3.5 h-3.5" /> Excluir</>}
+
+        {/* Confirmation input */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-muted-foreground">
+            Para confirmar, digite <span className="font-mono font-bold tracking-widest" style={{ color: "oklch(0.65 0.22 25)" }}>EXCLUIR</span> no campo abaixo:
+          </label>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Digite EXCLUIR para confirmar"
+            autoFocus
+            className="w-full rounded-lg px-3 py-2 text-sm bg-secondary/30 border focus:outline-none text-foreground font-mono tracking-wide transition-colors"
+            style={{
+              borderColor: isConfirmed ? "oklch(0.65 0.22 25 / 0.8)" : "oklch(0.4 0 0 / 0.4)",
+              boxShadow: isConfirmed ? "0 0 0 2px oklch(0.65 0.22 25 / 0.2)" : "none",
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter" && isConfirmed && !isPending) onConfirm(); if (e.key === "Escape") onCancel(); }}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            disabled={isPending}
+            className="px-4 py-2 rounded-lg text-sm font-medium glass-card hover:border-border transition-all disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!isConfirmed || isPending}
+            className="px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all"
+            style={{
+              background: isConfirmed ? "oklch(0.45 0.22 25)" : "oklch(0.30 0.05 25)",
+              color: isConfirmed ? "#fff" : "oklch(0.5 0 0)",
+              cursor: isConfirmed && !isPending ? "pointer" : "not-allowed",
+              opacity: isPending ? 0.7 : 1,
+            }}
+          >
+            {isPending
+              ? <><span className="animate-spin w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full" /> Excluindo...</>
+              : <><Trash2 className="w-3.5 h-3.5" /> Excluir Permanentemente</>
+            }
           </button>
         </div>
       </div>
