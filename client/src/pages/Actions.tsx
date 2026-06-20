@@ -603,6 +603,13 @@ export default function Actions() {
   const { data: actionIdsWithContact } = trpc.contactHistory.listActionIds.useQuery();
   const contactActionIdSet = useMemo(() => new Set(actionIdsWithContact ?? []), [actionIdsWithContact]);
 
+  // Query para IDs de ações filtradas por órgão (tabela action_orgaos)
+  const { data: orgaoFilteredIds } = trpc.orgaos.listActionIdsByOrgaos.useQuery(
+    { orgaos: selectedOrgaos },
+    { enabled: selectedOrgaos.length > 0 }
+  );
+  const orgaoFilteredSet = useMemo(() => new Set(orgaoFilteredIds ?? []), [orgaoFilteredIds]);
+
   // Query para o último contato de cada ação (mapa actionId -> registro)
   const { data: lastContactList } = trpc.contactHistory.lastPerAction.useQuery();
   const lastContactMap = useMemo(() => {
@@ -673,7 +680,7 @@ export default function Actions() {
       if (selectedAreas.length > 0 && !selectedAreas.includes(a.area as Area)) continue;
       if (selectedStatuses.length > 0 && !selectedStatuses.includes(a.status as Status)) continue;
       if (selectedPriorities.length > 0 && a.priority && !selectedPriorities.includes(a.priority as Priority)) continue;
-      if (selectedOrgaos.length > 0 && !selectedOrgaos.includes((a as any).orgao ?? "")) continue;
+      if (selectedOrgaos.length > 0 && !orgaoFilteredSet.has(a.id)) continue;
       if (selectedResponsaveis.length > 0 && !selectedResponsaveis.includes((a as any).responsavelNome ?? "")) continue;
       if (searchText && !a.description.toLowerCase().includes(searchText.toLowerCase())) continue;
       if (deadlineFilter === "overdue" && !isOverdue((a as any).dueDate, a.status)) continue;
@@ -701,7 +708,7 @@ export default function Actions() {
       (a.isGroup === 0 && visibleItemIds.has(a.id)) ||
       (a.isGroup === 1 && visibleGroupIds.has(a.id))
     );
-  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, selectedResponsaveis, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
+  }, [allActions, selectedAreas, selectedStatuses, selectedPriorities, selectedOrgaos, orgaoFilteredSet, selectedResponsaveis, searchText, deadlineFilter, contactFilter, contactActionIdSet]);
 
   // Lista de nomes de responsáveis únicos para o filtro
   const responsaveisDisponiveis = useMemo(() => {

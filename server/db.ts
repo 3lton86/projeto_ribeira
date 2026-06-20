@@ -1124,3 +1124,15 @@ export async function getLastContactPerAction(): Promise<
     sentAt: r.sentAt,
   }));
 }
+
+/** Retorna os actionIds cujo órgão responsável (tabela action_orgaos) está na lista fornecida */
+export async function getActionIdsByOrgaos(orgaos: string[]): Promise<number[]> {
+  if (!orgaos.length) return [];
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ actionId: actionOrgaos.actionId })
+    .from(actionOrgaos)
+    .where(inArray(actionOrgaos.orgao, orgaos));
+  return rows.map(r => r.actionId);
+}

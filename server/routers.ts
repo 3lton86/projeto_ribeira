@@ -44,6 +44,7 @@ import {
   addContactHistory,
   getActionIdsWithContact,
   getLastContactPerAction,
+  getActionIdsByOrgaos,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -701,6 +702,12 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await removeActionOrgao(input.id);
         return { success: true };
+      }),
+    // Retorna actionIds que possuem ao menos um órgão da lista fornecida em action_orgaos
+    listActionIdsByOrgaos: publicProcedure
+      .input(z.object({ orgaos: z.array(z.string()).min(1) }))
+      .query(async ({ input }) => {
+        return getActionIdsByOrgaos(input.orgaos);
       }),
   }),
 
