@@ -30,7 +30,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ORGAOS_MUNICIPAIS } from "../../../shared/orgaos";
+import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS, isEmpresaParceira } from "../../../shared/orgaos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1134,9 +1134,16 @@ export default function ActionDetail() {
                 className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
               >
                 <option value="">— Selecionar órgão —</option>
-                {ORGAOS_MUNICIPAIS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
+                <optgroup label="Órgãos Municipais">
+                  {ORGAOS_MUNICIPAIS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Empresas Parceiras">
+                  {EMPRESAS_PARCEIRAS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
@@ -1252,9 +1259,16 @@ export default function ActionDetail() {
                 className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
               >
                 <option value="">— Selecionar órgão —</option>
-                {ORGAOS_MUNICIPAIS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
+                <optgroup label="Órgãos Municipais">
+                  {ORGAOS_MUNICIPAIS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Empresas Parceiras">
+                  {EMPRESAS_PARCEIRAS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 

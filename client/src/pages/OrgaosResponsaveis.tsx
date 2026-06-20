@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Building2, Plus, Pencil, Trash2, User, ChevronDown, ChevronRight, Search, UserPlus } from "lucide-react";
-import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
+import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS, isEmpresaParceira } from "@shared/orgaos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -10,16 +10,17 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-type Responsavel = {
-  id: number;
-  orgao: string;
-  nome: string;
-  cargo: string | null;
-  telefone: string | null;
-  email: string | null;
-  localUserId: number | null;
-  sortOrder: number;
-  createdAt: Date;
+const EMPTY_FORM = {
+  orgao: "",
+  nome: "",
+  cargo: "",
+  telefone: "",
+  email: "",
+  localUserId: null as number | null,
+  createUser: false,
+  newUsername: "",
+  newPassword: "",
+  newRole: "setorial" as string,
 };
 
 type LocalUser = {
@@ -35,18 +36,120 @@ type LocalUser = {
   allowedOrgaos: string[];
 };
 
-const EMPTY_FORM = {
-  orgao: "",
-  nome: "",
-  cargo: "",
-  telefone: "",
-  email: "",
-  localUserId: null as number | null,
-  createUser: false,
-  newUsername: "",
-  newPassword: "",
-  newRole: "setorial" as string,
+type Responsavel = {
+  id: number;
+  orgao: string;
+  nome: string;
+  cargo: string | null;
+  telefone: string | null;
+  email: string | null;
+  localUserId: number | null;
+  sortOrder: number;
+  createdAt: Date;
 };
+
+function OrgaoCard({
+  orgao, list, isExpanded, onToggle, onAdd, onEdit, onDelete, localUsers, isPartner,
+}: {
+  orgao: string;
+  list: Responsavel[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  onAdd: () => void;
+  onEdit: (r: Responsavel) => void;
+  onDelete: (id: number) => void;
+  localUsers: LocalUser[];
+  isPartner: boolean;
+}) {
+  const borderClass = isPartner
+    ? "border border-amber-300/50 dark:border-amber-700/40"
+    : "";
+  const headerBg = isPartner
+    ? "hover:bg-amber-50/50 dark:hover:bg-amber-900/10"
+    : "hover:bg-secondary/30";
+  const iconColor = isPartner ? "text-amber-500" : "text-primary";
+
+  return (
+    <div className={`glass-card rounded-xl overflow-hidden ${borderClass}`}>
+      <div
+        className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${headerBg}`}
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          <span className={`font-semibold text-sm ${isPartner ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>{orgao}</span>
+          {isPartner && (
+            <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700">
+              Empresa Parceira
+            </Badge>
+          )}
+          {list.length > 0 && (
+            <Badge variant="outline" className={`text-xs ${isPartner ? "border-amber-300 text-amber-600 dark:text-amber-400" : ""}`}>
+              {list.length} responsável{list.length !== 1 ? "is" : ""}
+            </Badge>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={`h-7 px-2 text-xs gap-1 ${isPartner ? "text-amber-600 hover:text-amber-700 dark:text-amber-400" : ""}`}
+          onClick={e => { e.stopPropagation(); onAdd(); }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Adicionar
+        </Button>
+      </div>
+
+      {isExpanded && (
+        <div className={`border-t ${isPartner ? "border-amber-200/50 dark:border-amber-800/40" : "border-border/50"}`}>
+          {list.length === 0 ? (
+            <div className="px-4 py-3 text-xs text-muted-foreground italic">Nenhum responsável cadastrado.</div>
+          ) : (
+            <div className="divide-y divide-border/30">
+              {list.map((r, idx) => {
+                const linkedUser = localUsers.find(u => u.id === r.localUserId);
+                return (
+                  <div key={r.id} className="flex items-start justify-between px-4 py-3 hover:bg-secondary/20 transition-colors group">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isPartner ? "bg-amber-100 dark:bg-amber-900/30" : "bg-primary/10"}`}>
+                        <User className={`w-3.5 h-3.5 ${iconColor}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">{r.nome}</span>
+                          {idx === 0 && <Badge className="text-[10px] px-1.5 py-0" variant="secondary">Principal</Badge>}
+                          {linkedUser && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
+                              <User className="w-2.5 h-2.5" />
+                              {linkedUser.username}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 space-x-3">
+                          {r.cargo && <span>{r.cargo}</span>}
+                          {r.telefone && <span>📞 {r.telefone}</span>}
+                          {r.email && <span>✉ {r.email}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(r)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(r.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OrgaosResponsaveis() {
   const utils = trpc.useUtils();
@@ -74,7 +177,7 @@ export default function OrgaosResponsaveis() {
   });
 
   // State
-  const [expandedOrgaos, setExpandedOrgaos] = useState<Set<string>>(new Set(ORGAOS_MUNICIPAIS.slice(0, 5)));
+  const [expandedOrgaos, setExpandedOrgaos] = useState<Set<string>>(new Set([...ORGAOS_MUNICIPAIS.slice(0, 5), ...EMPRESAS_PARCEIRAS]));
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -92,11 +195,21 @@ export default function OrgaosResponsaveis() {
     return map;
   }, [responsaveis]);
 
-  // Filter orgaos by search
+  // Filter orgaos by search (municipal)
   const filteredOrgaos = useMemo(() => {
     const q = search.toLowerCase();
     if (!q) return ORGAOS_MUNICIPAIS;
     return ORGAOS_MUNICIPAIS.filter(o =>
+      o.toLowerCase().includes(q) ||
+      (grouped.get(o) ?? []).some(r => r.nome.toLowerCase().includes(q))
+    );
+  }, [search, grouped]);
+
+  // Filter empresas parceiras by search
+  const filteredEmpresas = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return EMPRESAS_PARCEIRAS;
+    return EMPRESAS_PARCEIRAS.filter(o =>
       o.toLowerCase().includes(q) ||
       (grouped.get(o) ?? []).some(r => r.nome.toLowerCase().includes(q))
     );
@@ -236,86 +349,55 @@ export default function OrgaosResponsaveis() {
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
-          {filteredOrgaos.map(orgao => {
-            const list = grouped.get(orgao) ?? [];
-            const isExpanded = expandedOrgaos.has(orgao);
-            return (
-              <div key={orgao} className="glass-card rounded-xl overflow-hidden">
-                {/* Orgao header */}
-                <div
-                  className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-secondary/30 transition-colors"
-                  onClick={() => toggleOrgao(orgao)}
-                >
-                  <div className="flex items-center gap-2">
-                    {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                    <span className="font-semibold text-sm text-foreground">{orgao}</span>
-                    {list.length > 0 && (
-                      <Badge variant="outline" className="text-xs">{list.length} responsável{list.length !== 1 ? "is" : ""}</Badge>
-                    )}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-xs gap-1"
-                    onClick={e => { e.stopPropagation(); openAdd(orgao); }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Adicionar
-                  </Button>
-                </div>
+        <div className="space-y-6">
+          {/* ── Órgãos Municipais ── */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Building2 className="w-4 h-4 text-primary" />
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Órgãos Municipais</h2>
+            </div>
+            {filteredOrgaos.map(orgao => (
+              <OrgaoCard
+                key={orgao}
+                orgao={orgao}
+                list={grouped.get(orgao) ?? []}
+                isExpanded={expandedOrgaos.has(orgao)}
+                onToggle={() => toggleOrgao(orgao)}
+                onAdd={() => openAdd(orgao)}
+                onEdit={openEdit}
+                onDelete={id => setDeleteId(id)}
+                localUsers={localUsers}
+                isPartner={false}
+              />
+            ))}
+          </div>
 
-                {/* Responsaveis list */}
-                {isExpanded && (
-                  <div className="border-t border-border/50">
-                    {list.length === 0 ? (
-                      <div className="px-4 py-3 text-xs text-muted-foreground italic">Nenhum responsável cadastrado.</div>
-                    ) : (
-                      <div className="divide-y divide-border/30">
-                        {list.map((r, idx) => {
-                          const linkedUser = localUsers.find(u => u.id === r.localUserId);
-                          return (
-                            <div key={r.id} className="flex items-start justify-between px-4 py-3 hover:bg-secondary/20 transition-colors group">
-                              <div className="flex items-start gap-3 min-w-0">
-                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <User className="w-3.5 h-3.5 text-primary" />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium text-foreground">{r.nome}</span>
-                                    {idx === 0 && <Badge className="text-[10px] px-1.5 py-0" variant="secondary">Principal</Badge>}
-                                    {linkedUser && (
-                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1">
-                                        <User className="w-2.5 h-2.5" />
-                                        {linkedUser.username}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-0.5 space-x-3">
-                                    {r.cargo && <span>{r.cargo}</span>}
-                                    {r.telefone && <span>📞 {r.telefone}</span>}
-                                    {r.email && <span>✉ {r.email}</span>}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(r.id)}>
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+          {/* ── Empresas Parceiras ── */}
+          {filteredEmpresas.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-amber-500">🏢</span>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Empresas Parceiras</h2>
+                <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700">
+                  PMI Ribeira Sustentável
+                </Badge>
               </div>
-            );
-          })}
+              {filteredEmpresas.map(orgao => (
+                <OrgaoCard
+                  key={orgao}
+                  orgao={orgao}
+                  list={grouped.get(orgao) ?? []}
+                  isExpanded={expandedOrgaos.has(orgao)}
+                  onToggle={() => toggleOrgao(orgao)}
+                  onAdd={() => openAdd(orgao)}
+                  onEdit={openEdit}
+                  onDelete={id => setDeleteId(id)}
+                  localUsers={localUsers}
+                  isPartner={true}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -334,7 +416,14 @@ export default function OrgaosResponsaveis() {
                     <SelectValue placeholder="Selecionar órgão..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Órgãos Municipais</div>
                     {ORGAOS_MUNICIPAIS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    <div className="px-2 py-1 mt-1 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Empresas Parceiras</div>
+                    {EMPRESAS_PARCEIRAS.map(o => (
+                      <SelectItem key={o} value={o}>
+                        <span className="text-amber-700 dark:text-amber-300">{o}</span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

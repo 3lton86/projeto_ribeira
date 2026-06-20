@@ -361,3 +361,12 @@
 - [x] Frontend: ao selecionar usuário, preenche automaticamente nome, cargo, telefone e e-mail
 - [x] Frontend: seletor de responsável cadastrado (orgao_responsaveis) também atualiza localUserId ao selecionar
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 38 — Empresas Parceiras em Órgãos e Responsáveis
+
+- [x] shared/orgaos.ts: EMPRESAS_PARCEIRAS (CONSÓRCIO RIBEIRA, EY, AEPA, BP), TODOS_ORGAOS e isEmpresaParceira adicionados
+- [x] OrgaosResponsaveis.tsx: seção "Empresas Parceiras" com visual âmbar, badge PMI Ribeira Sustentável, borda e cores distintas; componente OrgaoCard reutilizável
+- [x] OrgaosResponsaveis.tsx: seletor de órgão no dialog inclui empresas parceiras com grupo separado
+- [x] ActionDetail.tsx: seletores de órgão (add/edit) incluem empresas parceiras via optgroup
+- [x] server/routers.ts: validações Zod atualizadas para TODOS_ORGAOS (5 ocorrências)
+- [x] 69 testes passando, zero erros TypeScript

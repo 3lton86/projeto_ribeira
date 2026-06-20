@@ -49,7 +49,7 @@ import {
   getResponsaveisDisponiveis,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
-import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
+import { ORGAOS_MUNICIPAIS, TODOS_ORGAOS } from "@shared/orgaos";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -180,7 +180,7 @@ export const appRouter = router({
           requestDate: z.date().optional(),
           receiptDate: z.date().optional(),
           documentBase: z.string().optional(),
-          orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).optional(),
+          orgao: z.enum([...TODOS_ORGAOS, ""]).optional(),
           responsavelNome: z.string().optional(),
           responsavelCargo: z.string().optional(),
           responsavelTel: z.string().optional(),
@@ -231,7 +231,7 @@ export const appRouter = router({
           receiptDate: z.date().optional(),
           documentBase: z.string().optional(),
           observacoes: z.string().optional(),
-          orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).optional(),
+          orgao: z.enum([...TODOS_ORGAOS, ""]).optional(),
           responsavelNome: z.string().optional(),
           responsavelCargo: z.string().optional(),
           responsavelTel: z.string().optional(),
@@ -302,7 +302,7 @@ export const appRouter = router({
           status: statusEnum.optional(),
           priority: priorityEnum.optional(),
           dueDate: z.date().nullable().optional(),
-          orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).optional(),
+          orgao: z.enum([...TODOS_ORGAOS, ""]).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -668,7 +668,7 @@ export const appRouter = router({
     add: localOrOauthAdminProcedure
       .input(z.object({
         actionId: z.number(),
-        orgao: z.enum([...ORGAOS_MUNICIPAIS, ""]).refine(v => v !== "", { message: "Selecione um órgão" }),
+        orgao: z.enum([...TODOS_ORGAOS, ""]).refine(v => v !== "", { message: "Selecione um órgão" }),
         responsavelNome: z.string().optional(),
         responsavelCargo: z.string().optional(),
         responsavelTel: z.string().optional(),
