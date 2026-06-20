@@ -18,6 +18,8 @@ import {
   XCircle,
   Send,
   Link2,
+  Mail,
+  Phone,
   Plus,
   Trash2,
   ExternalLink,
@@ -510,7 +512,33 @@ export default function ActionDetail() {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                           {o.responsavelNome && (
-                            <div><span className="font-medium text-foreground/70">Nome: </span>{o.responsavelNome}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-foreground/70">Nome: </span>
+                              <span>{o.responsavelNome}</span>
+                              {/* Botões de contato rápido */}
+                              <div className="flex items-center gap-1 ml-1">
+                                {o.responsavelEmail && (
+                                  <a
+                                    href={`mailto:${o.responsavelEmail}`}
+                                    title={`Enviar e-mail para ${o.responsavelNome}`}
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 text-blue-500 hover:bg-blue-500/30 transition-colors"
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </a>
+                                )}
+                                {o.responsavelTel && (
+                                  <a
+                                    href={`https://wa.me/55${o.responsavelTel.replace(/\D/g, "")}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={`WhatsApp: ${o.responsavelTel}`}
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500/15 text-green-600 hover:bg-green-500/30 transition-colors"
+                                  >
+                                    <Phone className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
                           )}
                           {o.responsavelCargo && (
                             <div><span className="font-medium text-foreground/70">Cargo: </span>{o.responsavelCargo}</div>
@@ -519,7 +547,7 @@ export default function ActionDetail() {
                             <div><span className="font-medium text-foreground/70">Tel: </span>{o.responsavelTel}</div>
                           )}
                           {o.responsavelEmail && (
-                            <div><span className="font-medium text-foreground/70">E-mail: </span>
+                            <div className="col-span-2"><span className="font-medium text-foreground/70">E-mail: </span>
                               <a href={`mailto:${o.responsavelEmail}`} className="text-primary hover:underline">{o.responsavelEmail}</a>
                             </div>
                           )}
