@@ -561,24 +561,43 @@ export default function Actions() {
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const initialArea = searchParams.get("area") as Area | null;
 
-  const [selectedAreas, setSelectedAreas] = useState<Area[]>(initialArea ? [initialArea] : []);
-  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([]);
-  const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([]);
-  const [selectedOrgaos, setSelectedOrgaos] = useState<string[]>([]);
+  // ── Read saved navigation state ONCE at module level (lazy initializer) ──
+  // Using lazy initializers ensures sessionStorage is read exactly once,
+  // synchronously, before the first render — no extra re-render needed.
+  const STATE_KEY = "actions-nav-state";
+  const getSavedState = () => {
+    try {
+      const raw = sessionStorage.getItem(STATE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  const [selectedAreas, setSelectedAreas] = useState<Area[]>(() => {
+    const s = getSavedState();
+    if (s?.selectedAreas?.length) return s.selectedAreas;
+    return initialArea ? [initialArea] : [];
+  });
+  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>(() => getSavedState()?.selectedStatuses ?? []);
+  const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>(() => getSavedState()?.selectedPriorities ?? []);
+  const [selectedOrgaos, setSelectedOrgaos] = useState<string[]>(() => getSavedState()?.selectedOrgaos ?? []);
   const [orgaoSearch, setOrgaoSearch] = useState("");
   const [responsavelSearch, setResponsavelSearch] = useState("");
-  const [selectedResponsaveis, setSelectedResponsaveis] = useState<string[]>([]);
-  const [searchText, setSearchText] = useState("");
-  const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>("all");
+  const [selectedResponsaveis, setSelectedResponsaveis] = useState<string[]>(() => getSavedState()?.selectedResponsaveis ?? []);
+  const [searchText, setSearchText] = useState<string>(() => getSavedState()?.searchText ?? "");
+  const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>(() => getSavedState()?.deadlineFilter ?? "all");
   const [docFilter, setDocFilter] = useState<DocFilter>("all");
-  const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [contactFilter, setContactFilter] = useState<ContactFilter>(() => getSavedState()?.contactFilter ?? "all");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    const s = getSavedState();
+    return s?.expandedGroups?.length ? new Set<string>(s.expandedGroups) : new Set<string>();
+  });
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set()); // items with sub-items expanded by default
   const [showFilters, setShowFilters] = useState(false);
   const [isDragMode, setIsDragMode] = useState(false);
 
-  // Pagination: one page counter per area
-  const [areaPages, setAreaPages] = useState<Record<string, number>>({});
+  // Pagination: one page counter per area — restored from sessionStorage on first render
+  const [areaPages, setAreaPages] = useState<Record<string, number>>(() => getSavedState()?.areaPages ?? {});
 
   // Local reorder state (per-area sorted items for DnD)
   const [localOrder, setLocalOrder] = useState<Record<string, number[]>>({});
@@ -644,45 +663,6 @@ export default function Actions() {
   const { localUser } = useLocalAuth();
   const isAdmin = user?.role === "admin" || localUser?.role === "admin" || localUser?.role === "super_admin";
   const [location, navigate] = useLocation();
-
-  // ── State restoration from sessionStorage on first render ───────────────
-  // When the component mounts after returning from ActionDetail, restore
-  // the full navigation state: pagination pages, filters, and scroll.
-  const STATE_KEY = "actions-nav-state";
-  const restoredRef = useRef(false);
-
-  // Restore pagination + filters immediately (before first render paints)
-  if (!restoredRef.current) {
-    restoredRef.current = true;
-    try {
-      const raw = sessionStorage.getItem(STATE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as {
-          areaPages: Record<string, number>;
-          selectedAreas: Area[];
-          selectedStatuses: Status[];
-          selectedPriorities: Priority[];
-          selectedOrgaos: string[];
-          selectedResponsaveis: string[];
-          searchText: string;
-          deadlineFilter: DeadlineFilter;
-          contactFilter: ContactFilter;
-          expandedGroups: string[];
-        };
-        // Apply state synchronously before React commits the first paint
-        if (saved.areaPages) setAreaPages(saved.areaPages);
-        if (saved.selectedAreas?.length) setSelectedAreas(saved.selectedAreas);
-        if (saved.selectedStatuses?.length) setSelectedStatuses(saved.selectedStatuses);
-        if (saved.selectedPriorities?.length) setSelectedPriorities(saved.selectedPriorities);
-        if (saved.selectedOrgaos?.length) setSelectedOrgaos(saved.selectedOrgaos);
-        if (saved.selectedResponsaveis?.length) setSelectedResponsaveis(saved.selectedResponsaveis);
-        if (saved.searchText) setSearchText(saved.searchText);
-        if (saved.deadlineFilter && saved.deadlineFilter !== "all") setDeadlineFilter(saved.deadlineFilter);
-        if (saved.contactFilter && saved.contactFilter !== "all") setContactFilter(saved.contactFilter);
-        if (saved.expandedGroups?.length) setExpandedGroups(new Set(saved.expandedGroups));
-      }
-    } catch { /* ignore malformed data */ }
-  }
 
   // Refs to always hold the latest state values for serialization before navigation
   const areaPagesRef = useRef(areaPages);
