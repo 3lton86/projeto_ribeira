@@ -337,3 +337,10 @@
 - [x] Frontend Actions.tsx: lastContactMap memoizado; badge em cada item com ícone (Phone/Mail), data relativa e tooltip com detalhes completos
 - [x] Frontend: badge "sem contato" (opaco) para itens sem histórico
 - [x] 69 testes passando (2 novos), zero erros TypeScript
+
+## Sprint 34 — Documentos na Exportação Excel
+
+- [x] export.ts: exportToExcel expande itens com múltiplos documentos em linhas extras; colunas "Nome do Documento", "URL do Arquivo" (com hyperlink) e "Status do Documento" (DOC ACEITO / DOC COM PENDÊNCIA) adicionadas
+- [x] Coluna "Qtd. Documentos" adicionada ao lado de "Qtd. Comentários"
+- [x] Linhas de continuação (└) para 2º+ documentos do mesmo item
+- [x] 69 testes passando, zero erros TypeScript

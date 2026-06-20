@@ -76,11 +76,21 @@ export function exportToExcel(data: ActionRow[]) {
   // Determine hierarchy depth for indentation
   const getDepth = (itemCode: string) => (itemCode.match(/\./g) || []).length;
 
-  const rows = data.map((a) => {
+  const DOC_STATUS_LABEL: Record<string, string> = {
+    accepted: "DOC ACEITO",
+    pending: "DOC COM PENDÊNCIA",
+  };
+
+  // Expand: one row per item; if item has documents, add extra rows for each document
+  const rows: Record<string, string | number>[] = [];
+
+  for (const a of data) {
     const isGroup = a.isGroup === 1;
     const depth = getDepth(a.itemCode);
     const indent = "  ".repeat(depth);
-    return {
+    const docs = (!isGroup && a.documents && a.documents.length > 0) ? a.documents : [];
+
+    const baseRow = {
       "Área": a.area,
       "Código": a.itemCode,
       "Descrição": isGroup ? `${indent}▌ ${a.description}` : `${indent}${a.description}`,
@@ -99,16 +109,90 @@ export function exportToExcel(data: ActionRow[]) {
       "Data do Recebimento": isGroup ? "" : formatDate(a.receiptDate),
       "Base Documental": a.documentBase ?? "",
       "Qtd. Comentários": isGroup ? "" : (a.comments?.length ?? 0),
+      "Qtd. Documentos": isGroup ? "" : docs.length,
+      // Document columns — filled per-document row below
+      "Nome do Documento": "",
+      "URL do Arquivo": "",
+      "Status do Documento": "",
     };
-  });
+
+    if (docs.length === 0) {
+      rows.push(baseRow);
+    } else {
+      // First document on the same row as the item
+      rows.push({
+        ...baseRow,
+        "Nome do Documento": docs[0].label ?? "",
+        "URL do Arquivo": docs[0].url ?? "",
+        "Status do Documento": DOC_STATUS_LABEL[(docs[0] as any).docStatus ?? ""] ?? "",
+      });
+      // Additional documents on continuation rows (repeat code + description for readability)
+      for (let i = 1; i < docs.length; i++) {
+        rows.push({
+          "Área": "",
+          "Código": a.itemCode,
+          "Descrição": `${indent}  └ (continuação)`,
+          "Tipo": "",
+          "Prioridade": "",
+          "Status": "",
+          "Situação Prazo": "",
+          "Observações": "",
+          "Órgão Responsável": "",
+          "Nome do Responsável": "",
+          "Cargo": "",
+          "Telefone": "",
+          "E-mail": "",
+          "Prazo Previsto": "",
+          "Data da Solicitação": "",
+          "Data do Recebimento": "",
+          "Base Documental": "",
+          "Qtd. Comentários": "",
+          "Qtd. Documentos": "",
+          "Nome do Documento": docs[i].label ?? "",
+          "URL do Arquivo": docs[i].url ?? "",
+          "Status do Documento": DOC_STATUS_LABEL[(docs[i] as any).docStatus ?? ""] ?? "",
+        });
+      }
+    }
+  }
 
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
 
+  // Apply hyperlinks to URL column (col U = "URL do Arquivo")
+  const urlColLetter = "U";
+  const range = XLSX.utils.decode_range(ws["!ref"] ?? "A1");
+  for (let r = 1; r <= range.e.r; r++) {
+    const cellAddr = `${urlColLetter}${r + 1}`;
+    const cell = ws[cellAddr];
+    if (cell && cell.v && typeof cell.v === "string" && cell.v.startsWith("http")) {
+      cell.l = { Target: cell.v, Tooltip: cell.v };
+    }
+  }
+
   ws["!cols"] = [
-    { wch: 14 }, { wch: 10 }, { wch: 65 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
-    { wch: 40 }, { wch: 18 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 32 },
-    { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 10 },
+    { wch: 14 }, // Área
+    { wch: 10 }, // Código
+    { wch: 60 }, // Descrição
+    { wch: 14 }, // Tipo
+    { wch: 12 }, // Prioridade
+    { wch: 16 }, // Status
+    { wch: 14 }, // Situação Prazo
+    { wch: 40 }, // Observações
+    { wch: 18 }, // Órgão Responsável
+    { wch: 30 }, // Nome do Responsável
+    { wch: 25 }, // Cargo
+    { wch: 18 }, // Telefone
+    { wch: 32 }, // E-mail
+    { wch: 16 }, // Prazo Previsto
+    { wch: 20 }, // Data da Solicitação
+    { wch: 20 }, // Data do Recebimento
+    { wch: 40 }, // Base Documental
+    { wch: 10 }, // Qtd. Comentários
+    { wch: 10 }, // Qtd. Documentos
+    { wch: 45 }, // Nome do Documento
+    { wch: 70 }, // URL do Arquivo
+    { wch: 20 }, // Status do Documento
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Ações RIBEIRA");
