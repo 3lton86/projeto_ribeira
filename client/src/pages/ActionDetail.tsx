@@ -141,6 +141,8 @@ export default function ActionDetail() {
 
   // Tabela de responsáveis por órgão (para auto-preenchimento e seleção)
   const { data: orgaoResponsaveisAll } = trpc.orgaoResponsaveis.list.useQuery({ orgao: undefined });
+  // Lista de usuários locais para o seletor de usuário vinculado (apenas admins chegam aqui)
+  const { data: localUsersData } = trpc.localAuth.users.list.useQuery(undefined, { enabled: canEdit });
 
   // For setorial users: check if they can interact with this action.
   // Considers BOTH the legacy scalar orgao field AND all co-responsible orgãos (action_orgaos).
@@ -214,7 +216,7 @@ export default function ActionDetail() {
   const [newOrgao, setNewOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
   // Estado para edição de órgão existente
   const [editOrgaoId, setEditOrgaoId] = useState<number | null>(null);
-  const [editOrgao, setEditOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "" });
+  const [editOrgao, setEditOrgao] = useState({ orgao: "", responsavelNome: "", responsavelCargo: "", responsavelTel: "", responsavelEmail: "", localUserId: null as number | null });
   // Contact send dialog state — suporta múltiplos destinatários
   type ContactRecipient = {
     id: number;
@@ -604,6 +606,7 @@ export default function ActionDetail() {
                                   responsavelCargo: o.responsavelCargo ?? "",
                                   responsavelTel: o.responsavelTel ?? "",
                                   responsavelEmail: o.responsavelEmail ?? "",
+                                  localUserId: null,
                                 });
                               }}
                               className="inline-flex items-center justify-center w-5 h-5 rounded text-primary hover:bg-primary/10 transition-colors"
@@ -1255,7 +1258,47 @@ export default function ActionDetail() {
               </select>
             </div>
 
-            {/* Seletor de responsável cadastrado */}
+            {/* Seletor de usuário vinculado — filtrado pelos usuários do órgão selecionado */}
+            {editOrgao.orgao && (localUsersData ?? []).filter(u =>
+              (u as any).allowedOrgaos?.includes(editOrgao.orgao) ||
+              (u as any).allowedOrgaos?.includes("TODOS") ||
+              (u as any).role === "admin" || (u as any).role === "super_admin"
+            ).length > 0 && (
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Vincular a Usuário Cadastrado</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+                  value={editOrgao.localUserId !== null ? String(editOrgao.localUserId) : ""}
+                  onChange={(e) => {
+                    const userId = e.target.value ? Number(e.target.value) : null;
+                    const user = userId !== null ? (localUsersData ?? []).find(u => u.id === userId) : null;
+                    setEditOrgao(prev => ({
+                      ...prev,
+                      localUserId: userId,
+                      // Auto-preenche campos do responsável com dados do usuário selecionado
+                      responsavelNome: user ? ((user as any).name ?? prev.responsavelNome) : prev.responsavelNome,
+                      responsavelCargo: user ? ((user as any).position ?? prev.responsavelCargo) : prev.responsavelCargo,
+                      responsavelTel: user ? ((user as any).telefone ?? prev.responsavelTel) : prev.responsavelTel,
+                      responsavelEmail: user ? ((user as any).email ?? prev.responsavelEmail) : prev.responsavelEmail,
+                    }));
+                  }}
+                >
+                  <option value="">— Sem vínculo —</option>
+                  {(localUsersData ?? []).filter(u =>
+                    (u as any).allowedOrgaos?.includes(editOrgao.orgao) ||
+                    (u as any).allowedOrgaos?.includes("TODOS") ||
+                    (u as any).role === "admin" || (u as any).role === "super_admin"
+                  ).map(u => (
+                    <option key={u.id} value={u.id}>
+                      {(u as any).name} ({(u as any).username}) — {(u as any).role}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Selecionar um usuário preenche automaticamente os campos abaixo.</p>
+              </div>
+            )}
+
+            {/* Seletor de responsável cadastrado (orgao_responsaveis) */}
             {editOrgao.orgao && (orgaoResponsaveisAll ?? []).filter(r => r.orgao === editOrgao.orgao).length > 0 && (
               <div>
                 <Label className="text-xs uppercase tracking-wider">Selecionar Responsável Cadastrado</Label>
@@ -1273,6 +1316,7 @@ export default function ActionDetail() {
                         responsavelCargo: resp.cargo ?? "",
                         responsavelTel: resp.telefone ?? "",
                         responsavelEmail: resp.email ?? "",
+                        localUserId: resp.localUserId ?? prev.localUserId,
                       }));
                     }
                   }}

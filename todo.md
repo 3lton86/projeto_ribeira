@@ -353,3 +353,11 @@
 - [x] Actions.tsx: filtro por Responsável adicionado ao painel avançado (busca dinâmica a partir dos dados carregados)
 - [x] Actions.tsx: filtros de Órgão, Responsável, Status e Prioridade todos visíveis e funcionais
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 37 — Usuário Vinculado no Dialog de Edição de Órgão
+
+- [x] Frontend: query trpc.localAuth.users.list adicionada em ActionDetail.tsx (enabled apenas para admins)
+- [x] Frontend: campo "Vincular a Usuário Cadastrado" no dialog de edição de órgão, filtrado pelos usuários com o órgão em allowedOrgaos (ou admins/super_admins)
+- [x] Frontend: ao selecionar usuário, preenche automaticamente nome, cargo, telefone e e-mail
+- [x] Frontend: seletor de responsável cadastrado (orgao_responsaveis) também atualiza localUserId ao selecionar
+- [x] 69 testes passando, zero erros TypeScript
