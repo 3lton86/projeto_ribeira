@@ -282,3 +282,15 @@
 - [x] Frontend Dashboard.tsx: novo painel "Itens por Órgão Responsável" com gráfico de barras agrupadas + tabela resumo
 - [x] Filtro de frente temática no painel de órgãos (Todas / Governança / Técnico / Jurídico / Eco-Fin)
 - [x] 67 testes passando, zero erros TypeScript
+
+## Sprint 29 — Gestão de Responsáveis por Órgão
+
+- [ ] Schema: tabela orgao_responsaveis (id, orgao, nome, cargo, telefone, email, localUserId nullable, sortOrder, createdAt)
+- [ ] Migração do banco (pnpm db:push)
+- [ ] Backend db.ts: getOrgaoResponsaveis, addOrgaoResponsavel, updateOrgaoResponsavel, removeOrgaoResponsavel
+- [ ] Backend routers.ts: procedures orgaoResponsaveis.list, .add, .update, .remove (admin)
+- [ ] Frontend: página /orgaos (admin) com tabela por órgão, adicionar/editar/remover responsáveis, vincular a usuário local existente
+- [ ] Frontend: dialog de adicionar órgão na ficha do item auto-preenche responsável com o primeiro da tabela orgao_responsaveis
+- [ ] Frontend: ao selecionar órgão no dialog, lista de responsáveis é filtrada pelos vinculados ao órgão
+- [ ] Frontend: edição de órgão já atribuído na ficha do item permite alterar responsável via seleção
+- [ ] Testes passando, zero erros TypeScript

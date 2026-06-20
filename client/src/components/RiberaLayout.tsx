@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookOpen,
+  Building2,
   ChevronRight,
   ClipboardList,
   FileText,
@@ -109,6 +110,15 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <span>Usuários</span>
                 {location === "/usuarios" && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
+              </Link>
+              <Link
+                href="/orgaos"
+                className={`nav-item ${location === "/orgaos" ? "active" : ""}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Building2 className="w-4 h-4 flex-shrink-0" />
+                <span>Órgãos & Responsáveis</span>
+                {location === "/orgaos" && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
               </Link>
               <Link
                 href="/auditoria"

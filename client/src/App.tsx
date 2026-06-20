@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import Users from "./pages/Users";
 import UserGuide from "./pages/UserGuide";
 import AuditLog from "./pages/AuditLog";
+import OrgaosResponsaveis from "./pages/OrgaosResponsaveis";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
 import { useEffect } from "react";
 
@@ -45,6 +46,7 @@ function ProtectedRouter() {
         <Route path="/acoes" component={Actions} />
         <Route path="/acoes/:id" component={ActionDetail} />
         <Route path="/usuarios" component={Users} />
+        <Route path="/orgaos" component={OrgaosResponsaveis} />
         <Route path="/guia" component={UserGuide} />
         <Route path="/auditoria" component={AuditLog} />
         <Route path="/404" component={NotFound} />

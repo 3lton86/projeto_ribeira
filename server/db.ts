@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actions, actionDocuments, actionOrgaos, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, userOrgaos, users } from "../drizzle/schema";
+import { actions, actionDocuments, actionOrgaos, auditLog, comments, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, orgaoResponsaveis, userOrgaos, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -971,4 +971,75 @@ export async function getOrgaoDocStats(area?: string): Promise<
   // Sort by totalItems desc
   result.sort((a, b) => b.totalItems - a.totalItems);
   return result;
+}
+
+// ---- ORGAO RESPONSAVEIS ----
+
+export async function getOrgaoResponsaveis(orgao?: string): Promise<
+  Array<{
+    id: number;
+    orgao: string;
+    nome: string;
+    cargo: string | null;
+    telefone: string | null;
+    email: string | null;
+    localUserId: number | null;
+    sortOrder: number;
+    createdAt: Date;
+  }>
+> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(orgaoResponsaveis)
+    .where(orgao ? eq(orgaoResponsaveis.orgao, orgao) : undefined)
+    .orderBy(orgaoResponsaveis.orgao, orgaoResponsaveis.sortOrder);
+  return rows;
+}
+
+export async function addOrgaoResponsavel(data: {
+  orgao: string;
+  nome: string;
+  cargo?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  localUserId?: number | null;
+  sortOrder?: number;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const [result] = await db.insert(orgaoResponsaveis).values({
+    orgao: data.orgao,
+    nome: data.nome,
+    cargo: data.cargo ?? null,
+    telefone: data.telefone ?? null,
+    email: data.email ?? null,
+    localUserId: data.localUserId ?? null,
+    sortOrder: data.sortOrder ?? 0,
+  });
+  return (result as { insertId: number }).insertId;
+}
+
+export async function updateOrgaoResponsavel(
+  id: number,
+  data: {
+    orgao?: string;
+    nome?: string;
+    cargo?: string | null;
+    telefone?: string | null;
+    email?: string | null;
+    localUserId?: number | null;
+    sortOrder?: number;
+  }
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(orgaoResponsaveis).set(data).where(eq(orgaoResponsaveis.id, id));
+}
+
+export async function removeOrgaoResponsavel(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(orgaoResponsaveis).where(eq(orgaoResponsaveis.id, id));
 }

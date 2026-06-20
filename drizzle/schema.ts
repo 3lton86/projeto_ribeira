@@ -185,3 +185,20 @@ export const notifications = mysqlTable("notifications", {
 });
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+// Tabela de responsáveis por órgão (independente dos itens)
+// Permite cadastrar múltiplos responsáveis por órgão, opcionalmente vinculados a um usuário local
+export const orgaoResponsaveis = mysqlTable("orgao_responsaveis", {
+  id: int("id").autoincrement().primaryKey(),
+  orgao: varchar("orgao", { length: 100 }).notNull(),
+  nome: varchar("nome", { length: 200 }).notNull(),
+  cargo: varchar("cargo", { length: 200 }),
+  telefone: varchar("telefone", { length: 50 }),
+  email: varchar("email", { length: 320 }),
+  localUserId: int("localUserId"),  // nullable: vinculado a local_users.id se já cadastrado
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OrgaoResponsavel = typeof orgaoResponsaveis.$inferSelect;
+export type InsertOrgaoResponsavel = typeof orgaoResponsaveis.$inferInsert;

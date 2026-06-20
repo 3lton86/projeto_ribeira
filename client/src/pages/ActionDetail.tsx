@@ -134,6 +134,9 @@ export default function ActionDetail() {
   );
   const { data: actionOrgaos } = trpc.orgaos.list.useQuery({ actionId: id });
 
+  // Tabela de responsáveis por órgão (para auto-preenchimento e seleção)
+  const { data: orgaoResponsaveisAll } = trpc.orgaoResponsaveis.list.useQuery({ orgao: undefined });
+
   // For setorial users: check if they can interact with this action.
   // Considers BOTH the legacy scalar orgao field AND all co-responsible orgãos (action_orgaos).
   const actionOrgao = (action as any)?.orgao ?? null;
@@ -866,7 +869,18 @@ export default function ActionDetail() {
               <Label className="text-xs uppercase tracking-wider">Órgão *</Label>
               <select
                 value={newOrgao.orgao}
-                onChange={(e) => setNewOrgao({ ...newOrgao, orgao: e.target.value })}
+                onChange={(e) => {
+                  const selectedOrgao = e.target.value;
+                  // Auto-fill with first responsavel from orgao_responsaveis table
+                  const firstResp = (orgaoResponsaveisAll ?? []).find(r => r.orgao === selectedOrgao);
+                  setNewOrgao({
+                    orgao: selectedOrgao,
+                    responsavelNome: firstResp?.nome ?? "",
+                    responsavelCargo: firstResp?.cargo ?? "",
+                    responsavelTel: firstResp?.telefone ?? "",
+                    responsavelEmail: firstResp?.email ?? "",
+                  });
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
               >
                 <option value="">— Selecionar órgão —</option>
@@ -875,6 +889,39 @@ export default function ActionDetail() {
                 ))}
               </select>
             </div>
+
+            {/* If there are registered responsaveis for the selected orgao, show a selector */}
+            {newOrgao.orgao && (orgaoResponsaveisAll ?? []).filter(r => r.orgao === newOrgao.orgao).length > 0 && (
+              <div>
+                <Label className="text-xs uppercase tracking-wider">Selecionar Responsável Cadastrado</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+                  value={(orgaoResponsaveisAll ?? []).find(r =>
+                    r.orgao === newOrgao.orgao &&
+                    r.nome === newOrgao.responsavelNome
+                  )?.id ?? ""}
+                  onChange={(e) => {
+                    const resp = (orgaoResponsaveisAll ?? []).find(r => r.id === Number(e.target.value));
+                    if (resp) {
+                      setNewOrgao(prev => ({
+                        ...prev,
+                        responsavelNome: resp.nome,
+                        responsavelCargo: resp.cargo ?? "",
+                        responsavelTel: resp.telefone ?? "",
+                        responsavelEmail: resp.email ?? "",
+                      }));
+                    }
+                  }}
+                >
+                  <option value="">— Selecionar responsável —</option>
+                  {(orgaoResponsaveisAll ?? []).filter(r => r.orgao === newOrgao.orgao).map(r => (
+                    <option key={r.id} value={r.id}>{r.nome}{r.cargo ? ` — ${r.cargo}` : ""}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Ou preencha manualmente abaixo para um responsável diferente.</p>
+              </div>
+            )}
+
             <div>
               <Label className="text-xs uppercase tracking-wider">Nome do Responsável</Label>
               <Input

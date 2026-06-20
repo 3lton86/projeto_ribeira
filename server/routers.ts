@@ -36,6 +36,10 @@ import {
   addActionOrgao,
   updateActionOrgao,
   removeActionOrgao,
+  getOrgaoResponsaveis,
+  addOrgaoResponsavel,
+  updateOrgaoResponsavel,
+  removeOrgaoResponsavel,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS } from "@shared/orgaos";
@@ -693,6 +697,58 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await removeActionOrgao(input.id);
         return { success: true };
+      }),
+  }),
+
+  // ---- ORGAO RESPONSAVEIS (tabela de responsáveis por órgão) ----
+  orgaoResponsaveis: router({
+    list: localAuthProcedure
+      .input(z.object({ orgao: z.string().optional() }))
+      .query(async ({ input }) => {
+        return getOrgaoResponsaveis(input.orgao);
+      }),
+
+    add: localAdminProcedure
+      .input(
+        z.object({
+          orgao: z.string().min(1),
+          nome: z.string().min(1),
+          cargo: z.string().optional().nullable(),
+          telefone: z.string().optional().nullable(),
+          email: z.string().optional().nullable(),
+          localUserId: z.number().optional().nullable(),
+          sortOrder: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const id = await addOrgaoResponsavel(input);
+        return { id };
+      }),
+
+    update: localAdminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          orgao: z.string().optional(),
+          nome: z.string().optional(),
+          cargo: z.string().optional().nullable(),
+          telefone: z.string().optional().nullable(),
+          email: z.string().optional().nullable(),
+          localUserId: z.number().optional().nullable(),
+          sortOrder: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateOrgaoResponsavel(id, data);
+        return { ok: true };
+      }),
+
+    remove: localAdminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await removeOrgaoResponsavel(input.id);
+        return { ok: true };
       }),
   }),
 
