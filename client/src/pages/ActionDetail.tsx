@@ -431,8 +431,7 @@ export default function ActionDetail() {
               onClick={() => prevId !== null && navigateTo(prevId)}
               disabled={prevId === null}
               title={prevId !== null ? `Item anterior (${navIndex} de ${navList.length}) — Tecla ←` : "Primeiro item da lista"}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: "oklch(0.20 0.02 240)", border: "1px solid oklch(0.30 0.02 240)" }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Anterior</span>
@@ -446,8 +445,7 @@ export default function ActionDetail() {
               onClick={() => nextId !== null && navigateTo(nextId)}
               disabled={nextId === null}
               title={nextId !== null ? `Próximo item (${navIndex + 2} de ${navList.length}) — Tecla →` : "Último item da lista"}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: "oklch(0.20 0.02 240)", border: "1px solid oklch(0.30 0.02 240)" }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border"
             >
               <span className="hidden sm:inline">Próximo</span>
               <ChevronRight className="w-3.5 h-3.5" />
