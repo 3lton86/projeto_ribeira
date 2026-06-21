@@ -171,6 +171,7 @@ export default function Users() {
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Órgãos Permitidos</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Último Acesso</th>
                 <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Ações</th>
               </tr>
             </thead>
@@ -221,6 +222,18 @@ export default function Users() {
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <UserX className="w-3 h-3" /> Inativo
                         </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {(u as any).lastAccessAt ? (
+                        <span title={new Date((u as any).lastAccessAt).toLocaleString('pt-BR')}>
+                          {new Date((u as any).lastAccessAt).toLocaleString('pt-BR', {
+                            day: '2-digit', month: '2-digit', year: '2-digit',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </span>
+                      ) : (
+                        <span className="opacity-40">Nunca acessou</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">

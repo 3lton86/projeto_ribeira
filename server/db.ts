@@ -469,7 +469,9 @@ export async function getLocalUsers() {
     telefone: localUsers.telefone,
     email: localUsers.email,
     active: localUsers.active,
+    pendingApproval: localUsers.pendingApproval,
     createdAt: localUsers.createdAt,
+    lastAccessAt: localUsers.lastAccessAt,
   }).from(localUsers).orderBy(localUsers.name);
 }
 
@@ -495,7 +497,7 @@ export async function createLocalUser(data: InsertLocalUser) {
 
 export async function updateLocalUser(
   id: number,
-  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; telefone: string | null; email: string | null; active: number }>
+  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; telefone: string | null; email: string | null; active: number; lastAccessAt: number | null }>
 ) {
   const db = await getDb();
   if (!db) return;

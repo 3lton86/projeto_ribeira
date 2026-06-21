@@ -107,6 +107,9 @@ export const localAuthRouter = router({
       if (!valid) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos." });
       }
+      // Gravar timestamp do último acesso (fire-and-forget, não bloqueia o login)
+      updateLocalUser(user.id, { lastAccessAt: Date.now() }).catch(() => {});
+
       const token = await signLocalJwt({ id: user.id, username: user.username, role: user.role });
       const isSecure = ctx.req.protocol === "https" || ctx.req.headers["x-forwarded-proto"] === "https";
       ctx.res.cookie(LOCAL_AUTH_COOKIE, token, {

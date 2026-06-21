@@ -444,3 +444,12 @@
 - [x] Atualizar o scroll-id ao navegar entre itens (destaque ao retornar)
 - [x] Contador de posição (ex: 12 / 244) exibido entre os botões
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 51 — Último Acesso na Tabela de Usuários
+
+- [x] Adicionar campo `lastAccessAt` (bigint, nullable) na tabela `local_users` no schema Drizzle
+- [x] Migrar banco com `pnpm db:push`
+- [x] Atualizar a rota de login para gravar `lastAccessAt = Date.now()` ao autenticar com sucesso
+- [x] Expor `lastAccessAt` no endpoint `users.list` do tRPC
+- [x] Exibir coluna "Último Acesso" na tabela de usuários (data e hora formatadas)
+- [x] 69 testes passando, zero erros TypeScript

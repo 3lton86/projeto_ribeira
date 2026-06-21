@@ -1,4 +1,5 @@
 import {
+  bigint,
   int,
   mysqlEnum,
   mysqlTable,
@@ -108,6 +109,7 @@ export const localUsers = mysqlTable("local_users", {
   pendingApproval: int("pendingApproval").default(0).notNull(), // 1 = aguardando aprovação do admin
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastAccessAt: bigint("lastAccessAt", { mode: "number" }), // Unix ms timestamp do último login
 });
 export type LocalUser = typeof localUsers.$inferSelect;
 export type InsertLocalUser = typeof localUsers.$inferInsert;
