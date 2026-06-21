@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2, Clock, CheckCircle2, XCircle, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useLocation } from "wouter";
 import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS } from "@shared/orgaos";
 
@@ -64,12 +64,43 @@ export default function Users() {
 
   const canManage = isSuperAdmin || isAdmin;
 
+  // Sort state for the users table
+  const [sortField, setSortField] = useState<"name" | "lastAccessAt" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (field: "name" | "lastAccessAt") => {
+    if (sortField === field) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir(field === "lastAccessAt" ? "desc" : "asc");
+    }
+  };
+
   const { data: users = [], isLoading } = trpc.localAuth.users.list.useQuery(undefined, {
     enabled: canManage,
   });
   const { data: pendingUsers = [], isLoading: pendingLoading } = trpc.localAuth.users.listPending.useQuery(undefined, {
     enabled: canManage,
   });
+
+  // Sorted users list
+  const sortedUsers = useMemo(() => {
+    const list = [...(users as any[])];
+    if (!sortField) return list;
+    return list.sort((a, b) => {
+      if (sortField === "lastAccessAt") {
+        const aVal = a.lastAccessAt ?? 0;
+        const bVal = b.lastAccessAt ?? 0;
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
+      if (sortField === "name") {
+        const cmp = (a.name ?? "").localeCompare(b.name ?? "", "pt-BR");
+        return sortDir === "asc" ? cmp : -cmp;
+      }
+      return 0;
+    });
+  }, [users, sortField, sortDir]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<UserRow | null>(null);
@@ -165,18 +196,44 @@ export default function Users() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/50 bg-secondary/30">
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
+                <th
+                  className="text-left px-4 py-3 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                  onClick={() => handleSort("name")}
+                  title="Ordenar por nome"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Nome
+                    {sortField === "name" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />
+                    )}
+                  </span>
+                </th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cargo / Órgão</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Órgãos Permitidos</th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Último Acesso</th>
+                <th
+                  className="text-left px-4 py-3 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                  onClick={() => handleSort("lastAccessAt")}
+                  title="Ordenar por último acesso"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Último Acesso
+                    {sortField === "lastAccessAt" ? (
+                      sortDir === "desc" ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />
+                    )}
+                  </span>
+                </th>
                 <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {(users as UserRow[]).map((u) => {
+              {(sortedUsers as UserRow[]).map((u) => {
                 const roleInfo = ROLE_LABELS[u.role] ?? ROLE_LABELS.viewer;
                 return (
                   <tr key={u.id} className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
