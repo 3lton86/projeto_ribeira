@@ -472,3 +472,14 @@
 - [x] Mensagem clara ao usuário: "Este e-mail já está cadastrado na plataforma"
 - [x] No auto-cadastro: mensagem orienta a fazer login se já possui acesso
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 58 — Relatório PDF de Usuários
+
+- [x] Função `exportUsersToPdf` adicionada ao export.ts (client-side, jsPDF + autoTable)
+- [x] PDF inclui: nome, usuário, cargo, órgão/entidade, perfil, status, data de cadastro, último acesso
+- [x] Cabeçalho com logotipo SEMPLA, título, subtítulo PMI Ribeira Sustentável, data de geração e total de usuários
+- [x] Resumo de totalizadores: ativos, inativos, contagem por perfil
+- [x] Cores semânticas: perfil (azul/teal/cinza), status (verde/vermelho), "Nunca acessou" em itálico cinza
+- [x] Rodapé com número de página em todas as páginas
+- [x] Botão "Exportar PDF" adicionado no cabeçalho da aba de usuários ao lado de "Novo Usuário"
+- [x] 69 testes passando, zero erros TypeScript

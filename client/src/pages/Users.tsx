@@ -32,7 +32,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2, Clock, CheckCircle2, XCircle, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCheck, UserX, ShieldCheck, Eye, Shield, Building2, Clock, CheckCircle2, XCircle, ChevronsUpDown, ArrowUp, ArrowDown, FileDown } from "lucide-react";
+import { exportUsersToPdf } from "@/lib/export";
 import { useLocation } from "wouter";
 import { ORGAOS_MUNICIPAIS, EMPRESAS_PARCEIRAS } from "@shared/orgaos";
 
@@ -176,10 +177,32 @@ export default function Users() {
             Cadastre e gerencie os usuários com acesso ao sistema.
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Usuário
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              const exportData = (sortedUsers as any[]).map((u: any) => ({
+                name: u.name ?? "",
+                username: u.username ?? "",
+                position: u.position ?? null,
+                organization: u.organization ?? null,
+                role: u.role ?? "viewer",
+                isActive: !!u.active,
+                lastAccessAt: u.lastAccessAt ?? null,
+                createdAt: u.createdAt ?? null,
+              }));
+              exportUsersToPdf(exportData);
+            }}
+          >
+            <FileDown className="w-4 h-4" />
+            Exportar PDF
+          </Button>
+          <Button onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Usuário
+          </Button>
+        </div>
       </div>
 
       {/* Legend */}

@@ -637,3 +637,170 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
 
   doc.save(`ribeira-acoes-${now.toISOString().slice(0, 10)}.pdf`);
 }
+
+// ---- Users PDF Export ----
+
+export type UserExportRow = {
+  name: string;
+  username: string;
+  position: string | null;
+  organization: string | null;
+  role: string;
+  isActive: boolean;
+  lastAccessAt: number | null;
+  createdAt: Date | null;
+};
+
+const ROLE_LABEL_MAP: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin: "Administrador",
+  setorial: "Setorial",
+  viewer: "Visualizador",
+};
+
+export function exportUsersToPdf(users: UserExportRow[]) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = 297;
+  const pageH = 210;
+  const margin = 14;
+  const now = new Date();
+
+  // ---- Header ----
+  doc.setFillColor(...C.headerBg);
+  doc.rect(0, 0, pageW, 34, "F");
+  doc.setFillColor(...C.teal);
+  doc.rect(0, 34, pageW, 2, "F");
+
+  try {
+    doc.addImage(SEMPLA_LOGO_B64, "PNG", pageW - margin - 56, 7, 50, 13.3);
+  } catch (_) {
+    doc.setFontSize(7); doc.setTextColor(...C.tealLight); doc.text("SEMPLA", pageW - margin - 20, 14);
+  }
+
+  doc.setFontSize(13); doc.setTextColor(...C.white); doc.setFont("helvetica", "bold");
+  doc.text("PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs", margin, 11);
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.tealLight);
+  doc.text("PMI Ribeira Sustentável — Relatório de Usuários", margin, 19);
+  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.lightGray);
+  doc.text(
+    `Gerado em ${formatDateTime(now)}  ·  ${users.length} usuário(s)`,
+    margin, 27
+  );
+
+  // ---- Summary boxes ----
+  const active = users.filter(u => u.isActive).length;
+  const inactive = users.filter(u => !u.isActive).length;
+  const byRole = Object.entries(ROLE_LABEL_MAP)
+    .filter(([k]) => k !== "super_admin")
+    .map(([k, label]) => `${label}: ${users.filter(u => u.role === k).length}`)
+    .join("   |   ");
+
+  let startY = 42;
+  doc.setFontSize(7); doc.setTextColor(...C.gray);
+  doc.text(`Ativos: ${active}   Inativos: ${inactive}   |   ${byRole}`, margin, startY);
+  startY += 7;
+
+  // ---- Table ----
+  const formatLastAccess = (ts: number | null) => {
+    if (!ts) return "Nunca acessou";
+    return new Date(ts).toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+    });
+  };
+
+  const formatCreatedAt = (d: Date | null) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("pt-BR");
+  };
+
+  autoTable(doc, {
+    startY,
+    margin: { left: margin, right: margin },
+    head: [["Nome", "Usuário", "Cargo", "Órgão / Entidade", "Perfil", "Status", "Cadastro", "Último Acesso"]],
+    body: users.map(u => [
+      u.name,
+      u.username,
+      u.position ?? "—",
+      u.organization ?? "—",
+      ROLE_LABEL_MAP[u.role] ?? u.role,
+      u.isActive ? "Ativo" : "Inativo",
+      formatCreatedAt(u.createdAt),
+      formatLastAccess(u.lastAccessAt),
+    ]),
+    styles: {
+      fontSize: 7,
+      cellPadding: { top: 2.5, right: 3, bottom: 2.5, left: 3 },
+      textColor: C.black,
+      lineColor: C.lightGray,
+      lineWidth: 0.15,
+      overflow: "linebreak",
+      minCellHeight: 7,
+    },
+    headStyles: {
+      fillColor: C.headerBg,
+      textColor: C.white,
+      fontStyle: "bold",
+      fontSize: 7.5,
+      cellPadding: 3,
+    },
+    alternateRowStyles: { fillColor: C.rowAlt },
+    columnStyles: {
+      0: { cellWidth: 42 },           // Nome
+      1: { cellWidth: 30 },           // Usuário
+      2: { cellWidth: 34 },           // Cargo
+      3: { cellWidth: 34 },           // Órgão
+      4: { cellWidth: 24, halign: "center" }, // Perfil
+      5: { cellWidth: 16, halign: "center" }, // Status
+      6: { cellWidth: 20, halign: "center" }, // Cadastro
+      7: { cellWidth: 42, halign: "center" }, // Último Acesso
+    },
+    willDrawCell: (data: any) => {
+      // Color role column
+      if (data.column.index === 4 && data.section === "body") {
+        const role = String(data.cell.raw ?? "");
+        const roleColors: Record<string, [number, number, number]> = {
+          "Administrador": [30, 77, 140],
+          "Setorial": [0, 120, 100],
+          "Visualizador": [100, 100, 100],
+          "Super Admin": [140, 20, 20],
+        };
+        if (roleColors[role]) {
+          data.cell.styles.textColor = roleColors[role];
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+      // Color status column
+      if (data.column.index === 5 && data.section === "body") {
+        const status = String(data.cell.raw ?? "");
+        if (status === "Ativo") {
+          data.cell.styles.textColor = C.green;
+          data.cell.styles.fontStyle = "bold";
+        } else if (status === "Inativo") {
+          data.cell.styles.textColor = C.red;
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+      // Highlight "Nunca acessou" in last access column
+      if (data.column.index === 7 && data.section === "body") {
+        const val = String(data.cell.raw ?? "");
+        if (val === "Nunca acessou") {
+          data.cell.styles.textColor = C.gray;
+          data.cell.styles.fontStyle = "italic";
+        }
+      }
+    },
+    didDrawPage: (data: any) => {
+      const pg = data.pageNumber;
+      doc.setFontSize(6.5); doc.setTextColor(...C.gray);
+      doc.text(
+        `PMI Ribeira Sustentável — Relatório de Usuários — ${formatDateTime(now)} — Pág. ${pg}`,
+        margin, pageH - 6
+      );
+      doc.setDrawColor(...C.lightGray);
+      doc.line(margin, pageH - 9, pageW - margin, pageH - 9);
+    },
+  });
+
+  doc.save(`ribeira-usuarios-${now.toISOString().slice(0, 10)}.pdf`);
+}
