@@ -249,6 +249,7 @@ export const localAuthRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const callerRole = (ctx as any).localUser.role;
+        console.log("[users.update] callerRole:", callerRole, "input.role:", input.role, "input.id:", input.id);
         // Only super_admin can promote/demote to admin
         if (input.role === "admin" && callerRole !== "super_admin") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o super-administrador pode promover a administrador." });
@@ -257,10 +258,15 @@ export const localAuthRouter = router({
         const data: Record<string, unknown> = { ...rest };
         if (password) data.passwordHash = await bcrypt.hash(password, 12);
         if (rest.username) data.username = rest.username.toLowerCase();
-        await updateLocalUser(id, data as any);
-        // Update orgãos if provided (for setorial users)
-        if (allowedOrgaos !== undefined) {
-          await upsertUserOrgaos(id, allowedOrgaos);
+        try {
+          await updateLocalUser(id, data as any);
+          // Update orgãos if provided (for setorial users)
+          if (allowedOrgaos !== undefined) {
+            await upsertUserOrgaos(id, allowedOrgaos);
+          }
+        } catch (err) {
+          console.error("[users.update] DB error:", err);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao atualizar usuário: " + (err instanceof Error ? err.message : String(err)) });
         }
         return { success: true };
       }),

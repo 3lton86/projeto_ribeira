@@ -121,7 +121,14 @@ export default function Users() {
       setEditUser(null);
       toast.success("Usuário atualizado!");
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      // Catch parse errors (e.g., server returned HTML instead of JSON)
+      if (e.message.includes("is not valid JSON") || e.message.includes("Unexpected token")) {
+        toast.error("Erro de comunicação com o servidor. Tente novamente ou recarregue a página.");
+      } else {
+        toast.error(e.message);
+      }
+    },
   });
 
   const approveMutation = trpc.localAuth.users.approve.useMutation({

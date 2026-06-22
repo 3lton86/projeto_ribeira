@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cookieParser from "cookie-parser";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -34,6 +35,8 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Parse cookies so req.cookies is available for local auth (httpOnly cookie)
+  app.use(cookieParser());
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
@@ -44,6 +47,12 @@ async function startServer() {
       createContext,
     })
   );
+  // JSON error handler for /api/* routes — prevents Express from returning HTML for 500 errors
+  app.use("/api", (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("[API Error]", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  });
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

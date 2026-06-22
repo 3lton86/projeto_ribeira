@@ -453,3 +453,12 @@
 - [x] Expor `lastAccessAt` no endpoint `users.list` do tRPC
 - [x] Exibir coluna "Último Acesso" na tabela de usuários (data e hora formatadas)
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 54 — Correção do Erro "is not valid JSON" ao Atualizar Usuário
+
+- [x] Diagnóstico: Express 4.x não popula req.cookies sem cookie-parser — confirmado com teste real
+- [x] Instalar cookie-parser e @types/cookie-parser
+- [x] Registrar app.use(cookieParser()) antes do tRPC no index.ts
+- [x] Adicionar error handler JSON global para /api/* no Express (evita HTML em erros 500)
+- [x] Melhorar mensagem de erro no onError do updateMutation (mensagem amigável para parse errors)
+- [x] 69 testes passando, zero erros TypeScript
