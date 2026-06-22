@@ -236,7 +236,14 @@ export default function Users() {
               {(sortedUsers as UserRow[]).map((u) => {
                 const roleInfo = ROLE_LABELS[u.role] ?? ROLE_LABELS.viewer;
                 return (
-                  <tr key={u.id} className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
+                  <tr
+                    key={u.id}
+                    className={`border-b border-border/30 transition-colors ${
+                      u.role !== "super_admin" ? "cursor-pointer hover:bg-primary/5" : "hover:bg-secondary/20"
+                    }`}
+                    onClick={() => u.role !== "super_admin" && setEditUser(u)}
+                    title={u.role !== "super_admin" ? "Clique para editar" : undefined}
+                  >
                     <td className="px-4 py-3 font-medium text-foreground">{u.name}</td>
                     <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{u.username}</td>
                     <td className="px-4 py-3 text-muted-foreground">
@@ -297,7 +304,7 @@ export default function Users() {
                       {u.role !== "super_admin" && (
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => setEditUser(u)}
+                            onClick={(e) => { e.stopPropagation(); setEditUser(u); }}
                             className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                             title="Editar"
                           >
@@ -305,7 +312,7 @@ export default function Users() {
                           </button>
                           {u.id !== localUser?.id && (
                             <button
-                              onClick={() => setDeleteUser(u)}
+                              onClick={(e) => { e.stopPropagation(); setDeleteUser(u); }}
                               className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"
                               title="Excluir"
                             >
