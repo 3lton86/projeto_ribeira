@@ -576,12 +576,30 @@ function UserFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Órgão de lotação</Label>
-              <Input
-                value={form.organization}
-                onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
-                placeholder="Ex: SEMURB"
-              />
+              <Label>Órgão / Entidade de lotação</Label>
+              <Select
+                value={form.organization || "__none__"}
+                onValueChange={(v) => setForm((f) => ({ ...f, organization: v === "__none__" ? "" : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o órgão ou entidade" />
+                </SelectTrigger>
+                <SelectContent portalled={false} className="z-[200]">
+                  <SelectItem value="__none__"><span className="text-muted-foreground">— Nenhum —</span></SelectItem>
+                  <div className="px-2 pt-2 pb-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Órgãos Municipais</p>
+                  </div>
+                  {ORGAOS_MUNICIPAIS.map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                  <div className="px-2 pt-3 pb-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Empresas Parceiras do PMI</p>
+                  </div>
+                  {EMPRESAS_PARCEIRAS.map((e) => (
+                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
