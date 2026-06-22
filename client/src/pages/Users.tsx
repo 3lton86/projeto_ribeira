@@ -200,11 +200,12 @@ export default function Users() {
             Nenhum usuário cadastrado além do super-admin.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[900px]">
             <thead>
               <tr className="border-b border-border/50 bg-secondary/30">
                 <th
-                  className="text-left px-4 py-3 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                  className="text-left px-4 py-3 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors min-w-[140px]"
                   onClick={() => handleSort("name")}
                   title="Ordenar por nome"
                 >
@@ -217,13 +218,13 @@ export default function Users() {
                     )}
                   </span>
                 </th>
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cargo / Órgão</th>
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Órgãos Permitidos</th>
-                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground min-w-[110px]">Usuário</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground min-w-[120px]">Cargo / Órgão</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground min-w-[110px]">Perfil</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground min-w-[140px]">Órgãos Permitidos</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground min-w-[70px]">Status</th>
                 <th
-                  className="text-left px-4 py-3 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                  className="text-left px-4 py-3 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors min-w-[140px] whitespace-nowrap"
                   onClick={() => handleSort("lastAccessAt")}
                   title="Ordenar por último acesso"
                 >
@@ -236,7 +237,7 @@ export default function Users() {
                     )}
                   </span>
                 </th>
-                <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Ações</th>
+                <th className="text-right px-4 py-3 font-semibold text-muted-foreground min-w-[80px]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -333,7 +334,8 @@ export default function Users() {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </div>
 
