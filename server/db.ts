@@ -489,6 +489,13 @@ export async function getLocalUserByUsername(username: string) {
   return result[0] ?? null;
 }
 
+export async function getLocalUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(localUsers).where(eq(localUsers.email, email)).limit(1);
+  return result[0] ?? null;
+}
+
 export async function createLocalUser(data: InsertLocalUser) {
   const db = await getDb();
   if (!db) return;

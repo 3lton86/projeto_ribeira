@@ -462,3 +462,13 @@
 - [x] Adicionar error handler JSON global para /api/* no Express (evita HTML em erros 500)
 - [x] Melhorar mensagem de erro no onError do updateMutation (mensagem amigável para parse errors)
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 55 — Unicidade de E-mail no Cadastro de Usuários
+
+- [x] Adicionar função getLocalUserByEmail no db.ts
+- [x] Validação de e-mail único no procedimento create (admin cria usuário)
+- [x] Validação de e-mail único no procedimento update (admin edita usuário, excluindo o próprio)
+- [x] Validação de e-mail único no procedimento register (auto-cadastro público)
+- [x] Mensagem clara ao usuário: "Este e-mail já está cadastrado na plataforma"
+- [x] No auto-cadastro: mensagem orienta a fazer login se já possui acesso
+- [x] 69 testes passando, zero erros TypeScript

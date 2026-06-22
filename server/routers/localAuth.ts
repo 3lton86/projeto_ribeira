@@ -9,6 +9,7 @@ import {
   getAdminAndSuperAdminIds,
   getLocalUserById,
   getLocalUserByUsername,
+  getLocalUserByEmail,
   getLocalUsers,
   getPendingUsers,
   approveUser,
@@ -211,6 +212,10 @@ export const localAuthRouter = router({
         }
         const existing = await getLocalUserByUsername(input.username.toLowerCase());
         if (existing) throw new TRPCError({ code: "CONFLICT", message: "Nome de usuário já existe." });
+        if (input.email) {
+          const emailExists = await getLocalUserByEmail(input.email.toLowerCase().trim());
+          if (emailExists) throw new TRPCError({ code: "CONFLICT", message: "Este e-mail já está cadastrado na plataforma." });
+        }
         const passwordHash = await bcrypt.hash(input.password, 12);
         await createLocalUser({
           name: input.name,
@@ -253,6 +258,13 @@ export const localAuthRouter = router({
         // Only super_admin can promote/demote to admin
         if (input.role === "admin" && callerRole !== "super_admin") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o super-administrador pode promover a administrador." });
+        }
+        // Check email uniqueness (excluding current user)
+        if (input.email) {
+          const emailExists = await getLocalUserByEmail(input.email.toLowerCase().trim());
+          if (emailExists && emailExists.id !== input.id) {
+            throw new TRPCError({ code: "CONFLICT", message: "Este e-mail já está cadastrado por outro usuário." });
+          }
         }
         const { id, password, allowedOrgaos, ...rest } = input;
         const data: Record<string, unknown> = { ...rest };
@@ -348,6 +360,10 @@ export const localAuthRouter = router({
     .mutation(async ({ input }) => {
       const existing = await getLocalUserByUsername(input.username.toLowerCase());
       if (existing) throw new TRPCError({ code: "CONFLICT", message: "Nome de usuário já existe." });
+      if (input.email) {
+        const emailExists = await getLocalUserByEmail(input.email.toLowerCase().trim());
+        if (emailExists) throw new TRPCError({ code: "CONFLICT", message: "Este e-mail já está cadastrado na plataforma. Se já possui acesso, faça login normalmente." });
+      }
       const passwordHash = await bcrypt.hash(input.password, 12);
       await createLocalUser({
         name: input.name,
