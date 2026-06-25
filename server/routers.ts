@@ -547,6 +547,15 @@ export const appRouter = router({
           userId: Math.abs(userId),
           content: input.content,
         });
+
+        // Auto-update status to "Em Andamento" if not already Concluído or Cancelado
+        try {
+          const actionForStatus = await getActionById(input.actionId);
+          if (actionForStatus && actionForStatus.status !== "Concluído" && actionForStatus.status !== "Cancelado") {
+            await updateAction(input.actionId, { status: "Em Andamento" });
+          }
+        } catch (_) {}
+
         // Audit log
         if (localUser) {
           await createAuditLog({

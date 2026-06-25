@@ -11,6 +11,7 @@ import {
   getDocumentsByActionId,
   getSetorialUserIdsForOrgao,
   setorialUserHasAccessToAction,
+  updateAction,
   updateDocumentStatus,
 } from "../db";
 import { localAdminProcedure, localAuthProcedure } from "./localAuth";
@@ -58,6 +59,14 @@ export const documentsRouter = router({
         uploadedBy: localUser.id,
         uploaderName: localUser.name,
       });
+
+      // Auto-update status to "Em Andamento" if not already Concluído or Cancelado
+      try {
+        const actionForStatus = await getActionById(input.actionId);
+        if (actionForStatus && actionForStatus.status !== "Concluído" && actionForStatus.status !== "Cancelado") {
+          await updateAction(input.actionId, { status: "Em Andamento" });
+        }
+      } catch (_) {}
 
       // Audit log
       await createAuditLog({
@@ -112,6 +121,19 @@ export const documentsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const localUser = (ctx as any).localUser;
       await updateDocumentStatus(input.id, input.docStatus, localUser.name);
+
+      // Auto-update action status to "Em Andamento" when doc receives "DOC COM PENDÊNCIA"
+      if (input.docStatus === "pending") {
+        try {
+          const docForStatus = await getDocumentById(input.id);
+          if (docForStatus) {
+            const actionForStatus = await getActionById(docForStatus.actionId);
+            if (actionForStatus && actionForStatus.status !== "Concluído" && actionForStatus.status !== "Cancelado") {
+              await updateAction(docForStatus.actionId, { status: "Em Andamento" });
+            }
+          }
+        } catch (_) {}
+      }
 
       // Disparar notificação ao setorial quando doc recebe pendência
       if (input.docStatus === "pending") {

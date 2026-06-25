@@ -483,3 +483,11 @@
 - [x] Rodapé com número de página em todas as páginas
 - [x] Botão "Exportar PDF" adicionado no cabeçalho da aba de usuários ao lado de "Novo Usuário"
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 59 — Status Automático "Em Andamento"
+
+- [x] Ao inserir novo comentário: atualizar status da ação para "Em Andamento" (se não for "Concluído" nem "Cancelado")
+- [x] Ao incluir documento (link): atualizar status da ação para "Em Andamento" (se não for "Concluído" nem "Cancelado")
+- [x] Ao alterar status do documento para "DOC COM PENDÊNCIA": atualizar status da ação para "Em Andamento"
+- [x] Não sobrescreve status "Concluído" nem "Cancelado"
+- [x] 69 testes passando, zero erros TypeScript
