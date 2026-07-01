@@ -394,7 +394,7 @@ export async function createComment(data: { actionId: number; userId: number; co
 export async function getHistoryByActionId(actionId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
+  const rows = await db
     .select({
       id: history.id,
       actionId: history.actionId,
@@ -404,11 +404,26 @@ export async function getHistoryByActionId(actionId: number) {
       createdAt: history.createdAt,
       userId: history.userId,
       userName: users.name,
+      localUserName: localUsers.name,
+      localUserOrganization: localUsers.organization,
     })
     .from(history)
     .leftJoin(users, eq(history.userId, users.id))
+    .leftJoin(localUsers, eq(history.userId, localUsers.id))
     .where(eq(history.actionId, actionId))
     .orderBy(desc(history.createdAt));
+  // Resolve name and organization: prefer localUser (most users are local), fallback to OAuth user
+  return rows.map(r => ({
+    id: r.id,
+    actionId: r.actionId,
+    fieldChanged: r.fieldChanged,
+    oldValue: r.oldValue,
+    newValue: r.newValue,
+    createdAt: r.createdAt,
+    userId: r.userId,
+    userName: r.localUserName ?? r.userName ?? null,
+    userOrganization: r.localUserOrganization ?? null,
+  }));
 }
 
 export async function createHistory(data: {

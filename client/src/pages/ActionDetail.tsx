@@ -894,6 +894,11 @@ export default function ActionDetail() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-semibold text-foreground">{h.userName ?? "Usuário"}</span>
+                        {(h as any).userOrganization && (
+                          <span className="text-xs text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">
+                            {(h as any).userOrganization}
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground">alterou</span>
                         <span className="text-xs font-medium" style={{ color: "oklch(0.72 0.18 185)" }}>
                           {h.fieldChanged}
