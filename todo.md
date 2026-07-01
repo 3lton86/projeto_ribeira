@@ -498,3 +498,19 @@
 - [x] addActionOrgao: bloquear inserção de órgão duplicado no mesmo item (backend)
 - [x] ActionDetail: impedir seleção de órgão já existente no item (frontend)
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 61 — Unificação de Órgãos (Opção A)
+
+- [x] Migração de dados: mover os 10 registros com orgao legado para action_orgaos (sem duplicar os que já existem)
+- [x] Migração de dados: remover duplicatas em action_orgaos
+- [x] Backend: remover campo orgao do editInline procedure
+- [x] Backend: remover campo orgao do create procedure
+- [x] Backend: remover campo orgao do update (actions.update) procedure
+- [x] Backend: atualizar getActionsForSetorial para usar apenas action_orgaos
+- [x] Backend: atualizar notificações para buscar orgao de action_orgaos
+- [x] Frontend: badge da lista exibe orgaoNames de action_orgaos (até 2 + contador)
+- [x] Frontend: remover campo Órgão do EditInlineModal
+- [x] Frontend: remover campo Órgão do CreateSubItemModal
+- [x] Frontend: remover campo Órgão do formulário de nova ação
+- [x] Frontend: getExportData usa action_orgaos como fonte única (orgaoNames + compat escalar)
+- [x] 69 testes passando, zero erros TypeScript

@@ -6,6 +6,7 @@ import {
   createNotificationsForAdmins,
   deleteActionDocument,
   getActionById,
+  getActionOrgaos,
   getAdminAndSuperAdminIds,
   getDocumentById,
   getDocumentsByActionId,
@@ -79,11 +80,16 @@ export const documentsRouter = router({
         detail: `Documento incluído: "${input.label}" — ${input.url.slice(0, 100)}`,
       });
 
-      // Disparar alertas: admins + setoriais do órgão
+      // Disparar alertas: admins + setoriais de todos os órgãos do item
       try {
         const action = await getActionById(input.actionId);
         const adminIds = await getAdminAndSuperAdminIds();
-        const setorialIds = action?.orgao ? await getSetorialUserIdsForOrgao(action.orgao) : [];
+        const itemOrgaos = await getActionOrgaos(input.actionId);
+        const setorialIds: number[] = [];
+        for (const o of itemOrgaos) {
+          const ids = await getSetorialUserIdsForOrgao(o.orgao);
+          setorialIds.push(...ids);
+        }
         const combined = [...adminIds, ...setorialIds];
         const allIds = combined.filter((v, i, a) => a.indexOf(v) === i);
         const recipientIds = allIds.filter(id => id !== localUser.id);
@@ -91,10 +97,10 @@ export const documentsRouter = router({
           await createNotificationsForAdmins({
             type: "comment_doc",
             title: `Novo documento incluído`,
-            body: `${localUser.name} incluiu o documento "${input.label}" no item ${action?.itemCode ?? ""}`,
+            body: `${localUser.name} incluíu o documento "${input.label}" no item ${action?.itemCode ?? ""}`,
             actionId: input.actionId,
             actionCode: action?.itemCode ?? null,
-            orgao: action?.orgao ?? null,
+            orgao: null,
           }, recipientIds);
         }
       } catch (_) {}
@@ -141,9 +147,14 @@ export const documentsRouter = router({
           const doc = await getDocumentById(input.id);
           if (doc) {
             const action = await getActionById(doc.actionId);
-            if (action?.orgao) {
-              const setorialIds = await getSetorialUserIdsForOrgao(action.orgao);
-              const recipientIds = setorialIds.filter(id => id !== localUser.id);
+            if (action) {
+              const itemOrgaos = await getActionOrgaos(doc.actionId);
+              const setorialIds: number[] = [];
+              for (const o of itemOrgaos) {
+                const ids = await getSetorialUserIdsForOrgao(o.orgao);
+                setorialIds.push(...ids);
+              }
+              const recipientIds = setorialIds.filter((v, i, a) => a.indexOf(v) === i).filter(id => id !== localUser.id);
               if (recipientIds.length > 0) {
                 await createNotificationsForAdmins({
                   type: "comment_doc",
@@ -151,7 +162,7 @@ export const documentsRouter = router({
                   body: `O documento "${doc.label}" no item ${action.itemCode} foi marcado com pendência pelo administrador ${localUser.name}. Por favor, revise e reenvie.`,
                   actionId: action.id,
                   actionCode: action.itemCode ?? null,
-                  orgao: action.orgao ?? null,
+                  orgao: null,
                 }, recipientIds);
               }
             }

@@ -180,7 +180,6 @@ export const appRouter = router({
           requestDate: z.date().optional(),
           receiptDate: z.date().optional(),
           documentBase: z.string().optional(),
-          orgao: z.enum([...TODOS_ORGAOS, ""]).optional(),
           responsavelNome: z.string().optional(),
           responsavelCargo: z.string().optional(),
           responsavelTel: z.string().optional(),
@@ -197,7 +196,6 @@ export const appRouter = router({
           requestDate: input.requestDate,
           receiptDate: input.receiptDate,
           documentBase: input.documentBase,
-          orgao: input.orgao,
           responsavelNome: input.responsavelNome,
           responsavelCargo: input.responsavelCargo,
           responsavelTel: input.responsavelTel,
@@ -214,7 +212,7 @@ export const appRouter = router({
             body: `${actorName} criou o item: "${input.description.slice(0, 120)}"`,
             actionId: newId,
             actionCode: null,
-            orgao: input.orgao ?? null,
+            orgao: null,
           }, adminIds);
         } catch (_) {}
         return { success: true, id: newId };
@@ -302,7 +300,6 @@ export const appRouter = router({
           status: statusEnum.optional(),
           priority: priorityEnum.optional(),
           dueDate: z.date().nullable().optional(),
-          orgao: z.enum([...TODOS_ORGAOS, ""]).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -319,7 +316,6 @@ export const appRouter = router({
           status: "Status",
           priority: "Prioridade",
           dueDate: "Prazo Previsto",
-          orgao: "Órgão Responsável",
         };
 
         const allFields: Record<string, any> = { ...fields };
@@ -358,7 +354,7 @@ export const appRouter = router({
             body: `${actorName} atualizou o item ${current.itemCode}: "${current.description?.slice(0, 80)}"`,
             actionId: id,
             actionCode: current.itemCode,
-            orgao: current.orgao ?? null,
+            orgao: null,
           }, adminIds);
         } catch (_) {}
         return { success: true };
@@ -400,7 +396,7 @@ export const appRouter = router({
             body: `${actorName} renomeou o grupo para: "${input.description.slice(0, 100)}"`,
             actionId: input.id,
             actionCode: existing.itemCode,
-            orgao: existing.orgao ?? null,
+            orgao: null,
           }, adminIds);
         } catch (_) {}
         return { success: true };
@@ -442,11 +438,6 @@ export const appRouter = router({
           priority: priorityEnum.optional(),
           status: statusEnum.optional(),
           dueDate: z.date().optional().nullable(),
-          orgao: z.string().optional(),
-          responsavelNome: z.string().optional(),
-          responsavelCargo: z.string().optional(),
-          responsavelTel: z.string().optional(),
-          responsavelEmail: z.string().email().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -458,11 +449,6 @@ export const appRouter = router({
           priority: input.priority,
           status: input.status,
           dueDate: input.dueDate,
-          orgao: input.orgao,
-          responsavelNome: input.responsavelNome,
-          responsavelCargo: input.responsavelCargo,
-          responsavelTel: input.responsavelTel,
-          responsavelEmail: input.responsavelEmail,
         });
 
         const localUser = (ctx as any).localUser;
@@ -485,7 +471,7 @@ export const appRouter = router({
             body: `${actorName} criou um sub-item de "${input.parentCode}": "${input.description.slice(0, 80)}"`,
             actionId: newId,
             actionCode: input.parentCode,
-            orgao: input.orgao ?? null,
+            orgao: null,
           }, adminIds);
         } catch (_) {}
         return { success: true, id: newId };
@@ -573,7 +559,13 @@ export const appRouter = router({
           const action = await getActionById(input.actionId);
           const actorName = localUser?.name ?? ctx.user?.name ?? 'Usuário';
           const adminIds = await getAdminAndSuperAdminIds();
-          const setorialIds = action?.orgao ? await getSetorialUserIdsForOrgao(action.orgao) : [];
+          // Buscar setoriais de todos os órgãos do item (via action_orgaos)
+          const itemOrgaos = await getActionOrgaos(input.actionId);
+          const setorialIds: number[] = [];
+          for (const o of itemOrgaos) {
+            const ids = await getSetorialUserIdsForOrgao(o.orgao);
+            setorialIds.push(...ids);
+          }
           const combined = [...adminIds, ...setorialIds];
           const allIds = combined.filter((v, i, a) => a.indexOf(v) === i);
           const actorId = localUser?.id ?? -1;
@@ -585,7 +577,7 @@ export const appRouter = router({
               body: `${actorName} comentou no item ${action?.itemCode ?? ''}: "${input.content.slice(0, 100)}"`,
               actionId: input.actionId,
               actionCode: action?.itemCode ?? null,
-              orgao: action?.orgao ?? null,
+              orgao: null,
             }, recipientIds);
           }
         } catch (_) {}

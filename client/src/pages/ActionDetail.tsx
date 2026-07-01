@@ -186,11 +186,9 @@ export default function ActionDetail() {
   const { data: localUsersData } = trpc.localAuth.users.list.useQuery(undefined, { enabled: canEdit });
 
   // For setorial users: check if they can interact with this action.
-  // Considers BOTH the legacy scalar orgao field AND all co-responsible orgãos (action_orgaos).
-  const actionOrgao = (action as any)?.orgao ?? null;
+  // Uses action_orgaos as the single source of truth (legacy scalar orgao was migrated).
   const coOrgaoNames = (actionOrgaos ?? []).map(o => o.orgao);
-  const allOrgaos = actionOrgao ? [actionOrgao, ...coOrgaoNames] : coOrgaoNames;
-  const canInteract = canEdit || (isSetorial && canInteractWithAnyOrgao(allOrgaos));
+  const canInteract = canEdit || (isSetorial && canInteractWithAnyOrgao(coOrgaoNames));
 
   // Alerta visual: item atrasado ou com documentos pendentes
   const isOverdue = useMemo(() => {
@@ -242,11 +240,6 @@ export default function ActionDetail() {
     receiptDate: string;
     documentBase: string;
     observacoes: string;
-    orgao: string;
-    responsavelNome: string;
-    responsavelCargo: string;
-    responsavelTel: string;
-    responsavelEmail: string;
   } | null>(null);
   const [newComment, setNewComment] = useState("");
   const [activeTab, setActiveTab] = useState<"comments" | "history" | "documents" | "contacts" | "auditoria">("comments");
@@ -370,11 +363,6 @@ export default function ActionDetail() {
       receiptDate: formatDate(action.receiptDate),
       documentBase: action.documentBase ?? "",
       observacoes: (action as any).observacoes ?? "",
-      orgao: (action as any).orgao ?? "",
-      responsavelNome: (action as any).responsavelNome ?? "",
-      responsavelCargo: (action as any).responsavelCargo ?? "",
-      responsavelTel: (action as any).responsavelTel ?? "",
-      responsavelEmail: (action as any).responsavelEmail ?? "",
     });
     setEditMode(true);
   };
@@ -385,16 +373,11 @@ export default function ActionDetail() {
       id,
       status: form.status,
       priority: form.priority || undefined,
-        dueDate: form.dueDate ? new Date(form.dueDate) : null,
+      dueDate: form.dueDate ? new Date(form.dueDate) : null,
       requestDate: form.requestDate ? new Date(form.requestDate) : undefined,
       receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
       documentBase: form.documentBase || undefined,
       observacoes: form.observacoes || undefined,
-      orgao: (form.orgao || undefined) as any,
-      responsavelNome: form.responsavelNome || undefined,
-      responsavelCargo: form.responsavelCargo || undefined,
-      responsavelTel: form.responsavelTel || undefined,
-      responsavelEmail: form.responsavelEmail || undefined,
     });
   };
 

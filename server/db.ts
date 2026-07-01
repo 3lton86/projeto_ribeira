@@ -85,7 +85,17 @@ export async function getActions(filters?: {
   const query = conditions.length > 0
     ? db.select().from(actions).where(and(...conditions)).orderBy(actions.area, actions.sortOrder)
     : db.select().from(actions).orderBy(actions.area, actions.sortOrder);
-  return query;
+  const rows = await query;
+  // Enriquecer com orgaoNames via action_orgaos
+  const allOrgaos = await db
+    .select({ actionId: actionOrgaos.actionId, orgao: actionOrgaos.orgao })
+    .from(actionOrgaos);
+  const orgaoMap: Record<number, string[]> = {};
+  for (const o of allOrgaos) {
+    if (!orgaoMap[o.actionId]) orgaoMap[o.actionId] = [];
+    orgaoMap[o.actionId].push(o.orgao);
+  }
+  return rows.map(r => ({ ...r, orgaoNames: orgaoMap[r.id] ?? [] }));
 }
 
 /**
@@ -144,7 +154,25 @@ export async function getActionsForSetorial(
 
   // Combinar grupos visíveis + itens visíveis, mantendo a ordem original
   const visibleIds = new Set([...visibleGroups.map((g) => g.id), ...visibleItems.map((i) => i.id)]);
-  return all.filter((a) => visibleIds.has(a.id));
+  const result = all.filter((a) => visibleIds.has(a.id));
+  // Enriquecer com orgaoNames
+  const orgaoMap2: Record<number, string[]> = {};
+  for (const o of coOrgaoRows) {
+    // coOrgaoRows só tem actionId; precisamos de todos os orgãos do item
+  }
+  // Buscar todos os orgaos dos itens visíveis
+  const visibleItemIds = visibleItems.map(i => i.id);
+  const visibleOrgaos = visibleItemIds.length > 0
+    ? await db
+        .select({ actionId: actionOrgaos.actionId, orgao: actionOrgaos.orgao })
+        .from(actionOrgaos)
+        .where(inArray(actionOrgaos.actionId, visibleItemIds))
+    : [];
+  for (const o of visibleOrgaos) {
+    if (!orgaoMap2[o.actionId]) orgaoMap2[o.actionId] = [];
+    orgaoMap2[o.actionId].push(o.orgao);
+  }
+  return result.map(r => ({ ...r, orgaoNames: orgaoMap2[r.id] ?? [] }));
 }
 
 export async function getActionById(id: number) {
@@ -182,7 +210,6 @@ export async function createAction(data: {
   requestDate?: Date;
   receiptDate?: Date;
   documentBase?: string;
-  orgao?: string;
   responsavelNome?: string;
   responsavelCargo?: string;
   responsavelTel?: string;
@@ -210,7 +237,6 @@ export async function createAction(data: {
     requestDate: data.requestDate,
     receiptDate: data.receiptDate,
     documentBase: data.documentBase,
-    orgao: data.orgao,
     responsavelNome: data.responsavelNome,
     responsavelCargo: data.responsavelCargo,
     responsavelTel: data.responsavelTel,
@@ -230,7 +256,6 @@ export async function updateAction(
     receiptDate: Date;
     documentBase: string;
     observacoes: string;
-    orgao: string;
     responsavelNome: string;
     responsavelCargo: string;
     responsavelTel: string;
@@ -284,11 +309,6 @@ export async function createSubItem(data: {
   priority?: "Alta" | "Média" | "Baixa";
   status?: "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
   dueDate?: Date | null;
-  orgao?: string;
-  responsavelNome?: string;
-  responsavelCargo?: string;
-  responsavelTel?: string;
-  responsavelEmail?: string;
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -325,11 +345,6 @@ export async function createSubItem(data: {
     priority: data.priority ?? "Média",
     status: data.status ?? "Pendente",
     dueDate: data.dueDate ?? null,
-    orgao: data.orgao,
-    responsavelNome: data.responsavelNome,
-    responsavelCargo: data.responsavelCargo,
-    responsavelTel: data.responsavelTel,
-    responsavelEmail: data.responsavelEmail,
     sortOrder: nextSortOrder,
   });
   return (result as any).insertId as number;
@@ -659,12 +674,40 @@ export async function getExportData(filters?: {
     .where(areaConditions.length > 0 ? and(...areaConditions) : undefined)
     .orderBy(actions.area, actions.sortOrder);
 
+  // Buscar todos os action_orgaos de uma vez (para filtro e enriquecimento)
+  const allActionOrgaosRows = await db
+    .select({
+      actionId: actionOrgaos.actionId,
+      orgao: actionOrgaos.orgao,
+      responsavelNome: actionOrgaos.responsavelNome,
+      responsavelCargo: actionOrgaos.responsavelCargo,
+      responsavelTel: actionOrgaos.responsavelTel,
+      responsavelEmail: actionOrgaos.responsavelEmail,
+    })
+    .from(actionOrgaos);
+
+  // Mapa: actionId -> lista de orgaos
+  const orgaosByAction: Record<number, typeof allActionOrgaosRows> = {};
+  for (const o of allActionOrgaosRows) {
+    if (!orgaosByAction[o.actionId]) orgaosByAction[o.actionId] = [];
+    orgaosByAction[o.actionId].push(o);
+  }
+
+  // IDs de itens que possuem o(s) orgao(s) filtrado(s)
+  const orgaoFilteredIds = filters?.orgao?.length
+    ? new Set(
+        allActionOrgaosRows
+          .filter(o => filters.orgao!.includes(o.orgao))
+          .map(o => o.actionId)
+      )
+    : null;
+
   // Apply item-level filters only to non-group rows
   const itemConditionFn = (r: typeof allRows[0]) => {
     if (r.isGroup === 1) return true; // groups are always included if area matches
     if (filters?.priority?.length && r.priority && !filters.priority.includes(r.priority)) return false;
     if (filters?.status?.length && !filters.status.includes(r.status)) return false;
-    if (filters?.orgao?.length && !filters.orgao.includes(r.orgao ?? "")) return false;
+    if (orgaoFilteredIds !== null && !orgaoFilteredIds.has(r.id)) return false;
     if (filters?.searchText && !r.description.toLowerCase().includes(filters.searchText.toLowerCase())) return false;
     return true;
   };
@@ -709,11 +752,23 @@ export async function getExportData(filters?: {
     docsByAction[d.actionId].push(d);
   }
 
-  return filtered.map(r => ({
-    ...r,
-    comments: r.isGroup === 0 ? (commentsByAction[r.id] ?? []) : [],
-    documents: r.isGroup === 0 ? (docsByAction[r.id] ?? []) : [],
-  }));
+  return filtered.map(r => {
+    const orgaosDoItem = r.isGroup === 0 ? (orgaosByAction[r.id] ?? []) : [];
+    return {
+      ...r,
+      // Campos unificados de órgão: usa action_orgaos como fonte única
+      orgaoNames: orgaosDoItem.map(o => o.orgao),
+      // Compat: primeiro órgão como campo escalar (para exportações legadas)
+      orgao: orgaosDoItem[0]?.orgao ?? null,
+      responsavelNome: orgaosDoItem[0]?.responsavelNome ?? null,
+      responsavelCargo: orgaosDoItem[0]?.responsavelCargo ?? null,
+      responsavelTel: orgaosDoItem[0]?.responsavelTel ?? null,
+      responsavelEmail: orgaosDoItem[0]?.responsavelEmail ?? null,
+      orgaos: orgaosDoItem,
+      comments: r.isGroup === 0 ? (commentsByAction[r.id] ?? []) : [],
+      documents: r.isGroup === 0 ? (docsByAction[r.id] ?? []) : [],
+    };
+  });
 }
 
 // ---- Audit Log ----
