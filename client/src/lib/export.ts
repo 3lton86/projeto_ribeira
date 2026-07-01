@@ -34,6 +34,7 @@ export type ActionRow = {
   documentBase: string | null;
   observacoes?: string | null;
   orgao?: string | null;
+  orgaoNames?: string[];
   responsavelNome?: string | null;
   responsavelCargo?: string | null;
   responsavelTel?: string | null;
@@ -104,7 +105,7 @@ export function exportToExcel(data: ActionRow[]) {
       "Status": isGroup ? "" : a.status,
       "Situação Prazo": isGroup ? "" : deadlineSituation(a.dueDate, a.status),
       "Observações": a.observacoes ?? "",
-      "Órgão Responsável": a.orgao ?? "",
+      "Órgão Responsável": a.orgaoNames && a.orgaoNames.length > 0 ? a.orgaoNames.join(", ") : (a.orgao ?? ""),
       "Nome do Responsável": a.responsavelNome ?? "",
       "Cargo": a.responsavelCargo ?? "",
       "Telefone": a.responsavelTel ?? "",
@@ -538,7 +539,7 @@ export function exportToPdf(data: ActionRow[], filters?: ExportFilters) {
       isGroup ? "" : a.status,
       isGroup ? "" : (a.priority ?? "—"),
       sit,
-      isGroup ? "" : (a.orgao ?? "—"),
+      isGroup ? "" : (a.orgaoNames && a.orgaoNames.length > 0 ? a.orgaoNames.join(", ") : (a.orgao ?? "—")),
       isGroup ? "" : (a.responsavelNome ?? "—"),
       isGroup ? "" : (a.responsavelCargo ?? "—"),
       isGroup ? "" : (a.responsavelTel ?? "—"),

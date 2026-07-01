@@ -514,3 +514,10 @@
 - [x] Frontend: remover campo Órgão do formulário de nova ação
 - [x] Frontend: getExportData usa action_orgaos como fonte única (orgaoNames + compat escalar)
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 62 — Exportação com todos os órgãos
+
+- [x] ActionRow: adicionar campo orgaoNames ao tipo de exportação
+- [x] Excel: coluna "Órgão Responsável" exibe todos os órgãos separados por vírgula
+- [x] PDF: coluna "Órgão Responsável" exibe todos os órgãos separados por vírgula
+- [x] 69 testes passando, zero erros TypeScript
