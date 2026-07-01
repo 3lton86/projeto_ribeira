@@ -355,7 +355,7 @@ export async function createSubItem(data: {
 export async function getCommentsByActionId(actionId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
+  const rows = await db
     .select({
       id: comments.id,
       actionId: comments.actionId,
@@ -363,11 +363,24 @@ export async function getCommentsByActionId(actionId: number) {
       createdAt: comments.createdAt,
       userId: comments.userId,
       userName: users.name,
+      localUserName: localUsers.name,
+      localUserOrganization: localUsers.organization,
     })
     .from(comments)
     .leftJoin(users, eq(comments.userId, users.id))
+    .leftJoin(localUsers, eq(comments.userId, localUsers.id))
     .where(eq(comments.actionId, actionId))
     .orderBy(desc(comments.createdAt));
+  // Resolve name and organization: prefer localUser (most users are local), fallback to OAuth user
+  return rows.map(r => ({
+    id: r.id,
+    actionId: r.actionId,
+    content: r.content,
+    createdAt: r.createdAt,
+    userId: r.userId,
+    userName: r.localUserName ?? r.userName ?? null,
+    userOrganization: r.localUserOrganization ?? null,
+  }));
 }
 
 export async function createComment(data: { actionId: number; userId: number; content: string }) {

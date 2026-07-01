@@ -864,8 +864,13 @@ export default function ActionDetail() {
                         {(c.userName ?? "U").charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 bg-secondary/20 rounded-xl px-4 py-3">
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="text-xs font-semibold text-foreground">{c.userName ?? "Usuário"}</span>
+                          {(c as any).userOrganization && (
+                            <span className="text-xs text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">
+                              {(c as any).userOrganization}
+                            </span>
+                          )}
                           <span className="text-xs text-muted-foreground">{formatDateTime(c.createdAt)}</span>
                         </div>
                         <p className="text-sm text-foreground leading-relaxed">{c.content}</p>

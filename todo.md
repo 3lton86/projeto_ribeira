@@ -521,3 +521,10 @@
 - [x] Excel: coluna "Órgão Responsável" exibe todos os órgãos separados por vírgula
 - [x] PDF: coluna "Órgão Responsável" exibe todos os órgãos separados por vírgula
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 63 — Órgão/Entidade do autor nos comentários
+
+- [x] getCommentsByActionId: left join com localUsers para trazer organization
+- [x] Resolver nome preferindo localUser (maioria) com fallback para OAuth
+- [x] ActionDetail: exibir badge com órgão/entidade do autor ao lado do nome
+- [x] 69 testes passando, zero erros TypeScript
