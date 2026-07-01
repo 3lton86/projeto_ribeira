@@ -1188,34 +1188,44 @@ export default function ActionDetail() {
           <div className="space-y-3 py-2">
             <div>
               <Label className="text-xs uppercase tracking-wider">Órgão *</Label>
-              <select
-                value={newOrgao.orgao}
-                onChange={(e) => {
-                  const selectedOrgao = e.target.value;
-                  // Auto-fill with first responsavel from orgao_responsaveis table
-                  const firstResp = (orgaoResponsaveisAll ?? []).find(r => r.orgao === selectedOrgao);
-                  setNewOrgao({
-                    orgao: selectedOrgao,
-                    responsavelNome: firstResp?.nome ?? "",
-                    responsavelCargo: firstResp?.cargo ?? "",
-                    responsavelTel: firstResp?.telefone ?? "",
-                    responsavelEmail: firstResp?.email ?? "",
-                  });
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
-              >
-                <option value="">— Selecionar órgão —</option>
-                <optgroup label="Órgãos Municipais">
-                  {ORGAOS_MUNICIPAIS.map((o) => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Empresas Parceiras">
-                  {EMPRESAS_PARCEIRAS.map((o) => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
-                </optgroup>
-              </select>
+              {/* Órgãos já cadastrados neste item (para bloquear duplicatas) */}
+              {(() => {
+                const alreadyAdded = new Set((actionOrgaos ?? []).map(o => o.orgao));
+                return (
+                  <select
+                    value={newOrgao.orgao}
+                    onChange={(e) => {
+                      const selectedOrgao = e.target.value;
+                      // Auto-fill with first responsavel from orgao_responsaveis table
+                      const firstResp = (orgaoResponsaveisAll ?? []).find(r => r.orgao === selectedOrgao);
+                      setNewOrgao({
+                        orgao: selectedOrgao,
+                        responsavelNome: firstResp?.nome ?? "",
+                        responsavelCargo: firstResp?.cargo ?? "",
+                        responsavelTel: firstResp?.telefone ?? "",
+                        responsavelEmail: firstResp?.email ?? "",
+                      });
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-lg text-sm border border-border/50 bg-secondary/30 text-foreground"
+                  >
+                    <option value="">— Selecionar órgão —</option>
+                    <optgroup label="Órgãos Municipais">
+                      {ORGAOS_MUNICIPAIS.map((o) => (
+                        <option key={o} value={o} disabled={alreadyAdded.has(o)}>
+                          {o}{alreadyAdded.has(o) ? " (já adicionado)" : ""}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Empresas Parceiras">
+                      {EMPRESAS_PARCEIRAS.map((o) => (
+                        <option key={o} value={o} disabled={alreadyAdded.has(o)}>
+                          {o}{alreadyAdded.has(o) ? " (já adicionado)" : ""}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                );
+              })()}
             </div>
 
             {/* If there are registered responsaveis for the selected orgao, show a selector */}

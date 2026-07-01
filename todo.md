@@ -491,3 +491,10 @@
 - [x] Ao alterar status do documento para "DOC COM PENDÊNCIA": atualizar status da ação para "Em Andamento"
 - [x] Não sobrescreve status "Concluído" nem "Cancelado"
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 60 — Correção de acesso setorial + bloqueio de órgão duplicado
+
+- [x] getActionsForSetorial: incluir itens cujo órgão está em action_orgaos (além do campo legado actions.orgao)
+- [x] addActionOrgao: bloquear inserção de órgão duplicado no mesmo item (backend)
+- [x] ActionDetail: impedir seleção de órgão já existente no item (frontend)
+- [x] 69 testes passando, zero erros TypeScript

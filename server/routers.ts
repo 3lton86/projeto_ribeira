@@ -684,15 +684,19 @@ export const appRouter = router({
         responsavelEmail: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        const id = await addActionOrgao({
-          actionId: input.actionId,
-          orgao: input.orgao,
-          responsavelNome: input.responsavelNome,
-          responsavelCargo: input.responsavelCargo,
-          responsavelTel: input.responsavelTel,
-          responsavelEmail: input.responsavelEmail,
-        });
-        return { success: true, id };
+        try {
+          const id = await addActionOrgao({
+            actionId: input.actionId,
+            orgao: input.orgao,
+            responsavelNome: input.responsavelNome,
+            responsavelCargo: input.responsavelCargo,
+            responsavelTel: input.responsavelTel,
+            responsavelEmail: input.responsavelEmail,
+          });
+          return { success: true, id };
+        } catch (err: any) {
+          throw new TRPCError({ code: 'CONFLICT', message: err.message ?? 'Erro ao adicionar órgão.' });
+        }
       }),
     update: localOrOauthAdminProcedure
       .input(z.object({

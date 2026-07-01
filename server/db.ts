@@ -89,9 +89,10 @@ export async function getActions(filters?: {
 }
 
 /**
- * Retorna apenas os itens (isGroup=0) cujo campo `orgao` está na lista de órgãos permitidos do usuário setorial.
- * Grupos (isGroup=1) são incluídos apenas se tiverem ao menos um filho visível — a filtragem de grupos
- * é feita no frontend (já existente), então aqui retornamos todos os grupos + os itens filtrados.
+ * Retorna apenas os itens (isGroup=0) cujo órgão está na lista de órgãos permitidos do usuário setorial.
+ * Considera TANTO o campo legado `actions.orgao` QUANTO os órgãos registrados em `action_orgaos`
+ * (tabela de múltiplos órgãos responsáveis por item).
+ * Grupos (isGroup=1) são incluídos apenas se tiverem ao menos um filho visível.
  */
 export async function getActionsForSetorial(
   allowedOrgaos: string[],
@@ -116,18 +117,28 @@ export async function getActionsForSetorial(
     : db.select().from(actions).orderBy(actions.area, actions.sortOrder);
   const all = await baseQuery;
 
-  // Primeiro: identificar quais itens (isGroup=0) são visíveis para este setorial
+  // Buscar todos os actionIds que possuem ao menos um dos órgãos permitidos em action_orgaos
+  const coOrgaoRows = allowedOrgaos.length > 0
+    ? await db
+        .selectDistinct({ actionId: actionOrgaos.actionId })
+        .from(actionOrgaos)
+        .where(inArray(actionOrgaos.orgao, allowedOrgaos))
+    : [];
+  const coOrgaoIds = new Set(coOrgaoRows.map((r) => r.actionId));
+
+  // Identificar quais itens (isGroup=0) são visíveis para este setorial
+  // Visível se: campo legado actions.orgao bate OU action_orgaos tem entrada para este órgão
   const visibleItems = all.filter((a) => {
     if (a.isGroup === 1) return false;
-    if (!a.orgao) return false;
-    return allowedOrgaos.includes(a.orgao);
+    // Verificar campo legado
+    if (a.orgao && allowedOrgaos.includes(a.orgao)) return true;
+    // Verificar tabela action_orgaos
+    return coOrgaoIds.has(a.id);
   });
 
-  // Um grupo é visível se algum item visível tem parentCode que começa com o itemCode do grupo
-  // (ex: grupo "1" é visível se há item com parentCode "1" ou "1.x")
+  // Um grupo é visível se algum item visível pertence a ele
   const visibleGroups = all.filter((a) => {
     if (a.isGroup !== 1) return false;
-    // Verificar se algum item visível pertence a este grupo (parentCode === grupo.itemCode)
     return visibleItems.some((item) => item.parentCode === a.itemCode);
   });
 
@@ -840,6 +851,15 @@ export async function addActionOrgao(data: {
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Verificar se o órgão já existe neste item para evitar duplicatas
+  const existing = await db
+    .select({ id: actionOrgaos.id })
+    .from(actionOrgaos)
+    .where(and(eq(actionOrgaos.actionId, data.actionId), eq(actionOrgaos.orgao, data.orgao)))
+    .limit(1);
+  if (existing.length > 0) {
+    throw new Error(`O órgão "${data.orgao}" já está cadastrado como responsável por este item.`);
+  }
   // Get next sortOrder for this action
   const maxRows = await db
     .select({ sortOrder: actionOrgaos.sortOrder })
