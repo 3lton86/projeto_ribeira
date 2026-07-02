@@ -1271,3 +1271,70 @@ export async function getResponsaveisDisponiveis(): Promise<string[]> {
     .where(and(not(isNull(actionOrgaos.responsavelNome)), sql`${actionOrgaos.responsavelNome} != ''`));
   return rows.map(r => r.nome as string).sort();
 }
+
+// ---- ÚLTIMAS ALTERAÇÕES ----
+
+/**
+ * Retorna, para cada actionId fornecido, a data e o tipo do evento mais recente
+ * considerando: history (edições de campos), comments (comentários),
+ * actionDocuments (inclusão e mudança de status de documentos) e auditLog.
+ */
+export async function getLastEventByAction(actionIds: number[]): Promise<
+  Record<number, { lastEventAt: Date; lastEventType: string }>
+> {
+  if (!actionIds.length) return {};
+  const db = await getDb();
+  if (!db) return {};
+
+  // Buscar o evento mais recente de cada fonte para os actionIds fornecidos
+  const [historyRows, commentRows, docRows, auditRows] = await Promise.all([
+    db
+      .select({ actionId: history.actionId, createdAt: history.createdAt })
+      .from(history)
+      .where(inArray(history.actionId, actionIds))
+      .orderBy(desc(history.createdAt)),
+    db
+      .select({ actionId: comments.actionId, createdAt: comments.createdAt })
+      .from(comments)
+      .where(inArray(comments.actionId, actionIds))
+      .orderBy(desc(comments.createdAt)),
+    db
+      .select({
+        actionId: actionDocuments.actionId,
+        createdAt: actionDocuments.createdAt,
+        statusUpdatedAt: actionDocuments.statusUpdatedAt,
+      })
+      .from(actionDocuments)
+      .where(inArray(actionDocuments.actionId, actionIds))
+      .orderBy(desc(actionDocuments.createdAt)),
+    db
+      .select({ actionId: auditLog.actionId, createdAt: auditLog.createdAt, eventType: auditLog.eventType })
+      .from(auditLog)
+      .where(inArray(auditLog.actionId, actionIds))
+      .orderBy(desc(auditLog.createdAt)),
+  ]);
+
+  // Consolidar: para cada actionId, encontrar o evento mais recente entre todas as fontes
+  const result: Record<number, { lastEventAt: Date; lastEventType: string }> = {};
+
+  const updateIfNewer = (actionId: number, date: Date | null | undefined, type: string) => {
+    if (!date) return;
+    const current = result[actionId];
+    if (!current || date > current.lastEventAt) {
+      result[actionId] = { lastEventAt: date, lastEventType: type };
+    }
+  };
+
+  for (const r of historyRows) updateIfNewer(r.actionId, r.createdAt, "Edição");
+  for (const r of commentRows) updateIfNewer(r.actionId, r.createdAt, "Comentário");
+  for (const r of docRows) {
+    updateIfNewer(r.actionId, r.createdAt, "Documento incluído");
+    updateIfNewer(r.actionId, r.statusUpdatedAt, "Status de documento");
+  }
+  for (const r of auditRows) {
+    const type = r.eventType === "comment" ? "Comentário" : "Documento incluído";
+    updateIfNewer(r.actionId, r.createdAt, type);
+  }
+
+  return result;
+}

@@ -535,3 +535,11 @@
 - [x] Resolver nome preferindo localUser com fallback para OAuth
 - [x] ActionDetail: exibir badge com órgão/entidade do autor no histórico
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 65 — Filtro "Últimas Alterações" na lista de itens
+
+- [x] Backend: procedure getRecentlyChanged — busca data do último evento por item (history, comments, actionDocuments, auditLog)
+- [x] Backend: retornar lista de itens com lastEventAt e lastEventType ordenada do mais recente ao mais antigo
+- [x] Frontend: botão/seletor "Últimas Alterações" na barra de filtros da lista
+- [x] Frontend: ao ativar, reordenar lista por lastEventAt e exibir badge com tipo e data do último evento em cada item
+- [x] 69 testes passando, zero erros TypeScript

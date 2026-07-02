@@ -47,6 +47,7 @@ import {
   getActionIdsByOrgaos,
   getActionIdsByResponsaveis,
   getResponsaveisDisponiveis,
+  getLastEventByAction,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { ORGAOS_MUNICIPAIS, TODOS_ORGAOS } from "@shared/orgaos";
@@ -167,6 +168,46 @@ export const appRouter = router({
         const action = await getActionById(input.id);
         if (!action) throw new TRPCError({ code: "NOT_FOUND" });
         return action;
+      }),
+    recentlyChanged: publicProcedure
+      .query(async ({ ctx }) => {
+        // Respeitar restrições setoriais
+        const token = extractLocalToken(ctx);
+        let allItems: Awaited<ReturnType<typeof getActions>> = [];
+        if (token) {
+          const payload = await verifyLocalJwt(token);
+          if (payload) {
+            const localUser = await getLocalUserById(payload.id);
+            if (localUser && localUser.active && localUser.role === 'setorial') {
+              const orgaos = await getUserOrgaos(localUser.id);
+              if (orgaos.includes('TODOS')) {
+                allItems = await getActions();
+              } else {
+                allItems = await getActionsForSetorial(orgaos);
+              }
+            } else {
+              allItems = await getActions();
+            }
+          } else {
+            allItems = await getActions();
+          }
+        } else {
+          allItems = await getActions();
+        }
+        // Somente itens (não grupos)
+        const items = allItems.filter(a => a.isGroup !== 1);
+        const actionIds = items.map(a => a.id);
+        const lastEventMap = await getLastEventByAction(actionIds);
+        // Montar resultado: apenas itens com ao menos um evento, ordenados do mais recente
+        const withEvents = items
+          .filter(a => !!lastEventMap[a.id])
+          .map(a => ({
+            ...a,
+            lastEventAt: lastEventMap[a.id].lastEventAt,
+            lastEventType: lastEventMap[a.id].lastEventType,
+          }))
+          .sort((a, b) => b.lastEventAt.getTime() - a.lastEventAt.getTime());
+        return withEvents;
       }),
 
     create: localOrOauthAdminProcedure

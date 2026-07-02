@@ -34,6 +34,7 @@ import {
   FileCheck2,
   FileWarning,
   Files,
+  History,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { toast } from "sonner";
@@ -62,6 +63,7 @@ type Priority = "Alta" | "Média" | "Baixa";
 type DeadlineFilter = "all" | "overdue" | "this_week";
 type DocFilter = "all" | "any" | "pending" | "accepted";
 type ContactFilter = "all" | "with_contact" | "no_contact";
+type SortMode = "default" | "recently_changed";
 
 const AREAS: Area[] = ["Governança", "Técnico", "Jurídico", "Eco-Fin"];
 const STATUSES: Status[] = ["Pendente", "Em Andamento", "Concluído", "Cancelado"];
@@ -632,6 +634,7 @@ export default function Actions() {
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>(() => getSavedState()?.deadlineFilter ?? "all");
   const [docFilter, setDocFilter] = useState<DocFilter>("all");
   const [contactFilter, setContactFilter] = useState<ContactFilter>(() => getSavedState()?.contactFilter ?? "all");
+  const [sortMode, setSortMode] = useState<SortMode>("default");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
     const s = getSavedState();
     return s?.expandedGroups?.length ? new Set<string>(s.expandedGroups) : new Set<string>();
@@ -701,6 +704,10 @@ export default function Actions() {
 
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
     docFilter !== "all" ? { docFilter: docFilter as "any" | "pending" | "accepted" } : {}
+  );
+  const { data: recentlyChangedItems, isLoading: isLoadingRecent } = trpc.actions.recentlyChanged.useQuery(
+    undefined,
+    { enabled: sortMode === "recently_changed" }
   );
     const { user } = useAuth();
   const { localUser } = useLocalAuth();
@@ -1184,10 +1191,24 @@ export default function Actions() {
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${contactFilter === "no_contact" ? "bg-orange-500/20 text-orange-400 border border-orange-500/40" : "glass-card text-muted-foreground hover:text-foreground"}`}
         >
           <Phone className="w-3.5 h-3.5" />
-          Sem contato
+                    Sem contato
+        </button>
+        {/* Separador visual */}
+        <span className="text-border/50 text-xs hidden sm:inline">|</span>
+        {/* Ordenar por últimas alterações */}
+        <button
+          onClick={() => { setSortMode(m => m === "recently_changed" ? "default" : "recently_changed"); setAreaPages({}); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            sortMode === "recently_changed"
+              ? "bg-violet-500/20 text-violet-400 border border-violet-500/40"
+              : "glass-card text-muted-foreground hover:text-foreground"
+          }`}
+          title="Ordenar por últimas alterações (edições, comentários, documentos)"
+        >
+          <History className="w-3.5 h-3.5" />
+          Últimas alterações
         </button>
       </div>
-
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1325,11 +1346,71 @@ export default function Actions() {
       )}
 
       {/* Actions list */}
-      {isLoading ? (
+      {/* ---- Modo: Últimas Alterações ---- */}
+      {sortMode === "recently_changed" && (
+        <div className="space-y-2">
+          {isLoadingRecent ? (
+            <div className="space-y-3">
+              {[...Array(6)].map((_, i) => <div key={i} className="glass-card rounded-xl h-14 animate-pulse" />)}
+            </div>
+          ) : !recentlyChangedItems?.length ? (
+            <div className="glass-card rounded-xl p-12 text-center">
+              <History className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">Nenhuma alteração registrada ainda.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 px-1 mb-1">
+                <History className="w-4 h-4 text-violet-400" />
+                <span className="text-xs font-semibold text-violet-400 uppercase tracking-wider">
+                  {recentlyChangedItems.length} {recentlyChangedItems.length === 1 ? "item" : "itens"} com alterações recentes
+                </span>
+              </div>
+              <div className="glass-card rounded-xl overflow-hidden">
+                {recentlyChangedItems.map((item, idx) => {
+                  const lastEventAt = item.lastEventAt ? new Date(item.lastEventAt) : null;
+                  const lastContact = lastContactMap.get(item.id) ?? null;
+                  return (
+                    <div key={item.id} className="relative">
+                      {/* Badge de última alteração */}
+                      <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 pointer-events-none">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-violet-500/15 text-violet-400 border border-violet-500/25">
+                          <History className="w-3 h-3" />
+                          {item.lastEventType}
+                          {lastEventAt && (
+                            <span className="opacity-70 ml-1">
+                              {lastEventAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                              {" "}
+                              {lastEventAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <SortableActionRow
+                        action={item}
+                        isAdmin={isAdmin}
+                        isDragEnabled={false}
+                        onEdit={setEditingAction}
+                        onDelete={setDeletingAction}
+                        onAddSubItem={setAddingSubItemTo}
+                        onNavigate={handleNavigateToAction}
+                        idx={idx}
+                        lastContact={lastContact}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {/* ---- Modo padrão: lista agrupada por área ---- */}
+      {sortMode === "default" && isLoading ? (
         <div className="space-y-3">
           {[...Array(6)].map((_, i) => <div key={i} className="glass-card rounded-xl h-14 animate-pulse" />)}
         </div>
-      ) : (
+      ) : sortMode === "default" ? (
         <div className="space-y-4">
           {AREAS.filter(area => grouped[area]?.length > 0).map(area => {
             const areaItems = grouped[area] ?? [];
@@ -1553,10 +1634,9 @@ export default function Actions() {
               <p className="text-muted-foreground text-sm">Nenhuma ação encontrada com os filtros aplicados.</p>
               <button onClick={clearFilters} className="mt-3 text-xs text-primary hover:underline">Limpar filtros</button>
             </div>
-          )}
+                    )}
         </div>
-      )}
-
+      ) : null}
       {/* Modal Nova Ação */}
       {showNewActionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }} onClick={(e) => { if (e.target === e.currentTarget) setShowNewActionModal(false); }}>
