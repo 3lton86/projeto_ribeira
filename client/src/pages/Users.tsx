@@ -55,7 +55,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.Re
   super_admin: { label: "Super Admin", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30", icon: <ShieldCheck className="w-3 h-3" /> },
   admin: { label: "Administrador", color: "text-primary bg-primary/10 border-primary/30", icon: <Shield className="w-3 h-3" /> },
   setorial: { label: "Usuário Setorial", color: "text-teal-400 bg-teal-400/10 border-teal-400/30", icon: <Building2 className="w-3 h-3" /> },
-  viewer: { label: "Visualizador", color: "text-muted-foreground bg-secondary border-border", icon: <Eye className="w-3 h-3" /> },
+  viewer: { label: "Visualizador", color: "text-orange-400 bg-orange-500/15 border-orange-500/40", icon: <Eye className="w-3 h-3" /> },
 };
 
 export default function Users() {
