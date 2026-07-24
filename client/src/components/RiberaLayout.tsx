@@ -42,7 +42,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
   const { localUser, loading, isSuperAdmin, setLocalUser } = useLocalAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const { activeProject, setActiveProject, availableProjects } = useProject();
+  const { activeProject, setActiveProject, availableProjects, projectColor } = useProject();
 
   const logoutMutation = trpc.localAuth.logout.useMutation({
     onSuccess: () => {
@@ -58,6 +58,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
     <div className="cinema-bg min-h-screen flex">
       {/* Sidebar */}
       <aside
+        style={{ "--project-color": projectColor } as React.CSSProperties}
         className={`fixed inset-y-0 left-0 z-50 w-64 glass-card border-r border-border/50 flex flex-col transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static lg:flex`}
@@ -72,7 +73,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               style={{ background: "rgba(255,255,255,0.96)", padding: "8px 12px", borderRadius: "8px" }}
             />
           </div>
-          <div className="geo-line mt-3" />
+          <div className="geo-line mt-3" style={{ background: projectColor, opacity: 0.5 }} />
           <div className="mt-2 text-center">
             <div className="text-[10px] text-muted-foreground leading-relaxed opacity-70">
               PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs
@@ -172,7 +173,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{
-                    background: "linear-gradient(135deg, oklch(0.38 0.16 240), oklch(0.30 0.14 250))",
+                    background: `linear-gradient(135deg, ${projectColor}cc, ${projectColor}88)`,
                     color: "white",
                   }}
                 >
@@ -245,7 +246,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto" style={{ "--project-color": projectColor } as React.CSSProperties}>{children}</main>
       </div>
     </div>
   );

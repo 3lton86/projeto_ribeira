@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { Building2, Users, Target, Layers, ChevronDown, ChevronRight } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useProject } from "@/contexts/ProjectContext";
 
 type NodeType = "root" | "committee" | "board" | "focal" | "entity";
 
@@ -146,6 +147,7 @@ function buildTree(
 }
 
 export default function Governance() {
+  const { projectColor } = useProject();
   const { data: nodes, isLoading } = trpc.governance.nodes.useQuery();
 
   const root = nodes?.find((n) => n.type === "root");
@@ -163,7 +165,7 @@ export default function Governance() {
       {/* Header */}
       <div className="animate-fade-in-up">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }} />
+          <div className="w-1 h-6 rounded-full" style={{ background: `linear-gradient(to bottom, ${projectColor}, ${projectColor}88)` }} />
           <h1 className="font-display text-2xl font-bold text-foreground">Estrutura de Governança</h1>
         </div>
         <p className="text-sm text-muted-foreground ml-3">

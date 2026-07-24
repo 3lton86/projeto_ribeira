@@ -561,3 +561,27 @@
 - [x] Frontend: cadastro de usuários com checkboxes de projetos permitidos
 - [x] Frontend: usuário com acesso a apenas 1 projeto não vê o seletor
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 68 — Dashboard responsivo ao projeto ativo
+
+- [x] Dashboard KPIs, gráficos e exportação PDF filtrados pelo projeto ativo (ribeira/sanea)
+- [x] Título do Dashboard exibe o nome do projeto selecionado
+- [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 69 — Título dinâmico na tela de Ações & Entregas
+
+- [x] Título fixo "PMI Ribeira Sustentável" substituído por nome do projeto ativo
+- [x] Zero erros TypeScript
+
+## Sprint 70 — Cores de destaque dinâmicas por projeto
+
+- [x] CSS variable `--project-color` aplicada no `<aside>` e `<main>` do RiberaLayout
+- [x] Geo-line no sidebar com cor dinâmica via `projectColor`
+- [x] Avatar do usuário com gradiente dinâmico baseado em `projectColor`
+- [x] `.nav-item:hover` e `.nav-item.active` usam `color-mix` com `--project-color`
+- [x] `.geo-line` usa `color-mix` com `--project-color`
+- [x] `.progress-teal` usa `--project-color` como base do gradiente
+- [x] Barra lateral do título em Dashboard.tsx usa `projectColor`
+- [x] Barra lateral do título em Actions.tsx usa `projectColor`
+- [x] Barra lateral do título em Governance.tsx usa `projectColor`
+- [x] 69 testes passando, zero erros TypeScript
