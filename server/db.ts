@@ -456,10 +456,9 @@ export async function getGovernanceNodes() {
 
 // ---- DASHBOARD KPIs ----
 
-export async function getDashboardStats() {
+export async function getDashboardStats(project?: string) {
   const db = await getDb();
   if (!db) return null;
-
   const allActions = await db
     .select({
       area: actions.area,
@@ -468,7 +467,8 @@ export async function getDashboardStats() {
       isGroup: actions.isGroup,
       dueDate: actions.dueDate,
     })
-    .from(actions);
+    .from(actions)
+    .where(project ? eq(actions.project, project as "ribeira" | "sanea") : undefined);
 
   const items = allActions.filter((a) => a.isGroup === 0);
 
@@ -1000,7 +1000,7 @@ export async function removeActionOrgao(id: number): Promise<void> {
  * items with at least one accepted doc, items with at least one pending doc.
  * Optionally filtered by area.
  */
-export async function getOrgaoDocStats(area?: string): Promise<
+export async function getOrgaoDocStats(area?: string, project?: string): Promise<
   Array<{
     orgao: string;
     totalItems: number;
@@ -1011,8 +1011,7 @@ export async function getOrgaoDocStats(area?: string): Promise<
 > {
   const db = await getDb();
   if (!db) return [];
-
-  // 1. Get all action_orgaos rows (with optional area filter via join)
+  // 1. Get all action_orgaos rows (with optional area and project filter via join)
   const orgaoRows = await db
     .select({
       orgao: actionOrgaos.orgao,
@@ -1021,9 +1020,11 @@ export async function getOrgaoDocStats(area?: string): Promise<
     .from(actionOrgaos)
     .innerJoin(actions, eq(actionOrgaos.actionId, actions.id))
     .where(
-      area
-        ? and(eq(actions.isGroup, 0), eq(actions.area, area as "Governança" | "Técnico" | "Jurídico" | "Eco-Fin"))
-        : eq(actions.isGroup, 0)
+      and(
+        eq(actions.isGroup, 0),
+        area ? eq(actions.area, area as "Governança" | "Técnico" | "Jurídico" | "Eco-Fin") : undefined,
+        project ? eq(actions.project, project as "ribeira" | "sanea") : undefined
+      )
     );
 
   if (orgaoRows.length === 0) return [];

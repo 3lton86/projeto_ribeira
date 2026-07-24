@@ -254,7 +254,7 @@ describe("history.list", () => {
 describe("dashboard.stats", () => {
   it("returns KPI statistics", async () => {
     const caller = appRouter.createCaller(makePublicCtx());
-    const stats = await caller.dashboard.stats();
+    const stats = await caller.dashboard.stats({ project: "ribeira" });
     expect(stats).not.toBeNull();
     expect(stats!.total).toBe(63);
     expect(stats!.byArea).toHaveLength(4);

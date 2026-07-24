@@ -647,13 +647,15 @@ export const appRouter = router({
 
   // ---- DASHBOARD ----
   dashboard: router({
-    stats: publicProcedure.query(async () => {
-      return getDashboardStats();
-    }),
-    orgaoStats: publicProcedure
-      .input(z.object({ area: z.string().optional() }))
+    stats: publicProcedure
+      .input(z.object({ project: z.string().optional() }))
       .query(async ({ input }) => {
-        return getOrgaoDocStats(input.area);
+        return getDashboardStats(input.project);
+      }),
+    orgaoStats: publicProcedure
+      .input(z.object({ area: z.string().optional(), project: z.string().optional() }))
+      .query(async ({ input }) => {
+        return getOrgaoDocStats(input.area, input.project);
       }),
   }),
 

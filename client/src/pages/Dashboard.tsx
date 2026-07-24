@@ -1,11 +1,11 @@
 import { trpc } from "@/lib/trpc";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { Activity, CheckCircle2, Clock, FileText, TrendingUp, XCircle, Download, AlertTriangle, Timer, Building2 } from "lucide-react";
-
 import { Link } from "wouter";
 import { useState } from "react";
 import { exportToPdf } from "@/lib/export";
 import { toast } from "sonner";
+import { useProject } from "@/contexts/ProjectContext";
 
 const AREA_COLORS: Record<string, string> = {
   Governança: "oklch(0.65 0.20 50)",
@@ -80,9 +80,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-function ExportPdfButton() {
+function ExportPdfButton({ project }: { project: string }) {
   const [loading, setLoading] = useState(false);
-  const { data: exportData } = trpc.export.data.useQuery({ area: undefined, status: undefined, priority: undefined });
+  const { data: exportData } = trpc.export.data.useQuery({ area: undefined, status: undefined, priority: undefined, project });
 
   const handleExport = async () => {
     if (!exportData || exportData.length === 0) {
@@ -91,7 +91,6 @@ function ExportPdfButton() {
     }
     setLoading(true);
     try {
-      // No filters applied from Dashboard — export all items
       exportToPdf(exportData, undefined);
       toast.success("Relatório PDF gerado com sucesso!");
     } catch (err) {
@@ -119,9 +118,11 @@ function ExportPdfButton() {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = trpc.dashboard.stats.useQuery();
+  const { activeProject, availableProjects } = useProject();
+  const projectLabel = availableProjects.find((p) => p.id === activeProject)?.label ?? activeProject;
+  const { data: stats, isLoading } = trpc.dashboard.stats.useQuery({ project: activeProject });
   const [orgaoAreaFilter, setOrgaoAreaFilter] = useState<string | undefined>(undefined);
-  const { data: orgaoStats } = trpc.dashboard.orgaoStats.useQuery({ area: orgaoAreaFilter });
+  const { data: orgaoStats } = trpc.dashboard.orgaoStats.useQuery({ area: orgaoAreaFilter, project: activeProject });
 
   if (isLoading) {
     return (
@@ -162,14 +163,14 @@ export default function Dashboard() {
             <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.72 0.18 185), oklch(0.65 0.20 50))" }} />
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
-              <span className="ml-0.5 text-sm font-semibold tracking-wide" style={{ color: "oklch(0.65 0.18 185)" }}>PMI Ribeira Sustentável</span>
+              <span className="ml-0.5 text-sm font-semibold tracking-wide" style={{ color: "oklch(0.65 0.18 185)" }}>{projectLabel}</span>
             </div>
           </div>
           <p className="text-sm text-muted-foreground ml-3">
             Controle de entrega de documentos e informações pelos órgãos municipais para estruturação do projeto PPP
           </p>
         </div>
-        <ExportPdfButton />
+        <ExportPdfButton project={activeProject} />
       </div>
 
       {/* KPI Cards */}
