@@ -47,6 +47,7 @@ export const actions = mysqlTable("actions", {
   responsavelTel: varchar("responsavelTel", { length: 50 }),
   responsavelEmail: varchar("responsavelEmail", { length: 320 }),
   sortOrder: int("sortOrder").default(0).notNull(),
+  project: mysqlEnum("project", ["ribeira", "sanea"]).default("ribeira").notNull(), // projeto ao qual o item pertence
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -107,6 +108,7 @@ export const localUsers = mysqlTable("local_users", {
   email: varchar("email", { length: 320 }), // email de contato
     active: int("active").default(1).notNull(), // 1 = ativo, 0 = desativado
   pendingApproval: int("pendingApproval").default(0).notNull(), // 1 = aguardando aprovação do admin
+  allowedProjects: json("allowedProjects").$type<string[]>(), // projetos permitidos para este usuário (null = apenas ribeira)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastAccessAt: bigint("lastAccessAt", { mode: "number" }), // Unix ms timestamp do último login

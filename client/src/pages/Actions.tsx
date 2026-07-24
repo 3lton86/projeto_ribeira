@@ -37,6 +37,7 @@ import {
   History,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { useProject } from "@/contexts/ProjectContext";
 import { toast } from "sonner";
 import { exportToExcel, exportToPdf } from "@/lib/export";
 import {
@@ -702,8 +703,11 @@ export default function Actions() {
     return map;
   }, [lastContactList]);
 
+  const { activeProject } = useProject();
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
-    docFilter !== "all" ? { docFilter: docFilter as "any" | "pending" | "accepted" } : {}
+    docFilter !== "all"
+      ? { docFilter: docFilter as "any" | "pending" | "accepted", project: activeProject }
+      : { project: activeProject }
   );
   const { data: recentlyChangedItems, isLoading: isLoadingRecent } = trpc.actions.recentlyChanged.useQuery(
     undefined,
@@ -836,6 +840,7 @@ export default function Actions() {
       responsavelCargo: newActionForm.responsavelCargo || undefined,
       responsavelTel: newActionForm.responsavelTel || undefined,
       responsavelEmail: newActionForm.responsavelEmail || undefined,
+      project: activeProject,
     });
   };
 
@@ -846,6 +851,7 @@ export default function Actions() {
     status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
     orgao: selectedOrgaos.length > 0 ? selectedOrgaos : undefined,
     searchText: searchText.length > 0 ? searchText : undefined,
+    project: activeProject,
   });
 
   // Filtered actions

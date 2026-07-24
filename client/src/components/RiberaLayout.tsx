@@ -21,6 +21,8 @@ import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { setLocalToken } from "@/lib/localToken";
 import NotificationBell from "@/components/NotificationBell";
+import { useProject } from "@/contexts/ProjectContext";
+import { PROJECTS } from "../../../shared/const";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -40,6 +42,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
   const { localUser, loading, isSuperAdmin, setLocalUser } = useLocalAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const { activeProject, setActiveProject, availableProjects } = useProject();
 
   const logoutMutation = trpc.localAuth.logout.useMutation({
     onSuccess: () => {
@@ -75,6 +78,26 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
               PLATAFORMA DE GESTÃO DOCUMENTAL DE PPPs
             </div>
           </div>
+          {/* Seletor de Projeto — exibido apenas quando o usuário tem acesso a mais de um projeto */}
+          {availableProjects.length > 1 && (
+            <div className="mt-3 flex flex-col gap-1">
+              {availableProjects.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setActiveProject(p.id as any)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeProject === p.id
+                      ? "text-white shadow-sm"
+                      : "bg-muted/30 text-muted-foreground hover:bg-muted/60"
+                  }`}
+                  style={activeProject === p.id ? { background: p.color } : {}}
+                >
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${activeProject === p.id ? "bg-white/80" : "bg-muted-foreground/40"}`} />
+                  <span className="truncate text-left">{p.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}

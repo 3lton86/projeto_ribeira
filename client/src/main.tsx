@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { LocalAuthProvider } from "./contexts/LocalAuthContext";
+import { ProjectProvider } from "./contexts/ProjectContext";
 import { getLocalToken } from "./lib/localToken";
 import "./index.css";
 
@@ -62,7 +63,9 @@ createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
       <LocalAuthProvider>
-        <App />
+        <ProjectProvider>
+          <App />
+        </ProjectProvider>
       </LocalAuthProvider>
     </QueryClientProvider>
   </trpc.Provider>

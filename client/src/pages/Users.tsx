@@ -49,6 +49,7 @@ type UserRow = {
   active: number;
   createdAt: Date;
   allowedOrgaos: string[];
+  allowedProjects: string[];
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -487,6 +488,7 @@ type FormData = {
   telefone: string;
   email: string;
   allowedOrgaos: string[];
+  allowedProjects: string[];
   active?: number;
 };
 
@@ -519,6 +521,7 @@ function UserFormDialog({
     telefone: initial?.telefone ?? "",
     email: initial?.email ?? "",
     allowedOrgaos: initial?.allowedOrgaos ?? [],
+    allowedProjects: initial?.allowedProjects ?? [],
   });
   const [active, setActive] = useState(initial?.active ?? 1);
 
@@ -548,6 +551,7 @@ function UserFormDialog({
       telefone: form.telefone || undefined,
       email: form.email || undefined,
       allowedOrgaos: form.role === "setorial" ? form.allowedOrgaos : [],
+      allowedProjects: form.allowedProjects,
     };
     if (form.password) data.password = form.password;
     if (isEdit) data.active = active;
@@ -660,6 +664,36 @@ function UserFormDialog({
                 <SelectItem value="viewer">Visualizador</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Projetos com acesso permitido */}
+          <div className="space-y-3 p-4 rounded-lg border border-indigo-500/20 bg-indigo-500/5">
+            <Label className="text-indigo-300 font-semibold">Projetos com acesso</Label>
+            <div className="flex flex-col gap-2">
+              {[{ id: "ribeira", label: "Ribeira PMI" }, { id: "sanea", label: "SANEA+ NATAL" }].map((proj) => (
+                <div
+                  key={proj.id}
+                  className="flex items-center gap-2 px-2 py-1 rounded hover:bg-secondary/50 cursor-pointer"
+                  onClick={() => setForm(f => {
+                    const has = f.allowedProjects.includes(proj.id);
+                    return { ...f, allowedProjects: has ? f.allowedProjects.filter(p => p !== proj.id) : [...f.allowedProjects, proj.id] };
+                  })}
+                >
+                  <Checkbox
+                    id={`proj-${proj.id}`}
+                    checked={form.allowedProjects.includes(proj.id)}
+                    onCheckedChange={() => {}}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <span className="text-xs text-foreground select-none">{proj.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {form.allowedProjects.length === 0
+                ? "Nenhum projeto selecionado — o usuário não conseguirá acessar a plataforma."
+                : `${form.allowedProjects.length} projeto(s) selecionado(s).`}
+            </p>
           </div>
 
           {/* Órgãos permitidos — apenas para perfil setorial */}

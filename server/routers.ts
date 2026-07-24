@@ -120,6 +120,7 @@ export const appRouter = router({
           status: z.array(statusEnum).optional(),
           search: z.string().optional(),
           docFilter: z.enum(['any', 'pending', 'accepted']).optional(),
+          project: z.enum(['ribeira', 'sanea']).optional(),
         }).optional()
       )
       .query(async ({ ctx, input }) => {
@@ -129,7 +130,7 @@ export const appRouter = router({
           docFilterIds = await getActionIdsWithDocFilter(input.docFilter);
         }
         // Filtros base (sem docFilter)
-        const baseFilters = input ? { area: input.area, priority: input.priority, status: input.status, search: input.search } : undefined;
+        const baseFilters = input ? { area: input.area, priority: input.priority, status: input.status, search: input.search, project: input.project } : undefined;
         // Se o usuário é setorial, filtrar por seus órgãos permitidos
         const token = extractLocalToken(ctx);
         if (token) {
@@ -225,6 +226,7 @@ export const appRouter = router({
           responsavelCargo: z.string().optional(),
           responsavelTel: z.string().optional(),
           responsavelEmail: z.string().optional(),
+          project: z.enum(['ribeira', 'sanea']).optional().default('ribeira'),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -241,6 +243,7 @@ export const appRouter = router({
           responsavelCargo: input.responsavelCargo,
           responsavelTel: input.responsavelTel,
           responsavelEmail: input.responsavelEmail,
+          project: input.project,
         });
         // Disparar alerta para todos os admins
         try {
@@ -867,6 +870,7 @@ export const appRouter = router({
           status: z.array(statusEnum).optional(),
           orgao: z.array(z.string()).optional(),
           searchText: z.string().optional(),
+          project: z.string().optional(),
         }).optional()
       )
       .query(async ({ input }) => {

@@ -66,6 +66,7 @@ export async function getActions(filters?: {
   priority?: string[];
   status?: string[];
   search?: string;
+  project?: string;
 }) {
   const db = await getDb();
   if (!db) return [];
@@ -81,6 +82,9 @@ export async function getActions(filters?: {
   }
   if (filters?.search) {
     conditions.push(like(actions.description, `%${filters.search}%`));
+  }
+  if (filters?.project) {
+    conditions.push(eq(actions.project, filters.project as any));
   }
   const query = conditions.length > 0
     ? db.select().from(actions).where(and(...conditions)).orderBy(actions.area, actions.sortOrder)
@@ -111,6 +115,7 @@ export async function getActionsForSetorial(
     priority?: string[];
     status?: string[];
     search?: string;
+    project?: string;
   }
 ) {
   const db = await getDb();
@@ -120,6 +125,7 @@ export async function getActionsForSetorial(
   if (filters?.priority?.length) conditions.push(inArray(actions.priority, filters.priority as any) as any);
   if (filters?.status?.length) conditions.push(inArray(actions.status, filters.status as any) as any);
   if (filters?.search) conditions.push(like(actions.description, `%${filters.search}%`) as any);
+  if (filters?.project) conditions.push(eq(actions.project, filters.project as any) as any);
 
   // Buscar todos os registros (grupos + itens) com os filtros base
   const baseQuery = conditions.length > 0
@@ -214,6 +220,7 @@ export async function createAction(data: {
   responsavelCargo?: string;
   responsavelTel?: string;
   responsavelEmail?: string;
+  project?: "ribeira" | "sanea";
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -242,6 +249,7 @@ export async function createAction(data: {
     responsavelTel: data.responsavelTel,
     responsavelEmail: data.responsavelEmail,
     sortOrder: nextSortOrder,
+    project: data.project ?? "ribeira",
   });
   return (result as any).insertId as number;
 }
@@ -526,6 +534,7 @@ export async function getLocalUsers() {
     pendingApproval: localUsers.pendingApproval,
     createdAt: localUsers.createdAt,
     lastAccessAt: localUsers.lastAccessAt,
+    allowedProjects: localUsers.allowedProjects,
   }).from(localUsers).orderBy(localUsers.name);
 }
 
@@ -558,7 +567,7 @@ export async function createLocalUser(data: InsertLocalUser) {
 
 export async function updateLocalUser(
   id: number,
-  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; telefone: string | null; email: string | null; active: number; lastAccessAt: number | null }>
+  data: Partial<{ name: string; username: string; passwordHash: string; role: "super_admin" | "admin" | "setorial" | "viewer"; position: string; organization: string; telefone: string | null; email: string | null; active: number; lastAccessAt: number | null; allowedProjects: string[] | null }>
 ) {
   const db = await getDb();
   if (!db) return;
@@ -689,12 +698,14 @@ export async function getExportData(filters?: {
   status?: string[];
   orgao?: string[];
   searchText?: string;
+  project?: string;
 }) {
   const db = await getDb();
   if (!db) return [];
   // Fetch ALL rows (groups + items + sub-items) for the area filter, then apply item-level filters
   const areaConditions = [];
   if (filters?.area?.length) areaConditions.push(inArray(actions.area, filters.area as any));
+  if (filters?.project) areaConditions.push(eq(actions.project, filters.project as any));
 
   const allRows = await db
     .select()

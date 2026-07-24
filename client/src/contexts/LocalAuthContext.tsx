@@ -9,6 +9,7 @@ export type LocalUser = {
   position: string | null;
   organization: string | null;
   allowedOrgaos?: string[]; // only populated for setorial users
+  allowedProjects?: string[]; // projects this user can access (null/empty = all)
 };
 
 const STORAGE_KEY = "ribeira_local_user";

@@ -543,3 +543,21 @@
 - [x] Frontend: botão/seletor "Últimas Alterações" na barra de filtros da lista
 - [x] Frontend: ao ativar, reordenar lista por lastEventAt e exibir badge com tipo e data do último evento em cada item
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 67 — Multi-Projeto (Ribeira PMI + SANEA+ NATAL)
+
+- [x] Schema: campo `project` enum('ribeira','sanea') em `actions`
+- [x] Schema: campo `allowedProjects` JSON em `local_users` (lista de projetos permitidos)
+- [x] Migração: colunas aplicadas via SQL direto + 282 itens marcados como project='ribeira'
+- [x] Backend: procedure actions.list aceita parâmetro `project`
+- [x] Backend: getActions e getActionsForSetorial filtram por projeto ativo
+- [x] Backend: exportações filtram por projeto
+- [x] Backend: cadastro de usuário com campo allowedProjects
+- [x] Frontend: constante PROJECTS com id/label/cor para ribeira e sanea
+- [x] Frontend: ProjectContext com projeto ativo, setter (localStorage) e availableProjects filtrado por usuário
+- [x] Frontend: seletor de projeto no sidebar — visível só para usuários com acesso a mais de um projeto
+- [x] Frontend: ao trocar de projeto, lista de ações recarrega filtrada
+- [x] Frontend: modal Nova Ação pré-preenche project com projeto ativo
+- [x] Frontend: cadastro de usuários com checkboxes de projetos permitidos
+- [x] Frontend: usuário com acesso a apenas 1 projeto não vê o seletor
+- [x] 69 testes passando, zero erros TypeScript

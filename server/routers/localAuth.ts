@@ -126,6 +126,8 @@ export const localAuthRouter = router({
       if (user.role === "setorial") {
         allowedOrgaos = await getUserOrgaos(user.id);
       }
+      // Parse allowedProjects (json column already parsed by Drizzle)
+      const allowedProjects: string[] = Array.isArray(user.allowedProjects) ? user.allowedProjects : [];
 
       return {
         success: true,
@@ -138,6 +140,7 @@ export const localAuthRouter = router({
           position: user.position,
           organization: user.organization,
           allowedOrgaos,
+          allowedProjects,
         },
       };
     }),
@@ -161,6 +164,8 @@ export const localAuthRouter = router({
     if (user.role === "setorial") {
       allowedOrgaos = await getUserOrgaos(user.id);
     }
+    // Parse allowedProjects (json column already parsed by Drizzle)
+    const allowedProjects: string[] = Array.isArray(user.allowedProjects) ? user.allowedProjects : [];
 
     return {
       id: user.id,
@@ -170,6 +175,7 @@ export const localAuthRouter = router({
       position: user.position,
       organization: user.organization,
       allowedOrgaos,
+      allowedProjects,
     };
   }),
 
@@ -177,14 +183,16 @@ export const localAuthRouter = router({
   users: router({
     list: localAdminOrSuperProcedure.query(async () => {
       const users = await getLocalUsers();
-      // Enrich setorial users with their orgãos
+      // Enrich setorial users with their orgãos and parse allowedProjects
       const enriched = await Promise.all(
         users.map(async (u) => {
+          // json column already parsed by Drizzle
+          const allowedProjects: string[] = Array.isArray(u.allowedProjects) ? u.allowedProjects : [];
           if (u.role === "setorial") {
             const orgaos = await getUserOrgaos(u.id);
-            return { ...u, allowedOrgaos: orgaos };
+            return { ...u, allowedOrgaos: orgaos, allowedProjects };
           }
-          return { ...u, allowedOrgaos: [] as string[] };
+          return { ...u, allowedOrgaos: [] as string[], allowedProjects };
         })
       );
       return enriched;
@@ -202,6 +210,7 @@ export const localAuthRouter = router({
           telefone: z.string().max(50).optional(),
           email: z.string().email().max(320).optional(),
           allowedOrgaos: z.array(z.string()).optional(), // for setorial users
+          allowedProjects: z.array(z.string()).optional(), // projects this user can access
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -227,6 +236,7 @@ export const localAuthRouter = router({
           telefone: input.telefone ?? null,
           email: input.email ?? null,
           active: 1,
+          allowedProjects: input.allowedProjects && input.allowedProjects.length > 0 ? input.allowedProjects : null,
         });
         // Save orgãos for setorial users
         if (input.role === "setorial" && input.allowedOrgaos && input.allowedOrgaos.length > 0) {
@@ -250,6 +260,7 @@ export const localAuthRouter = router({
           email: z.string().email().max(320).optional().nullable(),
           active: z.number().min(0).max(1).optional(),
           allowedOrgaos: z.array(z.string()).optional(), // for setorial users
+          allowedProjects: z.array(z.string()).optional(), // projects this user can access
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -266,10 +277,13 @@ export const localAuthRouter = router({
             throw new TRPCError({ code: "CONFLICT", message: "Este e-mail já está cadastrado por outro usuário." });
           }
         }
-        const { id, password, allowedOrgaos, ...rest } = input;
+        const { id, password, allowedOrgaos, allowedProjects, ...rest } = input;
         const data: Record<string, unknown> = { ...rest };
         if (password) data.passwordHash = await bcrypt.hash(password, 12);
         if (rest.username) data.username = rest.username.toLowerCase();
+        if (allowedProjects !== undefined) {
+          data.allowedProjects = allowedProjects.length > 0 ? allowedProjects : null;
+        }
         try {
           await updateLocalUser(id, data as any);
           // Update orgãos if provided (for setorial users)
