@@ -703,7 +703,8 @@ export default function Actions() {
     return map;
   }, [lastContactList]);
 
-  const { activeProject } = useProject();
+  const { activeProject, availableProjects } = useProject();
+  const projectLabel = availableProjects.find((p) => p.id === activeProject)?.label ?? activeProject;
   const { data: allActions, isLoading, refetch } = trpc.actions.list.useQuery(
     docFilter !== "all"
       ? { docFilter: docFilter as "any" | "pending" | "accepted", project: activeProject }
@@ -998,7 +999,7 @@ export default function Actions() {
             <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(to bottom, oklch(0.55 0.18 240), oklch(0.42 0.15 250))" }} />
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">Ações & Entregas</h1>
-              <span className="ml-0.5 text-sm font-semibold tracking-wide" style={{ color: "oklch(0.55 0.18 240)" }}>PMI Ribeira Sustentável</span>
+              <span className="ml-0.5 text-sm font-semibold tracking-wide" style={{ color: "oklch(0.55 0.18 240)" }}>{projectLabel}</span>
             </div>
           </div>
           <p className="text-sm text-muted-foreground ml-3">
