@@ -585,3 +585,15 @@
 - [x] Barra lateral do título em Actions.tsx usa `projectColor`
 - [x] Barra lateral do título em Governance.tsx usa `projectColor`
 - [x] 69 testes passando, zero erros TypeScript
+
+## Sprint 71 — Projeto no Log de Auditoria
+
+- [x] Schema: adicionar campo `project` enum('ribeira','sanea') na tabela `audit_log`
+- [x] Migração: pnpm db:push
+- [x] Backend db.ts: popular campo `project` ao inserir em `createAuditEntry` (buscar de `actions.project`)
+- [x] Backend db.ts: `getAuditLogAll` retorna campo `project` (join com actions ou campo direto)
+- [x] Backend routers.ts: `audit.listAll` aceita parâmetro opcional `project` para filtrar
+- [x] Frontend AuditLog.tsx: adicionar coluna "Projeto" na tabela com badge colorido
+- [x] Frontend AuditLog.tsx: adicionar filtro por projeto no painel de filtros
+- [x] Frontend AuditLog.tsx: incluir projeto no CSV e PDF exportados
+- [x] 69 testes passando, zero erros TypeScript

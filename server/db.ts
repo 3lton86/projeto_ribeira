@@ -815,7 +815,15 @@ export async function getExportData(filters?: {
 export async function createAuditLog(entry: InsertAuditLog): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.insert(auditLog).values(entry);
+  // Auto-populate project from the related action if not provided
+  let project = entry.project;
+  if (!project && entry.actionId) {
+    try {
+      const [action] = await db.select({ project: actions.project }).from(actions).where(eq(actions.id, entry.actionId)).limit(1);
+      if (action?.project) project = action.project;
+    } catch (_) {}
+  }
+  await db.insert(auditLog).values({ ...entry, project: project ?? null });
 }
 
 export async function getAuditLogByActionId(actionId: number) {
@@ -827,14 +835,23 @@ export async function getAuditLogByActionId(actionId: number) {
     .where(eq(auditLog.actionId, actionId))
     .orderBy(desc(auditLog.createdAt));
 }
-export async function getAuditLogAll() {
+export async function getAuditLogAll(project?: string) {
   const db = await getDb();
   if (!db) return [];
-  return db
+  const query = db
     .select()
     .from(auditLog)
     .orderBy(desc(auditLog.createdAt))
     .limit(500);
+  if (project && project !== "all") {
+    return db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.project, project as "ribeira" | "sanea"))
+      .orderBy(desc(auditLog.createdAt))
+      .limit(500);
+  }
+  return query;
 }
 
 // ---- Notifications ----

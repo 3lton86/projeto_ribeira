@@ -170,6 +170,7 @@ export const auditLog = mysqlTable("audit_log", {
   userOrgao: varchar("userOrgao", { length: 100 }), // órgão do usuário no momento
   eventType: mysqlEnum("eventType", ["comment", "document"]).notNull(),
   detail: text("detail"),                        // descrição do evento
+  project: mysqlEnum("project", ["ribeira", "sanea"]),  // projeto da ação relacionada
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

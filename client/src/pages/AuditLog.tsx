@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   User,
   FileDown,
+  FolderKanban,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { exportAuditLogToPdf } from "@/lib/export";
+import { PROJECTS } from "../../../shared/const";
 
 const EVENT_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   comment: { label: "Comentário", color: "bg-blue-100 text-blue-700", icon: MessageSquare },
@@ -39,18 +41,25 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "Visualizador",
 };
 
+const PROJECT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  ribeira: { label: "Ribeira PMI", color: "#1E4D8C", bg: "rgba(30,77,140,0.10)" },
+  sanea: { label: "SANEA+ NATAL", color: "#0e7c4a", bg: "rgba(14,124,74,0.10)" },
+};
+
 export default function AuditLog() {
   const [, navigate] = useLocation();
   const { isAdmin, isSuperAdmin } = useLocalAuth();
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [page, setPage] = useState(1);
   const PER_PAGE = 30;
 
-  const { data: logs = [], isLoading } = trpc.audit.listAll.useQuery(undefined, {
-    enabled: isAdmin || isSuperAdmin,
-  });
+  const { data: logs = [], isLoading } = trpc.audit.listAll.useQuery(
+    projectFilter !== "all" ? { project: projectFilter as "ribeira" | "sanea" } : {},
+    { enabled: isAdmin || isSuperAdmin }
+  );
 
   // Redirect non-admins
   if (!isAdmin && !isSuperAdmin) {
@@ -80,9 +89,10 @@ export default function AuditLog() {
   };
 
   const handleExport = () => {
-    const header = ["Data/Hora", "Usuário", "Perfil", "Órgão", "Evento", "Item ID", "Detalhe"];
+    const header = ["Data/Hora", "Projeto", "Usuário", "Perfil", "Órgão", "Evento", "Item ID", "Detalhe"];
     const rows = filtered.map((log: any) => [
       new Date(log.createdAt).toLocaleString("pt-BR"),
+      PROJECT_CONFIG[log.project]?.label ?? log.project ?? "—",
       log.userName ?? "",
       ROLE_LABELS[log.userRole] ?? log.userRole ?? "",
       log.userOrgao ?? "",
@@ -99,6 +109,8 @@ export default function AuditLog() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const hasActiveFilters = search || eventFilter !== "all" || roleFilter !== "all" || projectFilter !== "all";
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -149,6 +161,24 @@ export default function AuditLog() {
             className="pl-9 h-9"
           />
         </div>
+        {/* Filtro por projeto */}
+        <Select value={projectFilter} onValueChange={v => { setProjectFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-[190px] h-9">
+            <FolderKanban className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue placeholder="Projeto" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os projetos</SelectItem>
+            {PROJECTS.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: p.color }} />
+                  {p.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={eventFilter} onValueChange={v => { setEventFilter(v); setPage(1); }}>
           <SelectTrigger className="w-[180px] h-9">
             <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
@@ -187,10 +217,10 @@ export default function AuditLog() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Shield className="w-12 h-12 text-muted-foreground/20 mb-3" />
           <p className="text-muted-foreground">Nenhum registro encontrado</p>
-          {(search || eventFilter !== "all" || roleFilter !== "all") && (
+          {hasActiveFilters && (
             <button
               className="text-xs text-primary hover:underline mt-2"
-              onClick={() => { setSearch(""); setEventFilter("all"); setRoleFilter("all"); }}
+              onClick={() => { setSearch(""); setEventFilter("all"); setRoleFilter("all"); setProjectFilter("all"); }}
             >
               Limpar filtros
             </button>
@@ -198,15 +228,16 @@ export default function AuditLog() {
         </div>
       ) : (
         <>
-          <div className="rounded-xl border border-border/50 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-xl border border-border/50 overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-muted/40 border-b border-border/50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data/Hora</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Data/Hora</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Projeto</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Usuário</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Órgão</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Evento</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Item</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Item</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Detalhe</th>
                 </tr>
               </thead>
@@ -214,6 +245,7 @@ export default function AuditLog() {
                 {paginated.map((log: any) => {
                   const evt = EVENT_LABELS[log.eventType] ?? { label: log.eventType, color: "bg-gray-100 text-gray-700", icon: Shield };
                   const EvtIcon = evt.icon;
+                  const proj = log.project ? PROJECT_CONFIG[log.project] : null;
                   return (
                     <tr key={log.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
@@ -221,6 +253,19 @@ export default function AuditLog() {
                           day: "2-digit", month: "2-digit", year: "2-digit",
                           hour: "2-digit", minute: "2-digit",
                         })}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {proj ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                            style={{ background: proj.bg, color: proj.color, border: `1px solid ${proj.color}44` }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: proj.color }} />
+                            {proj.label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-foreground text-xs">{log.userName ?? "—"}</div>
@@ -237,7 +282,7 @@ export default function AuditLog() {
                           {evt.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {log.actionId ? (
                           <a
                             href={`/acoes/${log.actionId}`}

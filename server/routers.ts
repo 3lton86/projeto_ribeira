@@ -670,8 +670,9 @@ export const appRouter = router({
         return getAuditLogByActionId(input.actionId);
       }),
     listAll: localAdminProcedure
-      .query(async () => {
-        return getAuditLogAll();
+      .input(z.object({ project: z.enum(['ribeira', 'sanea', 'all']).optional() }).optional())
+      .query(async ({ input }) => {
+        return getAuditLogAll(input?.project);
       }),
   }),
   // ---- NOTIFICATIONS ----
