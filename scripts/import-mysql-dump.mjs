@@ -140,22 +140,24 @@ function parseValues(valuesStr) {
   return rows;
 }
 
-// Mapeia nomes de colunas por tabela (baseado no schema PostgreSQL)
-const TABLE_COLUMNS = {
+// Mapeia colunas do dump MySQL → colunas do PostgreSQL
+// A ordem deve corresponder à ordem dos VALUES no dump (baseada no CREATE TABLE do MySQL dump)
+const TABLE_COLUMNS_DUMP = {
   users: ["id", "openId", "name", "email", "loginMethod", "role", "createdAt", "updatedAt", "lastSignedIn"],
-  actions: ["id", "area", "itemCode", "parentCode", "isGroup", "description", "priority", "status", "dueDate", "requestDate", "receiptDate", "documentBase", "observacoes", "orgao", "responsavelNome", "responsavelCargo", "responsavelTel", "responsavelEmail", "sortOrder", "project", "createdAt", "updatedAt"],
+  actions: ["id", "area", "itemCode", "parentCode", "isGroup", "description", "priority", "status", "requestDate", "receiptDate", "documentBase", "sortOrder", "createdAt", "updatedAt", "orgao", "responsavelNome", "responsavelCargo", "responsavelTel", "responsavelEmail", "dueDate", "observacoes", "project"],
   comments: ["id", "actionId", "userId", "content", "createdAt"],
   history: ["id", "actionId", "userId", "fieldChanged", "oldValue", "newValue", "createdAt"],
   governance_nodes: ["id", "parentId", "title", "subtitle", "type", "theme", "sortOrder"],
-  local_users: ["id", "name", "username", "passwordHash", "role", "position", "organization", "telefone", "email", "active", "pendingApproval", "allowedProjects", "createdAt", "updatedAt", "lastAccessAt"],
+  local_users: ["id", "name", "username", "passwordHash", "role", "position", "organization", "active", "createdAt", "updatedAt", "pendingApproval", "telefone", "email", "lastAccessAt", "allowedProjects"],
   action_documents: ["id", "actionId", "label", "url", "uploadedBy", "uploaderName", "createdAt", "docStatus", "statusUpdatedAt", "statusUpdatedBy"],
   action_orgaos: ["id", "actionId", "orgao", "responsavelNome", "responsavelCargo", "responsavelTel", "responsavelEmail", "sortOrder", "createdAt"],
   user_orgaos: ["id", "userId", "orgao", "createdAt"],
-  audit_log: ["id", "actionId", "userId", "userName", "userRole", "userOrgao", "eventType", "detail", "project", "createdAt"],
+  audit_log: ["id", "actionId", "userId", "userName", "userRole", "userOrgao", "eventType", "detail", "createdAt", "project"],
   notifications: ["id", "userId", "type", "title", "body", "actionId", "actionCode", "orgao", "isRead", "createdAt"],
   orgao_responsaveis: ["id", "orgao", "nome", "cargo", "telefone", "email", "localUserId", "sortOrder", "createdAt"],
   contact_history: ["id", "actionId", "channel", "recipientName", "recipientContact", "message", "sentBy", "sentAt"],
 };
+const TABLE_COLUMNS = TABLE_COLUMNS_DUMP;
 
 async function main() {
   const client = new pg.Client(dbUrl);
