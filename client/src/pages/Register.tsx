@@ -68,7 +68,7 @@ export default function Register() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-5">
             <img
-              src="/manus-storage/sempla-logo_0b157f04.png"
+              src="/sempla-logo.png"
               alt="SEMPLA"
               className="h-20 w-auto object-contain rounded-xl"
               style={{ background: "rgba(255,255,255,0.96)", padding: "10px 20px" }}

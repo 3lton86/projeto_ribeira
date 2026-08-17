@@ -67,7 +67,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
         <div className="p-4 border-b border-border/50">
           <div className="flex items-center justify-center">
             <img
-              src="/manus-storage/sempla-logo_0b157f04.png"
+              src="/sempla-logo.png"
               alt="SEMPLA — Secretaria Municipal de Planejamento"
               className="w-full max-w-[200px] h-auto object-contain"
               style={{ background: "rgba(255,255,255,0.96)", padding: "8px 12px", borderRadius: "8px" }}
@@ -236,7 +236,7 @@ export default function RiberaLayout({ children }: { children: React.ReactNode }
           </button>
           <div className="flex items-center gap-2 flex-1">
             <img
-              src="/manus-storage/sempla-logo_0b157f04.png"
+              src="/sempla-logo.png"
               alt="SEMPLA"
               className="h-7 w-auto object-contain rounded"
               style={{ background: "rgba(255,255,255,0.95)", padding: "2px 6px" }}
