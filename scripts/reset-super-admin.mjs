@@ -1,55 +1,30 @@
+/**
+ * Script: Reseta a senha do super-admin padrão.
+ * Uso: node scripts/reset-super-admin.mjs
+ */
 import bcrypt from 'bcryptjs';
-import { createConnection } from 'mysql2/promise';
+import pg from 'pg';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const NEW_PASSWORD = 'Ribeira@2026!';
-const USERNAME = 'ribeira.admin';
+const client = new pg.Client(process.env.DATABASE_URL);
+await client.connect();
 
-const connection = await createConnection(process.env.DATABASE_URL);
+const username = "ribeira.admin";
+const newPassword = "Ribeira@2024";
+const passwordHash = await bcrypt.hash(newPassword, 10);
 
-// Generate fresh hash
-const passwordHash = await bcrypt.hash(NEW_PASSWORD, 12);
-console.log('New hash generated:', passwordHash.substring(0, 20) + '...');
-
-// Verify hash works before saving
-const valid = await bcrypt.compare(NEW_PASSWORD, passwordHash);
-console.log('Hash verification:', valid ? '✓ OK' : '✗ FAILED');
-
-if (!valid) {
-  console.error('Hash verification failed! Aborting.');
-  await connection.end();
-  process.exit(1);
-}
-
-// Update in DB
-const [result] = await connection.execute(
-  `UPDATE local_users SET passwordHash = ?, active = 1 WHERE username = ?`,
-  [passwordHash, USERNAME]
+const result = await client.query(
+  'UPDATE local_users SET "passwordHash" = $1, "updatedAt" = NOW() WHERE username = $2',
+  [passwordHash, username]
 );
 
-if (result.affectedRows === 0) {
-  // User doesn't exist — create it
-  console.log('User not found, creating...');
-  await connection.execute(
-    `INSERT INTO local_users (name, username, passwordHash, role, active, createdAt, updatedAt)
-     VALUES (?, ?, ?, 'super_admin', 1, NOW(), NOW())`,
-    ['Super Administrador', USERNAME, passwordHash]
-  );
-  console.log('✓ Super-admin criado com sucesso!');
+if (result.rowCount > 0) {
+  console.log(`Senha do "${username}" resetada com sucesso.`);
+  console.log(`  Nova senha: ${newPassword}`);
+  console.log(`  ⚠️  Altere após o login.`);
 } else {
-  console.log(`✓ Senha atualizada para o usuário "${USERNAME}"`);
+  console.log(`Usuário "${username}" não encontrado. Rode create-super-admin.mjs primeiro.`);
 }
 
-// Final verification from DB
-const [rows] = await connection.execute(
-  'SELECT id, name, username, role, active FROM local_users WHERE username = ?',
-  [USERNAME]
-);
-console.log('Registro no banco:', JSON.stringify(rows[0]));
-
-await connection.end();
-console.log('\n=== CREDENCIAIS DE ACESSO ===');
-console.log(`Usuário: ${USERNAME}`);
-console.log(`Senha:   ${NEW_PASSWORD}`);
-console.log('=============================');
+await client.end();

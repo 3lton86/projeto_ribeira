@@ -1,1 +1,0 @@
-ALTER TABLE `local_users` ADD `pendingApproval` int DEFAULT 0 NOT NULL;

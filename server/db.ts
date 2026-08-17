@@ -1,7 +1,6 @@
 import { and, desc, eq, inArray, isNull, like, not, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { actions, actionDocuments, actionOrgaos, auditLog, comments, contactHistory, governanceNodes, history, InsertAuditLog, InsertLocalUser, InsertUser, localUsers, notifications, InsertNotification, orgaoResponsaveis, userOrgaos, users } from "../drizzle/schema";
-import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -39,13 +38,14 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = "admin";
-      updateSet.role = "admin";
     }
     if (!values.lastSignedIn) values.lastSignedIn = new Date();
     if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
-    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+    updateSet.updatedAt = new Date();
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
+      set: updateSet,
+    });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -102,12 +102,6 @@ export async function getActions(filters?: {
   return rows.map(r => ({ ...r, orgaoNames: orgaoMap[r.id] ?? [] }));
 }
 
-/**
- * Retorna apenas os itens (isGroup=0) cujo órgão está na lista de órgãos permitidos do usuário setorial.
- * Considera TANTO o campo legado `actions.orgao` QUANTO os órgãos registrados em `action_orgaos`
- * (tabela de múltiplos órgãos responsáveis por item).
- * Grupos (isGroup=1) são incluídos apenas se tiverem ao menos um filho visível.
- */
 export async function getActionsForSetorial(
   allowedOrgaos: string[],
   filters?: {
@@ -127,13 +121,11 @@ export async function getActionsForSetorial(
   if (filters?.search) conditions.push(like(actions.description, `%${filters.search}%`) as any);
   if (filters?.project) conditions.push(eq(actions.project, filters.project as any) as any);
 
-  // Buscar todos os registros (grupos + itens) com os filtros base
   const baseQuery = conditions.length > 0
     ? db.select().from(actions).where(and(...conditions)).orderBy(actions.area, actions.sortOrder)
     : db.select().from(actions).orderBy(actions.area, actions.sortOrder);
   const all = await baseQuery;
 
-  // Buscar todos os actionIds que possuem ao menos um dos órgãos permitidos em action_orgaos
   const coOrgaoRows = allowedOrgaos.length > 0
     ? await db
         .selectDistinct({ actionId: actionOrgaos.actionId })
@@ -142,31 +134,21 @@ export async function getActionsForSetorial(
     : [];
   const coOrgaoIds = new Set(coOrgaoRows.map((r) => r.actionId));
 
-  // Identificar quais itens (isGroup=0) são visíveis para este setorial
-  // Visível se: campo legado actions.orgao bate OU action_orgaos tem entrada para este órgão
   const visibleItems = all.filter((a) => {
     if (a.isGroup === 1) return false;
-    // Verificar campo legado
     if (a.orgao && allowedOrgaos.includes(a.orgao)) return true;
-    // Verificar tabela action_orgaos
     return coOrgaoIds.has(a.id);
   });
 
-  // Um grupo é visível se algum item visível pertence a ele
   const visibleGroups = all.filter((a) => {
     if (a.isGroup !== 1) return false;
     return visibleItems.some((item) => item.parentCode === a.itemCode);
   });
 
-  // Combinar grupos visíveis + itens visíveis, mantendo a ordem original
   const visibleIds = new Set([...visibleGroups.map((g) => g.id), ...visibleItems.map((i) => i.id)]);
   const result = all.filter((a) => visibleIds.has(a.id));
-  // Enriquecer com orgaoNames
+
   const orgaoMap2: Record<number, string[]> = {};
-  for (const o of coOrgaoRows) {
-    // coOrgaoRows só tem actionId; precisamos de todos os orgãos do item
-  }
-  // Buscar todos os orgaos dos itens visíveis
   const visibleItemIds = visibleItems.map(i => i.id);
   const visibleOrgaos = visibleItemIds.length > 0
     ? await db
@@ -191,15 +173,6 @@ export async function getActionById(id: number) {
 export async function getNextItemCode(area: string): Promise<string> {
   const db = await getDb();
   if (!db) return "1";
-  // Get all top-level items (isGroup=0) for this area, ordered by sortOrder desc
-  const rows = await db
-    .select({ itemCode: actions.itemCode, sortOrder: actions.sortOrder })
-    .from(actions)
-    .where(and(eq(actions.area, area as any), eq(actions.isGroup, 0)))
-    .orderBy(desc(actions.sortOrder))
-    .limit(1);
-  if (rows.length === 0) return "1";
-  // Generate next sequential code based on count
   const allRows = await db
     .select({ id: actions.id })
     .from(actions)
@@ -225,7 +198,6 @@ export async function createAction(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const itemCode = await getNextItemCode(data.area);
-  // Get max sortOrder for this area
   const maxRows = await db
     .select({ sortOrder: actions.sortOrder })
     .from(actions)
@@ -250,13 +222,15 @@ export async function createAction(data: {
     responsavelEmail: data.responsavelEmail,
     sortOrder: nextSortOrder,
     project: data.project ?? "ribeira",
-  });
-  return (result as any).insertId as number;
+  }).returning({ id: actions.id });
+  return result[0].id;
 }
 
 export async function updateAction(
   id: number,
   data: Partial<{
+    description: string;
+    area: "Governança" | "Técnico" | "Jurídico" | "Eco-Fin";
     status: "Pendente" | "Em Andamento" | "Concluído" | "Cancelado";
     priority: "Alta" | "Média" | "Baixa";
     dueDate: Date | null;
@@ -272,13 +246,12 @@ export async function updateAction(
 ) {
   const db = await getDb();
   if (!db) return;
-  await db.update(actions).set(data).where(eq(actions.id, id));
+  await db.update(actions).set({ ...data, updatedAt: new Date() }).where(eq(actions.id, id));
 }
 
 export async function deleteAction(id: number) {
   const db = await getDb();
   if (!db) return;
-  // Delete related records first (comments, history, documents)
   await db.delete(comments).where(eq(comments.actionId, id));
   await db.delete(history).where(eq(history.actionId, id));
   await db.delete(actionDocuments).where(eq(actionDocuments.actionId, id));
@@ -288,27 +261,17 @@ export async function deleteAction(id: number) {
 export async function updateGroupDescription(id: number, description: string) {
   const db = await getDb();
   if (!db) return;
-  await db.update(actions).set({ description }).where(eq(actions.id, id));
+  await db.update(actions).set({ description, updatedAt: new Date() }).where(eq(actions.id, id));
 }
 
-/**
- * Bulk-update sortOrder for a list of action IDs.
- * Accepts an array of { id, sortOrder } pairs.
- */
 export async function reorderActions(items: { id: number; sortOrder: number }[]) {
   const db = await getDb();
   if (!db || items.length === 0) return;
-  // Execute individual updates in a transaction-like batch
   for (const item of items) {
     await db.update(actions).set({ sortOrder: item.sortOrder }).where(eq(actions.id, item.id));
   }
 }
 
-/**
- * Create a sub-item under an existing action item.
- * parentCode is the itemCode of the parent (e.g. "3").
- * The new sub-item gets itemCode like "3.1", "3.2", etc.
- */
 export async function createSubItem(data: {
   area: "Governança" | "Técnico" | "Jurídico" | "Eco-Fin";
   parentId: number;
@@ -321,7 +284,6 @@ export async function createSubItem(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Count existing sub-items with the same parentCode in this area
   const existingSubs = await db
     .select({ id: actions.id })
     .from(actions)
@@ -335,7 +297,6 @@ export async function createSubItem(data: {
   const subIndex = existingSubs.length + 1;
   const itemCode = `${data.parentCode}.${subIndex}`;
 
-  // Get max sortOrder for this area to place at end
   const maxRows = await db
     .select({ sortOrder: actions.sortOrder })
     .from(actions)
@@ -354,8 +315,8 @@ export async function createSubItem(data: {
     status: data.status ?? "Pendente",
     dueDate: data.dueDate ?? null,
     sortOrder: nextSortOrder,
-  });
-  return (result as any).insertId as number;
+  }).returning({ id: actions.id });
+  return result[0].id;
 }
 
 // ---- COMMENTS ----
@@ -379,7 +340,6 @@ export async function getCommentsByActionId(actionId: number) {
     .leftJoin(localUsers, eq(comments.userId, localUsers.id))
     .where(eq(comments.actionId, actionId))
     .orderBy(desc(comments.createdAt));
-  // Resolve name and organization: prefer localUser (most users are local), fallback to OAuth user
   return rows.map(r => ({
     id: r.id,
     actionId: r.actionId,
@@ -420,7 +380,6 @@ export async function getHistoryByActionId(actionId: number) {
     .leftJoin(localUsers, eq(history.userId, localUsers.id))
     .where(eq(history.actionId, actionId))
     .orderBy(desc(history.createdAt));
-  // Resolve name and organization: prefer localUser (most users are local), fallback to OAuth user
   return rows.map(r => ({
     id: r.id,
     actionId: r.actionId,
@@ -571,7 +530,7 @@ export async function updateLocalUser(
 ) {
   const db = await getDb();
   if (!db) return;
-  await db.update(localUsers).set(data).where(eq(localUsers.id, id));
+  await db.update(localUsers).set({ ...data, updatedAt: new Date() }).where(eq(localUsers.id, id));
 }
 
 export async function deleteLocalUser(id: number) {
@@ -580,7 +539,7 @@ export async function deleteLocalUser(id: number) {
   await db.delete(localUsers).where(eq(localUsers.id, id));
 }
 
-// ---- USER ORGAOS (acesso setorial por órgão) ----
+// ---- USER ORGAOS ----
 
 export async function getUserOrgaos(userId: number): Promise<string[]> {
   const db = await getDb();
@@ -589,23 +548,14 @@ export async function getUserOrgaos(userId: number): Promise<string[]> {
   return rows.map(r => r.orgao);
 }
 
-/**
- * Replace all orgãos for a user.
- * Pass ["TODOS"] for unrestricted access, or an empty array to revoke all access.
- */
 export async function upsertUserOrgaos(userId: number, orgaos: string[]): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  // Delete existing entries for this user
   await db.delete(userOrgaos).where(eq(userOrgaos.userId, userId));
   if (orgaos.length === 0) return;
   await db.insert(userOrgaos).values(orgaos.map(orgao => ({ userId, orgao })));
 }
 
-/**
- * Check if a setorial user has access to a given orgão.
- * Returns true if the user has "TODOS" or the specific orgão in their list.
- */
 export async function setorialUserHasOrgaoAccess(userId: number, orgao: string | null | undefined): Promise<boolean> {
   const allowed = await getUserOrgaos(userId);
   if (allowed.includes("TODOS")) return true;
@@ -613,13 +563,6 @@ export async function setorialUserHasOrgaoAccess(userId: number, orgao: string |
   return allowed.includes(orgao);
 }
 
-/**
- * Check if a setorial user has access to a given action,
- * considering BOTH the legacy scalar orgao field AND all co-responsible
- * orgãos registered in action_orgaos table.
- * Returns true if the user has "TODOS", or if any of the action's orgãos
- * (legacy + co-responsible list) matches the user's allowed orgãos.
- */
 export async function setorialUserHasAccessToAction(
   userId: number,
   actionId: number,
@@ -627,9 +570,7 @@ export async function setorialUserHasAccessToAction(
 ): Promise<boolean> {
   const allowed = await getUserOrgaos(userId);
   if (allowed.includes("TODOS")) return true;
-  // Check legacy scalar field
   if (legacyOrgao && allowed.includes(legacyOrgao)) return true;
-  // Check co-responsible orgãos
   const coOrgaos = await getActionOrgaos(actionId);
   return coOrgaos.some(o => allowed.includes(o.orgao));
 }
@@ -655,10 +596,7 @@ export async function deleteActionDocument(id: number) {
   if (!db) return;
   await db.delete(actionDocuments).where(eq(actionDocuments.id, id));
 }
-/**
- * Retorna os IDs de actions que possuem documentos com o status especificado.
- * docFilter: 'any' = tem pelo menos 1 doc, 'pending' = tem doc com pendência, 'accepted' = tem doc aceito
- */
+
 export async function getActionIdsWithDocFilter(docFilter: 'any' | 'pending' | 'accepted'): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];
@@ -673,12 +611,14 @@ export async function getActionIdsWithDocFilter(docFilter: 'any' | 'pending' | '
   }
   return rows.map(r => r.actionId);
 }
+
 export async function getDocumentById(id: number) {
   const db = await getDb();
   if (!db) return null;
   const result = await db.select().from(actionDocuments).where(eq(actionDocuments.id, id)).limit(1);
   return result[0] ?? null;
 }
+
 export async function updateDocumentStatus(id: number, docStatus: string | null, updaterName: string) {
   const db = await getDb();
   if (!db) return;
@@ -690,6 +630,7 @@ export async function updateDocumentStatus(id: number, docStatus: string | null,
     })
     .where(eq(actionDocuments.id, id));
 }
+
 // ---- EXPORT DATA ----
 
 export async function getExportData(filters?: {
@@ -702,7 +643,6 @@ export async function getExportData(filters?: {
 }) {
   const db = await getDb();
   if (!db) return [];
-  // Fetch ALL rows (groups + items + sub-items) for the area filter, then apply item-level filters
   const areaConditions = [];
   if (filters?.area?.length) areaConditions.push(inArray(actions.area, filters.area as any));
   if (filters?.project) areaConditions.push(eq(actions.project, filters.project as any));
@@ -713,7 +653,6 @@ export async function getExportData(filters?: {
     .where(areaConditions.length > 0 ? and(...areaConditions) : undefined)
     .orderBy(actions.area, actions.sortOrder);
 
-  // Buscar todos os action_orgaos de uma vez (para filtro e enriquecimento)
   const allActionOrgaosRows = await db
     .select({
       actionId: actionOrgaos.actionId,
@@ -725,14 +664,12 @@ export async function getExportData(filters?: {
     })
     .from(actionOrgaos);
 
-  // Mapa: actionId -> lista de orgaos
   const orgaosByAction: Record<number, typeof allActionOrgaosRows> = {};
   for (const o of allActionOrgaosRows) {
     if (!orgaosByAction[o.actionId]) orgaosByAction[o.actionId] = [];
     orgaosByAction[o.actionId].push(o);
   }
 
-  // IDs de itens que possuem o(s) orgao(s) filtrado(s)
   const orgaoFilteredIds = filters?.orgao?.length
     ? new Set(
         allActionOrgaosRows
@@ -741,9 +678,8 @@ export async function getExportData(filters?: {
       )
     : null;
 
-  // Apply item-level filters only to non-group rows
   const itemConditionFn = (r: typeof allRows[0]) => {
-    if (r.isGroup === 1) return true; // groups are always included if area matches
+    if (r.isGroup === 1) return true;
     if (filters?.priority?.length && r.priority && !filters.priority.includes(r.priority)) return false;
     if (filters?.status?.length && !filters.status.includes(r.status)) return false;
     if (orgaoFilteredIds !== null && !orgaoFilteredIds.has(r.id)) return false;
@@ -751,15 +687,12 @@ export async function getExportData(filters?: {
     return true;
   };
 
-  const rows = allRows.filter(itemConditionFn);
-
-  const filtered = rows;
+  const filtered = allRows.filter(itemConditionFn);
 
   if (filtered.length === 0) return [];
 
-  // Fetch comments and docs only for non-group items
   const actionIds = filtered.filter(r => r.isGroup === 0).map(r => r.id);
-  const allComments = await db
+  const allComments = actionIds.length > 0 ? await db
     .select({
       id: comments.id,
       actionId: comments.actionId,
@@ -770,16 +703,14 @@ export async function getExportData(filters?: {
     .from(comments)
     .leftJoin(users, eq(comments.userId, users.id))
     .where(inArray(comments.actionId, actionIds))
-    .orderBy(comments.actionId, desc(comments.createdAt));
+    .orderBy(comments.actionId, desc(comments.createdAt)) : [];
 
-  // Fetch documents for all returned actions
-  const allDocs = await db
+  const allDocs = actionIds.length > 0 ? await db
     .select()
     .from(actionDocuments)
     .where(inArray(actionDocuments.actionId, actionIds))
-    .orderBy(actionDocuments.actionId, actionDocuments.createdAt);
+    .orderBy(actionDocuments.actionId, actionDocuments.createdAt) : [];
 
-  // Group comments and docs by actionId
   const commentsByAction: Record<number, typeof allComments> = {};
   for (const c of allComments) {
     if (!commentsByAction[c.actionId]) commentsByAction[c.actionId] = [];
@@ -795,9 +726,7 @@ export async function getExportData(filters?: {
     const orgaosDoItem = r.isGroup === 0 ? (orgaosByAction[r.id] ?? []) : [];
     return {
       ...r,
-      // Campos unificados de órgão: usa action_orgaos como fonte única
       orgaoNames: orgaosDoItem.map(o => o.orgao),
-      // Compat: primeiro órgão como campo escalar (para exportações legadas)
       orgao: orgaosDoItem[0]?.orgao ?? null,
       responsavelNome: orgaosDoItem[0]?.responsavelNome ?? null,
       responsavelCargo: orgaosDoItem[0]?.responsavelCargo ?? null,
@@ -815,7 +744,6 @@ export async function getExportData(filters?: {
 export async function createAuditLog(entry: InsertAuditLog): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  // Auto-populate project from the related action if not provided
   let project = entry.project;
   if (!project && entry.actionId) {
     try {
@@ -835,14 +763,10 @@ export async function getAuditLogByActionId(actionId: number) {
     .where(eq(auditLog.actionId, actionId))
     .orderBy(desc(auditLog.createdAt));
 }
+
 export async function getAuditLogAll(project?: string) {
   const db = await getDb();
   if (!db) return [];
-  const query = db
-    .select()
-    .from(auditLog)
-    .orderBy(desc(auditLog.createdAt))
-    .limit(500);
   if (project && project !== "all") {
     return db
       .select()
@@ -851,7 +775,11 @@ export async function getAuditLogAll(project?: string) {
       .orderBy(desc(auditLog.createdAt))
       .limit(500);
   }
-  return query;
+  return db
+    .select()
+    .from(auditLog)
+    .orderBy(desc(auditLog.createdAt))
+    .limit(500);
 }
 
 // ---- Notifications ----
@@ -860,6 +788,7 @@ export async function createNotification(entry: InsertNotification): Promise<voi
   if (!db) return;
   await db.insert(notifications).values(entry);
 }
+
 export async function createNotificationsForAdmins(
   entry: Omit<InsertNotification, 'userId'>,
   adminIds: number[]
@@ -868,6 +797,7 @@ export async function createNotificationsForAdmins(
   if (!db || adminIds.length === 0) return;
   await db.insert(notifications).values(adminIds.map(uid => ({ ...entry, userId: uid })));
 }
+
 export async function getNotificationsForUser(userId: number, type?: 'item_change' | 'comment_doc') {
   const db = await getDb();
   if (!db) return [];
@@ -880,6 +810,7 @@ export async function getNotificationsForUser(userId: number, type?: 'item_chang
     .orderBy(desc(notifications.createdAt))
     .limit(100);
 }
+
 export async function getUnreadCount(userId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -889,16 +820,19 @@ export async function getUnreadCount(userId: number): Promise<number> {
     .where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
   return Number(result[0]?.count ?? 0);
 }
+
 export async function markNotificationRead(id: number, userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(notifications).set({ isRead: 1 }).where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
 }
+
 export async function markAllNotificationsRead(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(notifications).set({ isRead: 1 }).where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
 }
+
 export async function getAdminAndSuperAdminIds(): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];
@@ -908,10 +842,10 @@ export async function getAdminAndSuperAdminIds(): Promise<number[]> {
     .where(and(inArray(localUsers.role, ['admin', 'super_admin']), eq(localUsers.active, 1)));
   return result.map(r => r.id);
 }
+
 export async function getSetorialUserIdsForOrgao(orgao: string): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];
-  // Busca setoriais com acesso ao órgão específico ou com acesso a TODOS
   const result = await db
     .select({ userId: userOrgaos.userId })
     .from(userOrgaos)
@@ -936,11 +870,10 @@ export async function approveUser(id: number): Promise<void> {
 export async function rejectUser(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  // Remove o usuário rejeitado
   await db.delete(localUsers).where(eq(localUsers.id, id));
 }
 
-// ---- Action Orgaos (múltiplos órgãos responsáveis) ----
+// ---- Action Orgaos ----
 
 export async function getActionOrgaos(actionId: number) {
   const db = await getDb();
@@ -962,7 +895,6 @@ export async function addActionOrgao(data: {
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  // Verificar se o órgão já existe neste item para evitar duplicatas
   const existing = await db
     .select({ id: actionOrgaos.id })
     .from(actionOrgaos)
@@ -971,7 +903,6 @@ export async function addActionOrgao(data: {
   if (existing.length > 0) {
     throw new Error(`O órgão "${data.orgao}" já está cadastrado como responsável por este item.`);
   }
-  // Get next sortOrder for this action
   const maxRows = await db
     .select({ sortOrder: actionOrgaos.sortOrder })
     .from(actionOrgaos)
@@ -987,8 +918,8 @@ export async function addActionOrgao(data: {
     responsavelTel: data.responsavelTel ?? null,
     responsavelEmail: data.responsavelEmail ?? null,
     sortOrder: nextSortOrder,
-  });
-  return (result as any).insertId as number;
+  }).returning({ id: actionOrgaos.id });
+  return result[0].id;
 }
 
 export async function updateActionOrgao(
@@ -1012,11 +943,6 @@ export async function removeActionOrgao(id: number): Promise<void> {
   await db.delete(actionOrgaos).where(eq(actionOrgaos.id, id));
 }
 
-/**
- * Returns per-organ statistics: total items linked, items with any document,
- * items with at least one accepted doc, items with at least one pending doc.
- * Optionally filtered by area.
- */
 export async function getOrgaoDocStats(area?: string, project?: string): Promise<
   Array<{
     orgao: string;
@@ -1028,7 +954,6 @@ export async function getOrgaoDocStats(area?: string, project?: string): Promise
 > {
   const db = await getDb();
   if (!db) return [];
-  // 1. Get all action_orgaos rows (with optional area and project filter via join)
   const orgaoRows = await db
     .select({
       orgao: actionOrgaos.orgao,
@@ -1046,7 +971,6 @@ export async function getOrgaoDocStats(area?: string, project?: string): Promise
 
   if (orgaoRows.length === 0) return [];
 
-  // 2. Get all documents for those actions
   const actionIds = Array.from(new Set(orgaoRows.map((r) => r.actionId)));
   const docs = await db
     .select({
@@ -1056,41 +980,23 @@ export async function getOrgaoDocStats(area?: string, project?: string): Promise
     .from(actionDocuments)
     .where(inArray(actionDocuments.actionId, actionIds));
 
-  // Build a map: actionId -> { hasDocs, hasAccepted, hasPending }
-  const docMap = new Map<
-    number,
-    { hasDocs: boolean; hasAccepted: boolean; hasPending: boolean }
-  >();
+  const docMap = new Map<number, { hasDocs: boolean; hasAccepted: boolean; hasPending: boolean }>();
   for (const doc of docs) {
-    const existing = docMap.get(doc.actionId) ?? {
-      hasDocs: false,
-      hasAccepted: false,
-      hasPending: false,
-    };
+    const existing = docMap.get(doc.actionId) ?? { hasDocs: false, hasAccepted: false, hasPending: false };
     existing.hasDocs = true;
     if (doc.docStatus === "accepted") existing.hasAccepted = true;
     if (doc.docStatus === "pending") existing.hasPending = true;
     docMap.set(doc.actionId, existing);
   }
 
-  // 3. Aggregate by organ
-  const orgaoMap = new Map<
-    string,
-    { actionIds: Set<number> }
-  >();
+  const orgaoMap = new Map<string, { actionIds: Set<number> }>();
   for (const row of orgaoRows) {
     const entry = orgaoMap.get(row.orgao) ?? { actionIds: new Set() };
     entry.actionIds.add(row.actionId);
     orgaoMap.set(row.orgao, entry);
   }
 
-  const result: Array<{
-    orgao: string;
-    totalItems: number;
-    withDocs: number;
-    docsAccepted: number;
-    docsPending: number;
-  }> = [];
+  const result: Array<{ orgao: string; totalItems: number; withDocs: number; docsAccepted: number; docsPending: number }> = [];
 
   for (const [orgao, { actionIds: ids }] of Array.from(orgaoMap.entries())) {
     let withDocs = 0;
@@ -1102,43 +1008,23 @@ export async function getOrgaoDocStats(area?: string, project?: string): Promise
       if (d?.hasAccepted) docsAccepted++;
       if (d?.hasPending) docsPending++;
     }
-    result.push({
-      orgao,
-      totalItems: ids.size,
-      withDocs,
-      docsAccepted,
-      docsPending,
-    });
+    result.push({ orgao, totalItems: ids.size, withDocs, docsAccepted, docsPending });
   }
 
-  // Sort by totalItems desc
   result.sort((a, b) => b.totalItems - a.totalItems);
   return result;
 }
 
 // ---- ORGAO RESPONSAVEIS ----
 
-export async function getOrgaoResponsaveis(orgao?: string): Promise<
-  Array<{
-    id: number;
-    orgao: string;
-    nome: string;
-    cargo: string | null;
-    telefone: string | null;
-    email: string | null;
-    localUserId: number | null;
-    sortOrder: number;
-    createdAt: Date;
-  }>
-> {
+export async function getOrgaoResponsaveis(orgao?: string) {
   const db = await getDb();
   if (!db) return [];
-  const rows = await db
+  return db
     .select()
     .from(orgaoResponsaveis)
     .where(orgao ? eq(orgaoResponsaveis.orgao, orgao) : undefined)
     .orderBy(orgaoResponsaveis.orgao, orgaoResponsaveis.sortOrder);
-  return rows;
 }
 
 export async function addOrgaoResponsavel(data: {
@@ -1152,7 +1038,7 @@ export async function addOrgaoResponsavel(data: {
 }): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const [result] = await db.insert(orgaoResponsaveis).values({
+  const result = await db.insert(orgaoResponsaveis).values({
     orgao: data.orgao,
     nome: data.nome,
     cargo: data.cargo ?? null,
@@ -1160,8 +1046,8 @@ export async function addOrgaoResponsavel(data: {
     email: data.email ?? null,
     localUserId: data.localUserId ?? null,
     sortOrder: data.sortOrder ?? 0,
-  });
-  return (result as { insertId: number }).insertId;
+  }).returning({ id: orgaoResponsaveis.id });
+  return result[0].id;
 }
 
 export async function updateOrgaoResponsavel(
@@ -1208,18 +1094,17 @@ export async function addContactHistory(data: {
 }): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const [result] = await db.insert(contactHistory).values({
+  const result = await db.insert(contactHistory).values({
     actionId: data.actionId,
     channel: data.channel,
     recipientName: data.recipientName ?? null,
     recipientContact: data.recipientContact ?? null,
     message: data.message ?? null,
     sentBy: data.sentBy ?? null,
-  });
-  return (result as any).insertId ?? 0;
+  }).returning({ id: contactHistory.id });
+  return result[0].id;
 }
 
-/** Retorna IDs de ações que possuem pelo menos um registro no histórico de contatos */
 export async function getActionIdsWithContact(): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];
@@ -1229,44 +1114,25 @@ export async function getActionIdsWithContact(): Promise<number[]> {
   return rows.map(r => r.actionId);
 }
 
-/** Retorna o registro mais recente de contato para cada ação que possui histórico */
 export async function getLastContactPerAction(): Promise<
   { actionId: number; channel: "email" | "whatsapp"; recipientName: string | null; sentAt: Date }[]
 > {
   const db = await getDb();
   if (!db) return [];
-  // Subquery: para cada actionId, pega o maior sentAt
-  const rows = await db
-    .select({
-      actionId: contactHistory.actionId,
-      channel: contactHistory.channel,
-      recipientName: contactHistory.recipientName,
-      sentAt: contactHistory.sentAt,
-    })
-    .from(contactHistory)
-    .innerJoin(
-      db
-        .select({
-          actionId: contactHistory.actionId,
-          maxSentAt: sql<Date>`MAX(${contactHistory.sentAt})`.as("maxSentAt"),
-        })
-        .from(contactHistory)
-        .groupBy(contactHistory.actionId)
-        .as("latest"),
-      and(
-        eq(contactHistory.actionId, sql`latest.actionId`),
-        eq(contactHistory.sentAt, sql`latest.maxSentAt`)
-      )
-    );
-  return rows.map(r => ({
+  // Use DISTINCT ON for PostgreSQL (much simpler than the MySQL subquery approach)
+  const rows = await db.execute(sql`
+    SELECT DISTINCT ON ("actionId") "actionId", "channel", "recipientName", "sentAt"
+    FROM "contact_history"
+    ORDER BY "actionId", "sentAt" DESC
+  `);
+  return (rows.rows as any[]).map(r => ({
     actionId: r.actionId,
     channel: r.channel,
     recipientName: r.recipientName,
-    sentAt: r.sentAt,
+    sentAt: new Date(r.sentAt),
   }));
 }
 
-/** Retorna os actionIds cujo órgão responsável (tabela action_orgaos) está na lista fornecida */
 export async function getActionIdsByOrgaos(orgaos: string[]): Promise<number[]> {
   if (!orgaos.length) return [];
   const db = await getDb();
@@ -1278,7 +1144,6 @@ export async function getActionIdsByOrgaos(orgaos: string[]): Promise<number[]> 
   return rows.map(r => r.actionId);
 }
 
-/** Retorna os actionIds cujo responsável (tabela action_orgaos) está na lista fornecida */
 export async function getActionIdsByResponsaveis(nomes: string[]): Promise<number[]> {
   if (!nomes.length) return [];
   const db = await getDb();
@@ -1290,7 +1155,6 @@ export async function getActionIdsByResponsaveis(nomes: string[]): Promise<numbe
   return rows.map(r => r.actionId);
 }
 
-/** Retorna lista de nomes únicos de responsáveis de action_orgaos (para popular o filtro) */
 export async function getResponsaveisDisponiveis(): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
@@ -1303,11 +1167,6 @@ export async function getResponsaveisDisponiveis(): Promise<string[]> {
 
 // ---- ÚLTIMAS ALTERAÇÕES ----
 
-/**
- * Retorna, para cada actionId fornecido, a data e o tipo do evento mais recente
- * considerando: history (edições de campos), comments (comentários),
- * actionDocuments (inclusão e mudança de status de documentos) e auditLog.
- */
 export async function getLastEventByAction(actionIds: number[]): Promise<
   Record<number, { lastEventAt: Date; lastEventType: string }>
 > {
@@ -1315,7 +1174,6 @@ export async function getLastEventByAction(actionIds: number[]): Promise<
   const db = await getDb();
   if (!db) return {};
 
-  // Buscar o evento mais recente de cada fonte para os actionIds fornecidos
   const [historyRows, commentRows, docRows, auditRows] = await Promise.all([
     db
       .select({ actionId: history.actionId, createdAt: history.createdAt })
@@ -1343,7 +1201,6 @@ export async function getLastEventByAction(actionIds: number[]): Promise<
       .orderBy(desc(auditLog.createdAt)),
   ]);
 
-  // Consolidar: para cada actionId, encontrar o evento mais recente entre todas as fontes
   const result: Record<number, { lastEventAt: Date; lastEventType: string }> = {};
 
   const updateIfNewer = (actionId: number, date: Date | null | undefined, type: string) => {
